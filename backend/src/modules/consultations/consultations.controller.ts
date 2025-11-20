@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import consultationsService from './consultations.service';
+import doctorsService from '../doctors/doctors.service';
 import { validate } from '@/middlewares/validation.middleware';
 import { AuthenticatedRequest } from '@/types';
 import { ConsultationType, ConsultationStatus } from '@prisma/client';
@@ -49,11 +50,15 @@ export class ConsultationsController {
       const limit = req.query.limit ? Number(req.query.limit) : undefined;
       const status = req.query.status as ConsultationStatus | undefined;
 
-      // Obtener doctorId del usuario
-      const doctor = await consultationsService.getById(req.params.doctorId);
-      if (!doctor) {
-        res.status(404).json({ error: 'Doctor no encontrado' });
-        return;
+      // Verificar que el doctor existe
+      try {
+        await doctorsService.getById(req.params.doctorId);
+      } catch (error: any) {
+        if (error.status === 404) {
+          res.status(404).json({ error: 'Doctor no encontrado' });
+          return;
+        }
+        throw error;
       }
 
       const result = await consultationsService.getByDoctor(req.params.doctorId, page, limit, status);
