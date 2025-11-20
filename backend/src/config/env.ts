@@ -3,6 +3,18 @@ import { z } from 'zod';
 
 config();
 
+// Preprocesar variables de entorno: convertir strings vacíos a undefined
+// Esto permite que Zod aplique los valores por defecto cuando las variables están vacías
+const preprocessEnv = () => {
+  const env = { ...process.env };
+  Object.keys(env).forEach((key) => {
+    if (env[key] === '') {
+      delete env[key];
+    }
+  });
+  return env;
+};
+
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   // PORT es opcional porque Railway lo asigna automáticamente en runtime (process.env.PORT)
@@ -50,7 +62,9 @@ export type EnvConfig = z.infer<typeof envSchema>;
 let env: EnvConfig;
 
 try {
-  env = envSchema.parse(process.env);
+  // Usar variables preprocesadas (strings vacíos convertidos a undefined)
+  const preprocessedEnv = preprocessEnv();
+  env = envSchema.parse(preprocessedEnv);
 } catch (error) {
   if (error instanceof z.ZodError) {
     console.error('❌ Error de configuración de variables de entorno:');
