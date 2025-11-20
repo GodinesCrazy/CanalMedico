@@ -1,11 +1,17 @@
+[providers]
+node = "18"
+
 [phases.setup]
-nixPkgs = ["nodejs-18_x", "postgresql_14"]
+nixPkgs = ["nodejs-18_x"]
 
 [phases.install]
-cmds = ["npm ci"]
+cmds = ["npm ci --only=production=false"]
 
 [phases.build]
-cmds = ["npm run build", "npx prisma generate"]
+cmds = [
+  "npx prisma generate",
+  "npm run build"
+]
 
 [start]
 cmd = "node dist/server.js"

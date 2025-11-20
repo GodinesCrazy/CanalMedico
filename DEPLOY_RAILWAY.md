@@ -2,6 +2,10 @@
 
 Esta guía te ayudará a desplegar el proyecto CanalMedico en Railway.
 
+## ⚠️ IMPORTANTE: Configurar Root Directory
+
+**Railway necesita que especifiques el Root Directory para cada servicio**. De lo contrario, intentará construir todo el repositorio y fallará.
+
 ## 🚀 Despliegue del Backend
 
 ### Paso 1: Crear Proyecto en Railway
@@ -10,7 +14,9 @@ Esta guía te ayudará a desplegar el proyecto CanalMedico en Railway.
 2. Haz clic en "New Project"
 3. Selecciona "Deploy from GitHub repo"
 4. Conecta tu repositorio: `https://github.com/GodinesCrazy/CanalMedico.git`
-5. Selecciona la carpeta `backend` como root directory
+5. **IMPORTANTE**: En la configuración del servicio, busca "Root Directory" o "Source"
+6. **Configura el Root Directory como: `backend`**
+7. Railway debería detectar automáticamente que es un proyecto Node.js
 
 ### Paso 2: Configurar Base de Datos PostgreSQL
 
@@ -19,21 +25,28 @@ Esta guía te ayudará a desplegar el proyecto CanalMedico en Railway.
 3. Railway creará automáticamente una base de datos PostgreSQL
 4. Copia la `DATABASE_URL` de las variables de entorno
 
-### Paso 3: Configurar Variables de Entorno
+### Paso 3: Conectar PostgreSQL al Backend
 
-En Railway, ve a "Variables" y agrega las siguientes variables:
+1. Haz clic en el servicio del backend
+2. Ve a la pestaña "Variables"
+3. Railway debería haber agregado automáticamente `DATABASE_URL` desde el servicio de PostgreSQL
+4. Si no está, haz clic en "Reference Variable" y selecciona `Postgres.DATABASE_URL`
+
+### Paso 4: Configurar Variables de Entorno
+
+En Railway, ve a "Variables" del servicio backend y agrega:
 
 ```env
-# Base de Datos
+# Base de Datos (se configura automáticamente si conectaste PostgreSQL)
 DATABASE_URL=${{Postgres.DATABASE_URL}}
 
 # Servidor
 NODE_ENV=production
 PORT=${{PORT}}
 
-# JWT
-JWT_SECRET=tu_jwt_secret_super_seguro_minimo_32_caracteres
-JWT_REFRESH_SECRET=tu_refresh_secret_super_seguro_minimo_32_caracteres
+# JWT (GENERA VALORES SEGUROS)
+JWT_SECRET=tu_jwt_secret_super_seguro_minimo_32_caracteres_genera_con_openssl
+JWT_REFRESH_SECRET=tu_refresh_secret_super_seguro_minimo_32_caracteres_genera_con_openssl
 JWT_EXPIRES_IN=15m
 JWT_REFRESH_EXPIRES_IN=7d
 
@@ -49,13 +62,13 @@ AWS_SECRET_ACCESS_KEY=tu_aws_secret_key
 AWS_REGION=us-east-1
 AWS_S3_BUCKET=canalmedico-files
 
-# Firebase
+# Firebase (opcional si usas notificaciones)
 FIREBASE_SERVER_KEY=tu_firebase_server_key
 FIREBASE_PROJECT_ID=tu_firebase_project_id
 FIREBASE_PRIVATE_KEY=tu_firebase_private_key
 FIREBASE_CLIENT_EMAIL=tu_firebase_client_email
 
-# CORS (URLs de producción)
+# CORS (actualiza con tus URLs de producción)
 FRONTEND_WEB_URL=https://tu-frontend.railway.app
 MOBILE_APP_URL=https://tu-app.com
 
@@ -66,35 +79,47 @@ RATE_LIMIT_MAX_REQUESTS=100
 LOG_LEVEL=info
 ```
 
-### Paso 4: Ejecutar Migraciones
+### Paso 5: Configurar Build Settings (si es necesario)
 
-Railway ejecutará automáticamente las migraciones durante el build gracias al script `postinstall` y `railway:deploy`.
+Si Railway no detecta automáticamente la configuración:
+
+1. Ve a "Settings" → "Build & Deploy"
+2. El "Build Command" debería ser: `npm install && npm run build && npx prisma generate`
+3. El "Start Command" debería ser: `node dist/server.js`
+
+### Paso 6: Ejecutar Migraciones
+
+Las migraciones se ejecutarán automáticamente durante el build gracias al script `postinstall`.
 
 Si necesitas ejecutarlas manualmente:
 
-1. En Railway, ve a tu servicio
-2. Abre la terminal
+1. En Railway, ve a tu servicio backend
+2. Abre la terminal (icono de terminal en la parte superior)
 3. Ejecuta: `npx prisma migrate deploy`
 
-### Paso 5: Configurar Dominio
+### Paso 7: Configurar Dominio
 
 1. En Railway, ve a "Settings" → "Networking"
 2. Haz clic en "Generate Domain" para obtener una URL automática
 3. O configura un dominio personalizado en "Custom Domain"
+4. **Copia esta URL** - la necesitarás para el frontend
 
 ## 🌐 Despliegue del Frontend Web
 
 ### Paso 1: Crear Nuevo Servicio en Railway
 
-1. En el mismo proyecto de Railway, haz clic en "+ New"
+1. En el **mismo proyecto** de Railway, haz clic en "+ New"
 2. Selecciona "GitHub Repo"
-3. Selecciona el mismo repositorio
-4. Configura el root directory como `frontend-web`
+3. Selecciona el mismo repositorio: `GodinesCrazy/CanalMedico`
+4. **IMPORTANTE**: En "Root Directory", configura: `frontend-web`
+5. Railway detectará automáticamente que es un proyecto Vite
 
 ### Paso 2: Configurar Variables de Entorno
 
+En "Variables" del servicio frontend-web, agrega:
+
 ```env
-# API
+# API (usa la URL del backend que obtuviste en el paso 7 del backend)
 VITE_API_URL=https://tu-backend.railway.app
 
 # Stripe
@@ -106,14 +131,17 @@ VITE_FIREBASE_AUTH_DOMAIN=tu_project.firebaseapp.com
 VITE_FIREBASE_PROJECT_ID=tu_firebase_project_id
 ```
 
-### Paso 3: Configurar Build y Start
+### Paso 3: Configurar Build Settings
 
-Railway detectará automáticamente que es un proyecto Vite. El build se ejecutará automáticamente.
+1. Ve a "Settings" → "Build & Deploy"
+2. El "Build Command" debería ser: `npm install && npm run build`
+3. El "Start Command" debería ser: `npm run preview`
+4. El "Output Directory" debería ser: `dist`
 
 ### Paso 4: Configurar Dominio
 
-1. Genera un dominio en Railway o configura uno personalizado
-2. Actualiza `FRONTEND_WEB_URL` en las variables del backend
+1. Genera un dominio en Railway
+2. **Actualiza `FRONTEND_WEB_URL` en las variables del backend** con esta nueva URL
 
 ## 📱 Configurar App Móvil
 
@@ -132,6 +160,18 @@ La app móvil se despliega directamente en las tiendas (App Store / Play Store) 
 3. Selecciona los eventos: `checkout.session.completed`, `payment_intent.payment_failed`
 4. Copia el webhook secret y agrégalo a `STRIPE_WEBHOOK_SECRET` en Railway
 
+### Generar JWT Secrets Seguros
+
+En tu terminal local o en Railway:
+
+```bash
+# Generar JWT_SECRET
+openssl rand -base64 32
+
+# Generar JWT_REFRESH_SECRET
+openssl rand -base64 32
+```
+
 ### Monitoreo y Logs
 
 Railway proporciona logs en tiempo real:
@@ -141,41 +181,62 @@ Railway proporciona logs en tiempo real:
 
 ## 📋 Checklist de Despliegue
 
-- [ ] Backend desplegado en Railway
-- [ ] Base de datos PostgreSQL configurada
-- [ ] Variables de entorno configuradas
+- [ ] Backend desplegado en Railway con **Root Directory = backend**
+- [ ] Base de datos PostgreSQL agregada y conectada
+- [ ] Variables de entorno del backend configuradas
 - [ ] Migraciones de Prisma ejecutadas
 - [ ] Dominio del backend configurado
-- [ ] Frontend Web desplegado en Railway
+- [ ] Frontend Web desplegado con **Root Directory = frontend-web**
 - [ ] Variables de entorno del frontend configuradas
 - [ ] Dominio del frontend configurado
-- [ ] Webhooks de Stripe configurados
 - [ ] CORS actualizado con URLs de producción
+- [ ] Webhooks de Stripe configurados
 - [ ] App Móvil configurada con URL del backend
 
 ## 🐛 Troubleshooting
 
+### Error: "Nixpacks was unable to generate a build plan"
+**Solución**: Asegúrate de configurar el **Root Directory** correctamente:
+- Backend: `backend`
+- Frontend: `frontend-web`
+
 ### Error de conexión a la base de datos
 - Verifica que `DATABASE_URL` esté correctamente configurada
-- Asegúrate de que la base de datos PostgreSQL esté activa
+- Asegúrate de haber conectado el servicio PostgreSQL al backend en Railway
+- Verifica que la base de datos PostgreSQL esté activa
 
 ### Error en las migraciones
 - Ejecuta manualmente: `npx prisma migrate deploy` en la terminal de Railway
+- Verifica que `DATABASE_URL` sea correcta
 
 ### CORS Errors
 - Actualiza `FRONTEND_WEB_URL` y `MOBILE_APP_URL` en las variables del backend
+- Asegúrate de usar las URLs correctas de Railway (https://...)
 
 ### Build fails
 - Verifica que todas las dependencias estén en `package.json`
 - Revisa los logs de Railway para errores específicos
+- Asegúrate de que el Root Directory esté configurado correctamente
+
+### El servicio no inicia
+- Verifica que `dist/server.js` exista después del build
+- Revisa los logs de Railway para errores
+- Verifica que todas las variables de entorno necesarias estén configuradas
 
 ## 🔗 Enlaces Útiles
 
 - [Documentación de Railway](https://docs.railway.app/)
 - [Railway Dashboard](https://railway.app/dashboard)
 - [Prisma Deployment Guide](https://www.prisma.io/docs/guides/deployment)
+- [Railway Root Directory Configuration](https://docs.railway.app/deploy/builds#root-directory)
+
+## 📝 Notas Importantes
+
+1. **Root Directory es CRÍTICO**: Debes configurarlo para cada servicio
+2. **Variables de entorno**: Asegúrate de usar `${{Postgres.DATABASE_URL}}` para la base de datos
+3. **URLs de producción**: Actualiza CORS después de obtener los dominios
+4. **Build automático**: Railway construye automáticamente en cada push a GitHub
 
 ---
 
 **Nota**: Recuerda actualizar las URLs en producción después de desplegar cada servicio.
-
