@@ -57,9 +57,12 @@ Agrega estas variables **una por una** haciendo clic en **"+ New Variable"**:
 
 - Variable: `API_URL`
 - Valor: Primero necesitas obtener el dominio de Railway:
-  1. Ve a **Settings** → **Networking**
-  2. Haz clic en **"Generate Domain"** (por ejemplo: `https://tu-backend.railway.app`)
-  3. Copia esta URL y úsala como valor de `API_URL`
+  1. **Ve al servicio backend** (no a Project Settings, sino al servicio individual)
+  2. Ve a **Settings** del servicio → **Networking**
+  3. Haz clic en **"Generate Domain"** (por ejemplo: `https://tu-backend-production.up.railway.app`)
+  4. Copia esta URL y úsala como valor de `API_URL`
+  
+  **Nota**: Si no encuentras Networking, ver guía detallada en `RAILWAY_CONFIGURAR_DOMINIO.md`
 
 ##### 3. JWT Secrets (Genera valores seguros)
 
