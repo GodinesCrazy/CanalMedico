@@ -5,7 +5,9 @@ config();
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  PORT: z.string().transform(Number).pipe(z.number().int().positive()),
+  // PORT es opcional porque Railway lo asigna automáticamente en runtime (process.env.PORT)
+  // Si no está definido, usamos 3000 por defecto
+  PORT: z.string().default('3000').transform(Number).pipe(z.number().int().positive()),
   API_URL: z.string().url(),
 
   DATABASE_URL: z.string().min(1),
