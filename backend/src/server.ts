@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import compression from 'compression';
 import morgan from 'morgan';
 import { createServer } from 'http';
+import path from 'path';
 import swaggerUi from 'swagger-ui-express';
 import swaggerJsdoc from 'swagger-jsdoc';
 
@@ -50,7 +51,7 @@ const swaggerOptions: swaggerJsdoc.Options = {
     servers: [
       {
         url: env.API_URL,
-        description: 'Servidor de desarrollo',
+        description: 'Servidor de producción',
       },
     ],
     components: {
@@ -62,13 +63,13 @@ const swaggerOptions: swaggerJsdoc.Options = {
         },
       },
     },
-    security: [
-      {
-        bearerAuth: [],
-      },
-    ],
   },
-  apis: ['./src/**/*.routes.ts', './src/**/*.controller.ts'],
+  apis: [
+    path.join(__dirname, '../modules/**/*.routes.js'),
+    path.join(__dirname, '../modules/**/*.controller.js'),
+    path.join(__dirname, '../modules/**/*.routes.ts'),
+    path.join(__dirname, '../modules/**/*.controller.ts'),
+  ],
 };
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
