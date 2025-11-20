@@ -7,6 +7,8 @@ import { createServer } from 'http';
 import swaggerUi from 'swagger-ui-express';
 import swaggerJsdoc from 'swagger-jsdoc';
 
+import { execSync } from 'child_process';
+
 import env from '@/config/env';
 import logger from '@/config/logger';
 import prisma from '@/database/prisma';
@@ -126,9 +128,33 @@ app.use(errorHandler);
 // Inicializar Socket.io
 socketService.initialize(httpServer);
 
+// Función para ejecutar migraciones
+async function runMigrations() {
+  try {
+    logger.info('🔄 Ejecutando migraciones de la base de datos...');
+    execSync('npx prisma migrate deploy', {
+      stdio: 'inherit',
+      env: process.env,
+    });
+    logger.info('✅ Migraciones ejecutadas correctamente');
+  } catch (error) {
+    logger.error('❌ Error al ejecutar migraciones:', error);
+    // En producción, si fallan las migraciones, el servidor no debe iniciar
+    if (env.NODE_ENV === 'production') {
+      logger.error('⚠️ En producción, el servidor no puede iniciar sin migraciones exitosas');
+      process.exit(1);
+    } else {
+      logger.warn('⚠️ Continuando en modo desarrollo aunque las migraciones fallaron');
+    }
+  }
+}
+
 // Función para iniciar el servidor
 async function startServer() {
   try {
+    // Ejecutar migraciones antes de iniciar el servidor
+    await runMigrations();
+    
     // Verificar variables temporales y mostrar advertencias
     if (env.STRIPE_SECRET_KEY.includes('temporal_placeholder')) {
       logger.warn('⚠️ STRIPE_SECRET_KEY está usando un valor temporal. Configura tu clave real de Stripe.');
@@ -136,25 +162,36 @@ async function startServer() {
     if (env.AWS_ACCESS_KEY_ID.includes('TEMPORAL_PLACEHOLDER')) {
       logger.warn('⚠️ Variables de AWS están usando valores temporales. Configura tus credenciales reales de AWS.');
     }
+    if (env.FRONTEND_WEB_URL === 'http://localhost:5173') {
+      logger.warn('⚠️ FRONTEND_WEB_URL está usando un valor temporal. Configura la URL real de tu frontend web.');
+    }
+    if (env.MOBILE_APP_URL === 'http://localhost:8081') {
+      logger.warn('⚠️ MOBILE_APP_URL está usando un valor temporal. Configura la URL real de tu aplicación móvil.');
+    }
     
     // Usar PORT de Railway si está disponible, sino usar env.PORT
     // Railway asigna PORT como string, necesitamos convertirlo a número
     const port = process.env.PORT ? parseInt(process.env.PORT, 10) : env.PORT;
     
-    // Iniciar servidor HTTP primero (para que Railway pueda hacer healthcheck)
-    httpServer.listen(port, '0.0.0.0', async () => {
+    // Conectar a la base de datos antes de iniciar el servidor
+    try {
+      await prisma.$connect();
+      logger.info('✅ Conexión a la base de datos establecida');
+    } catch (dbError) {
+      logger.error('❌ Error al conectar a la base de datos:', dbError);
+      if (env.NODE_ENV === 'production') {
+        logger.error('⚠️ En producción, el servidor no puede iniciar sin conexión a la base de datos');
+        process.exit(1);
+      } else {
+        logger.warn('⚠️ Continuando en modo desarrollo aunque la conexión falló');
+      }
+    }
+    
+    // Iniciar servidor HTTP
+    httpServer.listen(port, '0.0.0.0', () => {
       logger.info(`🚀 Servidor corriendo en puerto ${port}`);
       logger.info(`📚 Documentación API disponible en ${env.API_URL}/api-docs`);
       logger.info(`🌍 Ambiente: ${env.NODE_ENV}`);
-      
-      // Intentar conectar a la base de datos después de iniciar el servidor
-      try {
-        await prisma.$connect();
-        logger.info('✅ Conexión a la base de datos establecida');
-      } catch (dbError) {
-        logger.error('⚠️ Advertencia: No se pudo conectar a la base de datos:', dbError);
-        logger.warn('El servidor continuará ejecutándose, pero algunas funcionalidades pueden no estar disponibles');
-      }
     });
   } catch (error) {
     logger.error('❌ Error al iniciar el servidor:', error);
