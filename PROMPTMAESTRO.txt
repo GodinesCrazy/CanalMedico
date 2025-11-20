@@ -1,0 +1,523 @@
+PROMPT MAESTRO – CREACIÓN COMPLETA DEL PROYECTO “CanalMedico”
+
+Quiero que construyas desde cero hasta 100% terminado el proyecto completo llamado CanalMedico, una plataforma médica profesional para consultas asincrónicas vía chat pagado, con app web profesional para médicos y app móvil para pacientes.
+
+Debes ejecutar automáticamente todos los pasos, desde arquitectura, código, diseño, infraestructura, autenticación, chat, pagos, bases de datos, APIs, seguridad y despliegue. Tu objetivo es entregar un software empresarial, escalable, seguro, sin errores, perfectamente organizado y listo para producción real.
+
+Este prompt tiene autoridad total sobre todas las decisiones técnicas, y debes seguirlo literalmente.
+
+🟦 1. Nombre del proyecto y directorio raíz
+
+Yo crearé manualmente este directorio en mi disco.
+Debes usarlo como única raíz:
+
+C:\CanalMedico
+
+
+Todas las carpetas, repositorios y componentes deben generarse dentro de esa ruta.
+
+🟩 2. Alcance general del proyecto
+
+CanalMedico es un software que permite:
+
+Que médicos cobren por consultas asincrónicas vía chat.
+
+Que pacientes contacten a su médico enviando texto, fotos, PDFs y audios.
+
+Que la plataforma cobre automáticamente un fee/comisión.
+
+Que exista un panel web profesional para médicos.
+
+Que exista una app móvil (Expo) para pacientes.
+
+Que WhatsApp pueda redirigir automáticamente a la plataforma mediante deep links.
+
+Que el sistema funcione 24/7, sea seguro, rápido y escalable.
+
+🟧 3. Tecnologías obligatorias
+FRONTEND WEB (Médicos)
+
+React + Vite
+
+TypeScript
+
+TailwindCSS
+
+Zustand (estado global)
+
+Axios (API client)
+
+React Router
+
+Firebase/OneSignal (notificaciones web)
+
+UI moderna profesional (tipo SaaS médico)
+
+APP MÓVIL (Pacientes)
+
+React Native
+
+Expo (última versión)
+
+TypeScript
+
+React Navigation
+
+Zustand
+
+Manejo multimedia (fotos, videos, audio, PDF)
+
+Deep links
+
+Push notifications
+
+Pantallas: login, chat, pago, historial, perfil
+
+BACKEND API
+
+Node.js LTS
+
+Express.js
+
+TypeScript estricto
+
+Prisma ORM
+
+PostgreSQL
+
+Socket.io (chat en tiempo real)
+
+JWT + refresh tokens
+
+Zod para validación
+
+Multer + S3 para archivos
+
+Stripe/MercadoPago para pagos
+
+Swagger/OpenAPI
+
+Winston para logs
+
+BASE DE DATOS
+
+PostgreSQL
+
+Prisma con migraciones completas
+
+Relaciones profesionales-pacientes-consultas-mensajes
+
+INFRAESTRUCTURA
+
+AWS EC2
+
+AWS RDS
+
+AWS S3
+
+Nginx reverse proxy
+
+Certbot HTTPS
+
+CloudFront CDN
+
+PM2 para orquestación backend
+
+🟥 4. Arquitectura de carpetas estándar obligatoria
+
+Crear exactamente esta estructura:
+
+/backend
+  /src
+    /modules
+      /auth
+      /users
+      /doctors
+      /patients
+      /consultations
+      /messages
+      /chats
+      /files
+      /payments
+      /notifications
+    /config
+    /middlewares
+    /utils
+    /types
+    /database
+  prisma/schema.prisma
+  package.json
+  tsconfig.json
+
+/frontend-web
+  /src
+    /components
+    /layouts
+    /pages
+    /store
+    /services
+    /hooks
+    /styles
+  package.json
+  tailwind.config.js
+  vite.config.js
+
+/app-mobile
+  /src
+    /screens
+    /components
+    /services
+    /store
+    /navigation
+    /theme
+  app.json
+  package.json
+
+🟦 5. Esquema de base de datos (completo, obligatorio)
+
+Debes definirlo en Prisma:
+
+User
+
+id
+
+email
+
+password
+
+role (admin/doctor/patient)
+
+createdAt
+
+Doctor
+
+id
+
+userId
+
+name
+
+speciality
+
+horarios JSON
+
+tarifaConsulta
+
+tarifaUrgencia
+
+estadoOnline
+
+Patient
+
+id
+
+userId
+
+name
+
+age
+
+medicalHistory JSON
+
+Consultation
+
+id
+
+doctorId
+
+patientId
+
+type (normal/urgencia)
+
+status (pending, paid, active, closed)
+
+paymentId
+
+createdAt
+
+Message
+
+id
+
+consultationId
+
+senderId
+
+text optional
+
+fileUrl optional
+
+audioUrl optional
+
+pdfUrl optional
+
+createdAt
+
+Payment
+
+id
+
+amount
+
+fee
+
+netAmount
+
+status (pending/paid/failed)
+
+stripeSessionId
+
+NotificationToken
+
+id
+
+userId
+
+deviceToken
+
+🟩 6. Funcionalidades obligatorias del backend
+Autenticación
+
+Registro
+
+Login
+
+Refresh token
+
+Roles
+
+Middlewares de protección
+
+Chat en tiempo real
+
+Crear consulta
+
+Enviar mensaje
+
+Enviar archivos, audio, PDF
+
+WebSockets mediante Socket.io
+
+Pagos
+
+Generar sesión de pago
+
+Webhook Stripe/MercadoPago
+
+Validar pago
+
+Activar consulta
+
+Descontar la comisión
+
+Registrar transacción
+
+Panel del médico
+
+Ver consultas
+
+Ver historial
+
+Responder mensajes
+
+Finalizar consulta
+
+Editar perfil
+
+Configurar tarifas
+
+Panel financiero completo
+
+Funciones del paciente
+
+Iniciar consulta
+
+Cargar fotos, PDFs, audios
+
+Chat 1:1
+
+Pagar consulta
+
+Ver historial
+
+Notificaciones push
+
+🟧 7. Integración con WhatsApp
+
+Implementar:
+
+Deep links:
+canalmedico://doctor/ID?openChat=true
+
+Plantillas que el médico pueda enviar por WhatsApp para redirigir al paciente.
+
+Opcional: con WhatsApp Cloud API generar auto-respuestas con link directo a la app.
+
+🟥 8. Seguridad obligatoria
+
+JWT con refresh tokens
+
+HTTPS en todas las capas
+
+Sanitización de entrada
+
+Rate-limiting en rutas sensibles
+
+CORS seguro
+
+AES256 para datos médicos sensibles
+
+Contraseñas con bcrypt
+
+Logs de auditoría
+
+Validación exhaustiva con Zod
+
+🟦 9. Frontend web – Requerimientos exactos
+Pantallas obligatorias:
+
+Login
+
+Dashboard del médico
+
+Lista de consultas
+
+Chat 1:1
+
+Configuración del médico
+
+Panel de ingresos
+
+Perfil del doctor
+
+Página de configuración de tarifas
+
+Página de historial médico
+
+Subida de archivos médicos
+
+🟩 10. App móvil – Requerimientos exactos
+Pantallas:
+
+Login
+
+Registrar paciente
+
+Seleccionar/scannear código del médico
+
+Iniciar consulta
+
+Chat 1:1
+
+Pago
+
+Historial de consultas
+
+Perfil
+
+Notificaciones
+
+Adjuntar archivos / audio / cámara
+
+🟧 11. Notificaciones push
+
+Implementación obligatoria:
+
+Firebase Cloud Messaging
+
+OneSignal como alternativa
+
+Enviar notificaciones en:
+
+pago recibido
+
+nuevo mensaje
+
+consulta finalizada
+
+consulta iniciada
+
+🟥 12. Pagos y comisiones
+
+Reglas obligatorias:
+
+El paciente paga 100% del valor
+
+Stripe devuelve el pago → backend lo valida
+
+Se descuenta automáticamente un fee monetizable
+
+El médico ve su saldo neto
+
+La plataforma guarda la comisión
+
+🟦 13. Generación automática de documentación
+
+Generar automáticamente:
+
+README general
+
+Documentación API con Swagger
+
+.env.example
+
+Manual de instalación
+
+Diagramas de arquitectura
+
+Guía de despliegue AWS
+
+Scripts de inicialización
+
+Docker-compose funcional
+
+🟩 14. Instrucciones para Cursor
+
+Debes:
+
+Crear toda la estructura de carpetas.
+
+Inicializar cada proyecto (frontend web, app móvil, backend).
+
+Crear código completo archivo por archivo, sin omisiones.
+
+Programar todos los endpoints.
+
+Crear todos los componentes React y React Native.
+
+Conectarlo todo entre sí.
+
+Escribir pruebas básicas.
+
+Documentar todo.
+
+Crear los scripts de deployment.
+
+No dejar nada pendiente.
+
+🟧 15. Regla estricta
+
+No generes prototipos.
+No generes placeholders.
+No generes archivos vacíos.
+Todo debe ser código real, funcional y listo para producción.
+
+🟦 16. Resultado esperado
+
+Cuando termines:
+
+El backend debe correr sin errores.
+
+El frontend web debe funcionar perfecto.
+
+La app móvil debe compilar y ejecutar sin fallos.
+
+Las notificaciones deben funcionar.
+
+El chat debe funcionar en tiempo real.
+
+Los pagos deben funcionar.
+
+Todo debe estar documentado.
+
+El sistema debe estar listo para producción en AWS.
