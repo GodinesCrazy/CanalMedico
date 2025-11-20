@@ -18,6 +18,7 @@ El proyecto está dividido en tres partes principales:
 - PostgreSQL 14+
 - Docker Desktop (opcional, para PostgreSQL)
 - npm 9.x o superior
+- Expo CLI (para app móvil)
 
 ### Instalación
 
@@ -83,7 +84,18 @@ CanalMedico/
 ├── backend/              # API Backend
 │   ├── src/
 │   │   ├── modules/      # Módulos de negocio
+│   │   │   ├── auth/
+│   │   │   ├── users/
+│   │   │   ├── doctors/
+│   │   │   ├── patients/
+│   │   │   ├── consultations/
+│   │   │   ├── messages/
+│   │   │   ├── chats/    # Socket.io
+│   │   │   ├── files/    # S3 uploads
+│   │   │   ├── payments/ # Stripe
+│   │   │   └── notifications/ # Firebase
 │   │   ├── config/       # Configuraciones
+│   │   ├── database/     # Prisma
 │   │   ├── middlewares/  # Middlewares
 │   │   ├── utils/        # Utilidades
 │   │   └── server.ts     # Servidor principal
@@ -94,21 +106,43 @@ CanalMedico/
 ├── frontend-web/         # Frontend Web (Médicos)
 │   ├── src/
 │   │   ├── pages/        # Páginas
+│   │   │   ├── LoginPage.tsx
+│   │   │   ├── DashboardPage.tsx
+│   │   │   ├── ConsultationsPage.tsx
+│   │   │   ├── ChatPage.tsx
+│   │   │   ├── SettingsPage.tsx
+│   │   │   ├── EarningsPage.tsx
+│   │   │   └── ProfilePage.tsx
 │   │   ├── components/   # Componentes
-│   │   ├── store/        # Estado global (Zustand)
+│   │   ├── layouts/      # Layouts
+│   │   ├── store/        # Zustand
 │   │   ├── services/     # Servicios API
-│   │   └── layouts/      # Layouts
+│   │   └── styles/       # Estilos
 │   └── package.json
 │
 ├── app-mobile/           # App Móvil (Pacientes)
 │   ├── src/
 │   │   ├── screens/      # Pantallas
-│   │   ├── components/   # Componentes
+│   │   │   ├── LoginScreen.tsx
+│   │   │   ├── RegisterScreen.tsx
+│   │   │   ├── HomeScreen.tsx
+│   │   │   ├── ChatScreen.tsx
+│   │   │   ├── PaymentScreen.tsx
+│   │   │   ├── HistoryScreen.tsx
+│   │   │   ├── ProfileScreen.tsx
+│   │   │   ├── ScannerScreen.tsx
+│   │   │   └── DoctorSearchScreen.tsx
 │   │   ├── navigation/   # Navegación
-│   │   └── services/     # Servicios
+│   │   ├── services/     # Servicios
+│   │   ├── store/        # Zustand
+│   │   ├── theme/        # Tema
+│   │   └── utils/        # Utilidades
+│   ├── app.json          # Config Expo
 │   └── package.json
 │
-└── docker-compose.yml    # Docker Compose para PostgreSQL
+├── docker-compose.yml    # Docker Compose para PostgreSQL
+├── README.md             # Este archivo
+└── PROMPTMAESTRO.txt     # Especificaciones completas
 ```
 
 ## 🔑 Variables de Entorno
@@ -136,6 +170,7 @@ VITE_STRIPE_PUBLISHABLE_KEY="..."
 
 ```env
 EXPO_PUBLIC_API_URL="http://localhost:3000"
+EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY="..."
 ```
 
 ## 🛠️ Tecnologías Utilizadas
@@ -153,8 +188,7 @@ EXPO_PUBLIC_API_URL="http://localhost:3000"
 - Winston (logs)
 
 ### Frontend Web
-- React 18
-- Vite
+- React 18 + Vite
 - TypeScript
 - TailwindCSS
 - Zustand (estado global)
@@ -163,11 +197,14 @@ EXPO_PUBLIC_API_URL="http://localhost:3000"
 - Socket.io Client
 
 ### App Móvil
-- React Native
-- Expo
+- React Native + Expo (~50.0.0)
 - TypeScript
 - React Navigation
 - Zustand
+- Expo Notifications
+- Expo Image Picker
+- Expo Barcode Scanner
+- Socket.io Client
 
 ## 📚 Funcionalidades Principales
 
@@ -178,24 +215,30 @@ EXPO_PUBLIC_API_URL="http://localhost:3000"
 - ✅ Configuración de tarifas
 - ✅ Panel de ingresos
 - ✅ Perfil y configuración
+- ✅ Notificaciones push
 
 ### Para Pacientes (App Móvil)
 - ✅ Registro e inicio de sesión
 - ✅ Búsqueda/selección de médicos
-- ✅ Iniciar consulta
+- ✅ Escaneo de códigos QR
+- ✅ Iniciar consulta (normal/urgencia)
 - ✅ Chat en tiempo real
 - ✅ Envío de archivos (fotos, PDFs, audio)
-- ✅ Pago de consultas
+- ✅ Pago de consultas con Stripe
 - ✅ Historial de consultas
+- ✅ Perfil del paciente
+- ✅ Notificaciones push
+- ✅ Deep links desde WhatsApp
 
 ### Sistema
-- ✅ Autenticación con JWT
+- ✅ Autenticación con JWT + refresh tokens
 - ✅ Chat en tiempo real con Socket.io
 - ✅ Pagos con Stripe (comisiones automáticas)
 - ✅ Subida de archivos a S3
 - ✅ Notificaciones push (Firebase)
-- ✅ Deep links para WhatsApp
+- ✅ Deep links para WhatsApp: `canalmedico://doctor/ID?openChat=true`
 - ✅ Seguridad completa (rate limiting, CORS, validación)
+- ✅ Documentación API con Swagger
 
 ## 🔒 Seguridad
 
@@ -206,6 +249,7 @@ EXPO_PUBLIC_API_URL="http://localhost:3000"
 - Validación exhaustiva con Zod
 - Sanitización de entrada
 - HTTPS en producción
+- AES256 para datos médicos sensibles
 
 ## 📖 Documentación API
 
@@ -220,6 +264,7 @@ cd backend
 npm run dev        # Modo desarrollo
 npm run build      # Compilar
 npm start          # Producción
+npm run prisma:studio  # Prisma Studio
 ```
 
 ### Frontend Web
@@ -234,6 +279,8 @@ npm run preview    # Preview de producción
 ```bash
 cd app-mobile
 npx expo start     # Modo desarrollo
+npx expo start --android  # Android
+npx expo start --ios      # iOS
 ```
 
 ## 🚢 Despliegue
@@ -271,6 +318,23 @@ npx expo start     # Modo desarrollo
 - Realiza backups regulares de la base de datos
 - Revisa los logs regularmente
 - Configura SSL/HTTPS en producción
+- Configura los deep links en producción
+
+## 🎯 Estado del Proyecto
+
+### ✅ Completado (100%)
+
+- ✅ Backend completo (API REST + Socket.io)
+- ✅ Frontend Web completo (Panel de médicos)
+- ✅ App Móvil completa (App de pacientes)
+- ✅ Base de datos con Prisma
+- ✅ Autenticación y autorización
+- ✅ Chat en tiempo real
+- ✅ Sistema de pagos (Stripe)
+- ✅ Subida de archivos (S3)
+- ✅ Notificaciones push
+- ✅ Deep links
+- ✅ Documentación completa
 
 ## 📄 Licencia
 
@@ -284,8 +348,11 @@ Este es un proyecto empresarial. Para contribuciones, contacta al equipo de desa
 
 Para soporte técnico, revisa la documentación o contacta al equipo de desarrollo.
 
+## 🔗 Repositorio
+
+GitHub: https://github.com/GodinesCrazy/CanalMedico.git
+
 ---
 
 **Versión:** 1.0.0  
 **Última actualización:** 2024
-
