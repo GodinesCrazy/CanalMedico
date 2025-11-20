@@ -34,6 +34,10 @@ Esta guía te ayudará a desplegar el proyecto CanalMedico en Railway.
 
 ### Paso 4: Configurar Variables de Entorno
 
+⚠️ **IMPORTANTE**: Esta es la causa más común de fallos. Debes configurar TODAS las variables requeridas.
+
+📖 **Ver guía detallada**: `RAILWAY_ENV_VARIABLES.md`
+
 En Railway, ve a "Variables" del servicio backend y agrega:
 
 ```env
@@ -43,20 +47,21 @@ DATABASE_URL=${{Postgres.DATABASE_URL}}
 # Servidor
 NODE_ENV=production
 PORT=${{PORT}}
+API_URL=https://tu-backend.railway.app  # ⚠️ IMPORTANTE: Obtén esto después de generar el dominio en Railway
 
-# JWT (GENERA VALORES SEGUROS)
+# JWT (GENERA VALORES SEGUROS con: openssl rand -base64 32)
 JWT_SECRET=tu_jwt_secret_super_seguro_minimo_32_caracteres_genera_con_openssl
 JWT_REFRESH_SECRET=tu_refresh_secret_super_seguro_minimo_32_caracteres_genera_con_openssl
 JWT_EXPIRES_IN=15m
 JWT_REFRESH_EXPIRES_IN=7d
 
-# Stripe
-STRIPE_SECRET_KEY=sk_live_...
-STRIPE_PUBLISHABLE_KEY=pk_live_...
-STRIPE_WEBHOOK_SECRET=whsec_...
+# Stripe (obtén de Stripe Dashboard → Developers → API Keys)
+STRIPE_SECRET_KEY=sk_test_... o sk_live_...
+STRIPE_PUBLISHABLE_KEY=pk_test_... o pk_live_...
+STRIPE_WEBHOOK_SECRET=whsec_...  # Opcional por ahora
 STRIPE_COMMISSION_FEE=0.15
 
-# AWS S3
+# AWS S3 (necesitas crear cuenta AWS y bucket S3)
 AWS_ACCESS_KEY_ID=tu_aws_access_key
 AWS_SECRET_ACCESS_KEY=tu_aws_secret_key
 AWS_REGION=us-east-1
@@ -68,16 +73,29 @@ FIREBASE_PROJECT_ID=tu_firebase_project_id
 FIREBASE_PRIVATE_KEY=tu_firebase_private_key
 FIREBASE_CLIENT_EMAIL=tu_firebase_client_email
 
-# CORS (actualiza con tus URLs de producción)
-FRONTEND_WEB_URL=https://tu-frontend.railway.app
-MOBILE_APP_URL=https://tu-app.com
+# CORS (actualiza con tus URLs de producción - puede ser temporal inicialmente)
+FRONTEND_WEB_URL=https://tu-frontend.railway.app  # Temporal: http://localhost:5173
+MOBILE_APP_URL=https://tu-app.com  # Temporal: http://localhost:8081
 
-# Otros
+# Otros (tienen valores por defecto)
 BCRYPT_ROUNDS=10
 RATE_LIMIT_WINDOW_MS=900000
 RATE_LIMIT_MAX_REQUESTS=100
 LOG_LEVEL=info
 ```
+
+**Variables CRÍTICAS que deben configurarse:**
+1. `DATABASE_URL` - De PostgreSQL en Railway (usa Reference Variable)
+2. `API_URL` - URL del backend en Railway (genera dominio primero)
+3. `JWT_SECRET` - Genera con `openssl rand -base64 32`
+4. `JWT_REFRESH_SECRET` - Genera con `openssl rand -base64 32`
+5. `STRIPE_SECRET_KEY` - De Stripe Dashboard
+6. `STRIPE_PUBLISHABLE_KEY` - De Stripe Dashboard
+7. `AWS_ACCESS_KEY_ID` - De AWS IAM
+8. `AWS_SECRET_ACCESS_KEY` - De AWS IAM
+9. `AWS_S3_BUCKET` - Nombre de tu bucket S3
+10. `FRONTEND_WEB_URL` - URL temporal o real del frontend
+11. `MOBILE_APP_URL` - URL temporal o real de la app móvil
 
 ### Paso 5: Configurar Build Settings (si es necesario)
 
@@ -102,7 +120,8 @@ Si necesitas ejecutarlas manualmente:
 1. En Railway, ve a "Settings" → "Networking"
 2. Haz clic en "Generate Domain" para obtener una URL automática
 3. O configura un dominio personalizado en "Custom Domain"
-4. **Copia esta URL** - la necesitarás para el frontend
+4. **Copia esta URL** (ejemplo: `https://tu-backend.railway.app`)
+5. **IMPORTANTE**: Actualiza la variable `API_URL` en "Variables" con esta URL
 
 ## 🌐 Despliegue del Frontend Web
 
