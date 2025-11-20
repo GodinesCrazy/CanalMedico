@@ -69,9 +69,20 @@ try {
 } catch (error) {
   if (error instanceof z.ZodError) {
     console.error('❌ Error de configuración de variables de entorno:');
+    console.error('');
     error.errors.forEach((err) => {
-      console.error(`  - ${err.path.join('.')}: ${err.message}`);
+      const path = err.path.join('.');
+      const message = err.message;
+      console.error(`  - ${path}: ${message}`);
     });
+    console.error('');
+    console.error('📋 Variables requeridas que deben configurarse en Railway:');
+    console.error('  1. DATABASE_URL → ${{Postgres.DATABASE_URL}}');
+    console.error('  2. API_URL → URL del backend (ej: https://canalmedico-production.up.railway.app)');
+    console.error('  3. JWT_SECRET → Mínimo 32 caracteres (genera con: openssl rand -base64 32)');
+    console.error('  4. JWT_REFRESH_SECRET → Mínimo 32 caracteres (genera con: openssl rand -base64 32)');
+    console.error('');
+    console.error('Ve a Railway → Servicio CanalMedico → Variables y configura estas variables.');
     process.exit(1);
   }
   throw error;

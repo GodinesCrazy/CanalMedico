@@ -24,22 +24,21 @@ const logger = winston.createLogger({
   ],
 });
 
-if (env.NODE_ENV !== 'production') {
-  logger.add(
-    new winston.transports.Console({
-      format: winston.format.combine(
-        winston.format.colorize(),
-        winston.format.printf(({ timestamp, level, message, ...meta }) => {
-          let msg = `${timestamp} [${level}]: ${message}`;
-          if (Object.keys(meta).length > 0) {
-            msg += ` ${JSON.stringify(meta)}`;
-          }
-          return msg;
-        })
-      ),
-    })
-  );
-}
+// Siempre mostrar logs en consola (importante para Railway y Docker)
+logger.add(
+  new winston.transports.Console({
+    format: winston.format.combine(
+      winston.format.colorize(),
+      winston.format.printf(({ timestamp, level, message, ...meta }) => {
+        let msg = `${timestamp} [${level}]: ${message}`;
+        if (Object.keys(meta).length > 0) {
+          msg += ` ${JSON.stringify(meta)}`;
+        }
+        return msg;
+      })
+    ),
+  })
+);
 
 export default logger;
 
