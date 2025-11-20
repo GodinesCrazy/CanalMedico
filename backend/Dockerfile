@@ -1,7 +1,7 @@
 FROM node:18-alpine
 
-# Instalar PostgreSQL client para Prisma
-RUN apk add --no-cache libpq
+# Instalar PostgreSQL client y OpenSSL para Prisma
+RUN apk add --no-cache libpq openssl openssl-dev
 
 WORKDIR /app
 
