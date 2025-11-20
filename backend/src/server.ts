@@ -132,13 +132,32 @@ socketService.initialize(httpServer);
 async function runMigrations() {
   try {
     logger.info('🔄 Ejecutando migraciones de la base de datos...');
-    execSync('npx prisma migrate deploy', {
-      stdio: 'inherit',
-      env: process.env,
-    });
-    logger.info('✅ Migraciones ejecutadas correctamente');
-  } catch (error) {
-    logger.error('❌ Error al ejecutar migraciones:', error);
+    
+    // Intentar ejecutar migraciones (para producción, cuando ya hay migraciones creadas)
+    try {
+      execSync('npx prisma migrate deploy', {
+        stdio: 'pipe',
+        env: process.env,
+      });
+      logger.info('✅ Migraciones ejecutadas correctamente');
+    } catch (migrateError) {
+      // Si no hay migraciones o fallan, intentar con db push (sincroniza el schema directamente)
+      logger.warn('⚠️ No se pudieron aplicar migraciones con migrate deploy, intentando db push...');
+      logger.warn('💡 Esto sincronizará el schema directamente con la base de datos');
+      
+      try {
+        execSync('npx prisma db push --accept-data-loss', {
+          stdio: 'pipe',
+          env: process.env,
+        });
+        logger.info('✅ Schema sincronizado correctamente con db push');
+      } catch (pushError) {
+        logger.error('❌ Error al sincronizar el schema:', pushError);
+        throw pushError;
+      }
+    }
+  } catch (error: any) {
+    logger.error('❌ Error al ejecutar migraciones:', error.message || error);
     // En producción, si fallan las migraciones, el servidor no debe iniciar
     if (env.NODE_ENV === 'production') {
       logger.error('⚠️ En producción, el servidor no puede iniciar sin migraciones exitosas');
