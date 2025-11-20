@@ -14,14 +14,17 @@ export default defineConfig({
     host: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:3000',
+        target: process.env.VITE_API_URL || 'http://localhost:3000',
         changeOrigin: true,
       },
     },
+  },
+  preview: {
+    port: process.env.PORT || 4173,
+    host: true,
   },
   build: {
     outDir: 'dist',
     sourcemap: true,
   },
 });
-
