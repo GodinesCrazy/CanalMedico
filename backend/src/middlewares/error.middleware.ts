@@ -12,7 +12,7 @@ export const errorHandler = (
   err: ApiError | ZodError | Error,
   req: Request,
   res: Response,
-  next: NextFunction
+  _next: NextFunction
 ): void => {
   // Error de validación Zod
   if (err instanceof ZodError) {
@@ -53,7 +53,7 @@ export const errorHandler = (
 export const notFoundHandler = (
   req: Request,
   res: Response,
-  next: NextFunction
+  _next: NextFunction
 ): void => {
   res.status(404).json({
     error: 'Ruta no encontrada',

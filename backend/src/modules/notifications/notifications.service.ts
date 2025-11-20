@@ -1,7 +1,6 @@
 import admin from 'firebase-admin';
 import env from '@/config/env';
 import prisma from '@/database/prisma';
-import { createError } from '@/middlewares/error.middleware';
 import logger from '@/config/logger';
 import { NotificationPayload } from '@/types';
 import socketService from '../chats/socket.service';

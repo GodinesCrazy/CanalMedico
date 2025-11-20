@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import multer from 'multer';
 import filesService from './files.service';
-import { authenticate } from '@/middlewares/auth.middleware';
 import { FileUpload } from '@/types';
 
 const upload = multer({
@@ -9,7 +8,7 @@ const upload = multer({
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB
   },
-  fileFilter: (req, file, cb) => {
+  fileFilter: (_req, file, cb) => {
     const allowedTypes = [
       'image/jpeg',
       'image/png',
@@ -33,28 +32,28 @@ const upload = multer({
 });
 
 export class FilesController {
-  async uploadFile(req: Request, res: Response, next: NextFunction) {
+  async uploadFile(_req: Request, res: Response, next: NextFunction) {
     try {
       const uploadSingle = upload.single('file');
 
-      uploadSingle(req, res, async (err) => {
+      uploadSingle(_req, res, async (err) => {
         if (err) {
           return next(err);
         }
 
-        if (!req.file) {
+        if (!_req.file) {
           res.status(400).json({ error: 'Archivo requerido' });
           return;
         }
 
-        const folder = req.body.folder || 'uploads';
+        const folder = _req.body.folder || 'uploads';
         const file: FileUpload = {
-          fieldname: req.file.fieldname,
-          originalname: req.file.originalname,
-          encoding: req.file.encoding,
-          mimetype: req.file.mimetype,
-          size: req.file.size,
-          buffer: req.file.buffer,
+          fieldname: _req.file.fieldname,
+          originalname: _req.file.originalname,
+          encoding: _req.file.encoding,
+          mimetype: _req.file.mimetype,
+          size: _req.file.size,
+          buffer: _req.file.buffer,
         };
 
         const result = await filesService.uploadFile(file, folder);

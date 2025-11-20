@@ -2,7 +2,6 @@ import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import authService from './auth.service';
 import { validate } from '@/middlewares/validation.middleware';
-import { createError } from '@/middlewares/error.middleware';
 import { UserRole } from '@prisma/client';
 
 // Schemas de validación

@@ -18,7 +18,7 @@ const envSchema = z.object({
   STRIPE_SECRET_KEY: z.string().min(1),
   STRIPE_PUBLISHABLE_KEY: z.string().min(1),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
-  STRIPE_COMMISSION_FEE: z.string().transform(Number).pipe(z.number().min(0).max(1)).default(0.15),
+  STRIPE_COMMISSION_FEE: z.string().default('0.15').transform(Number).pipe(z.number().min(0).max(1)),
 
   AWS_ACCESS_KEY_ID: z.string().min(1),
   AWS_SECRET_ACCESS_KEY: z.string().min(1),
@@ -33,9 +33,9 @@ const envSchema = z.object({
   FRONTEND_WEB_URL: z.string().url(),
   MOBILE_APP_URL: z.string().url(),
 
-  BCRYPT_ROUNDS: z.string().transform(Number).pipe(z.number().int().positive()).default(10),
-  RATE_LIMIT_WINDOW_MS: z.string().transform(Number).pipe(z.number().int().positive()).default(900000),
-  RATE_LIMIT_MAX_REQUESTS: z.string().transform(Number).pipe(z.number().int().positive()).default(100),
+  BCRYPT_ROUNDS: z.string().default('10').transform(Number).pipe(z.number().int().positive()),
+  RATE_LIMIT_WINDOW_MS: z.string().default('900000').transform(Number).pipe(z.number().int().positive()),
+  RATE_LIMIT_MAX_REQUESTS: z.string().default('100').transform(Number).pipe(z.number().int().positive()),
 
   LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
   LOG_FILE: z.string().optional(),

@@ -15,12 +15,12 @@ export const generateTokenPair = (id: string, email: string, role: UserRole): To
   };
 
   const accessToken = jwt.sign(payload, env.JWT_SECRET, {
-    expiresIn: env.JWT_EXPIRES_IN,
-  });
+    expiresIn: env.JWT_EXPIRES_IN as string,
+  } as jwt.SignOptions);
 
   const refreshToken = jwt.sign(payload, env.JWT_REFRESH_SECRET, {
-    expiresIn: env.JWT_REFRESH_EXPIRES_IN,
-  });
+    expiresIn: env.JWT_REFRESH_EXPIRES_IN as string,
+  } as jwt.SignOptions);
 
   return {
     accessToken,

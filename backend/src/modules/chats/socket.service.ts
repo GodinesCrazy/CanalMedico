@@ -6,7 +6,7 @@ import messagesService from '../messages/messages.service';
 import logger from '@/config/logger';
 
 export class SocketService {
-  private io: SocketIOServer;
+  private io!: SocketIOServer;
   private connectedUsers: Map<string, string> = new Map(); // userId -> socketId
 
   initialize(server: HttpServer) {

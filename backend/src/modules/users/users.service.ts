@@ -11,14 +11,6 @@ export class UsersService {
           doctor: true,
           patient: true,
         },
-        select: {
-          id: true,
-          email: true,
-          role: true,
-          createdAt: true,
-          doctor: true,
-          patient: true,
-        },
       });
 
       if (!user) {

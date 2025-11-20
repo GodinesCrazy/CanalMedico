@@ -30,7 +30,7 @@ export class DoctorsController {
     }
   }
 
-  async getOnlineDoctors(req: Request, res: Response, next: NextFunction) {
+  async getOnlineDoctors(_req: Request, res: Response, next: NextFunction) {
     try {
       const doctors = await doctorsService.getOnlineDoctors();
       res.json({

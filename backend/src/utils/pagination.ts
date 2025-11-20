@@ -1,4 +1,4 @@
-import { PaginationParams, PaginatedResponse } from '@/types';
+import { PaginatedResponse } from '@/types';
 
 export const getPaginationParams = (page?: number, limit?: number): { skip: number; take: number } => {
   const defaultPage = 1;

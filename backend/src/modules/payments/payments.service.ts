@@ -7,7 +7,7 @@ import { PaymentStatus } from '@prisma/client';
 import consultationsService from '../consultations/consultations.service';
 
 const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
-  apiVersion: '2024-11-20.acacia',
+  apiVersion: '2023-10-16',
 });
 
 export interface CreatePaymentSessionDto {
@@ -37,17 +37,17 @@ export class PaymentsService {
       }
 
       // Calcular monto según tipo de consulta
-      const amount = consultation.type === 'URGENCIA' 
-        ? consultation.doctor.tarifaUrgencia 
-        : consultation.doctor.tarifaConsulta;
+      const amountValue = consultation.type === 'URGENCIA' 
+        ? Number(consultation.doctor.tarifaUrgencia)
+        : Number(consultation.doctor.tarifaConsulta);
 
-      if (amount <= 0) {
+      if (amountValue <= 0) {
         throw createError('La tarifa no está configurada', 400);
       }
 
       // Calcular fee y monto neto
-      const fee = amount * env.STRIPE_COMMISSION_FEE;
-      const netAmount = amount - fee;
+      const fee = amountValue * env.STRIPE_COMMISSION_FEE;
+      const netAmount = amountValue - fee;
 
       // Crear sesión de pago en Stripe
       const session = await stripe.checkout.sessions.create({
@@ -60,7 +60,7 @@ export class PaymentsService {
                 name: `Consulta médica - ${consultation.type === 'URGENCIA' ? 'Urgencia' : 'Normal'}`,
                 description: `Consulta con Dr. ${consultation.doctor.name}`,
               },
-              unit_amount: Math.round(amount * 100), // Stripe usa centavos
+              unit_amount: Math.round(amountValue * 100), // Stripe usa centavos
             },
             quantity: 1,
           },
@@ -79,7 +79,7 @@ export class PaymentsService {
       // Crear registro de pago
       const payment = await prisma.payment.create({
         data: {
-          amount,
+          amount: amountValue,
           fee,
           netAmount,
           status: PaymentStatus.PENDING,
