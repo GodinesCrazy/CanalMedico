@@ -1,0 +1,443 @@
+# 📚 Cómo Funciona CanalMedico - Guía Completa
+
+**Versión:** 1.0.0  
+**Última actualización:** 2025-11-20
+
+---
+
+## 🎯 ¿Qué es CanalMedico?
+
+**CanalMedico** es una **plataforma médica profesional** que permite:
+
+1. **Médicos** cobren por consultas asíncronas vía chat
+2. **Pacientes** contacten a su médico enviando texto, fotos, PDFs y audios
+3. **La plataforma** cobre automáticamente una comisión por cada consulta
+4. **Sistema 24/7** seguro, rápido y escalable
+
+### Propósito Principal:
+Conectar médicos y pacientes a través de un **chat médico asíncrono y pagado**, similar a una consulta médica tradicional pero vía digital.
+
+---
+
+## 🏗️ Arquitectura del Sistema
+
+CanalMedico está dividido en **3 componentes principales**:
+
+```
+CanalMedico/
+├── 📱 Backend API (Node.js + Express)
+│   └── Servidor central que maneja toda la lógica
+│
+├── 💻 Frontend Web (React + Vite)
+│   └── Panel profesional para médicos
+│
+└── 📲 App Móvil (React Native + Expo)
+    └── Aplicación para pacientes
+```
+
+---
+
+## 🔧 ¿Qué Hace Actualmente el Backend?
+
+El backend es el **corazón del sistema**. Actualmente está **100% funcional** y hace lo siguiente:
+
+### 1. **Servidor HTTP (Express.js)**
+- ✅ Escucha en el puerto configurado (3000 local, Railway asigna uno automático)
+- ✅ Responde a peticiones HTTP/HTTPS
+- ✅ Maneja CORS para permitir conexiones del frontend y app móvil
+- ✅ Comprime respuestas para mejorar velocidad
+- ✅ Registra todas las peticiones en logs
+
+### 2. **Autenticación y Autorización**
+- ✅ **Registro de usuarios** (`POST /api/auth/register`)
+  - Crea cuentas para doctores, pacientes o administradores
+  - Hashea contraseñas con bcrypt
+  - Genera tokens JWT
+  
+- ✅ **Login** (`POST /api/auth/login`)
+  - Verifica credenciales
+  - Devuelve tokens de acceso y refresh
+  - Implementa rate limiting para prevenir ataques
+  
+- ✅ **Refresh Token** (`POST /api/auth/refresh`)
+  - Renueva tokens de acceso sin requerir login nuevamente
+
+### 3. **Gestión de Usuarios**
+- ✅ **Obtener perfil** (`GET /api/users/profile`)
+  - Devuelve información completa del usuario autenticado
+  - Incluye datos de doctor o paciente según el rol
+  
+- ✅ **Actualizar perfil** (`PUT /api/users/profile`)
+  - Permite actualizar nombre, especialidad, tarifas, horarios, etc.
+  - Valida datos antes de guardar
+
+### 4. **Gestión de Doctores**
+- ✅ **Listar doctores** (`GET /api/doctors`)
+  - Muestra todos los doctores registrados
+  - Incluye paginación
+  - Muestra información pública (nombre, especialidad, tarifas)
+  
+- ✅ **Doctores en línea** (`GET /api/doctors/online`)
+  - Lista solo doctores disponibles actualmente
+  - Útil para pacientes buscando atención inmediata
+  
+- ✅ **Obtener doctor por ID** (`GET /api/doctors/:id`)
+  - Muestra información detallada de un doctor específico
+  
+- ✅ **Actualizar estado en línea** (`PUT /api/doctors/:id/online-status`)
+  - Permite a doctores indicar si están disponibles o no
+  
+- ✅ **Estadísticas del doctor** (`GET /api/doctors/:id/statistics`)
+  - Muestra métricas: consultas totales, ingresos, etc.
+
+### 5. **Gestión de Pacientes**
+- ✅ **Obtener paciente por ID** (`GET /api/patients/:id`)
+  - Muestra información de un paciente
+  
+- ✅ **Obtener paciente por usuario** (`GET /api/patients/user/:userId`)
+  - Encuentra paciente a partir del ID de usuario
+
+### 6. **Consultas Médicas** (Funcionalidad Core)
+- ✅ **Crear consulta** (`POST /api/consultations`)
+  - Un paciente crea una nueva consulta con un doctor
+  - Define tipo: NORMAL o URGENCIA
+  - Estado inicial: PENDING (pendiente de pago)
+  
+- ✅ **Obtener consulta** (`GET /api/consultations/:id`)
+  - Muestra información completa de una consulta
+  
+- ✅ **Listar consultas del doctor** (`GET /api/consultations/doctor/:doctorId`)
+  - Muestra todas las consultas de un doctor específico
+  - Incluye filtros por estado y paginación
+  
+- ✅ **Listar consultas del paciente** (`GET /api/consultations/patient/:patientId`)
+  - Muestra todas las consultas de un paciente
+  - Incluye filtros por estado y paginación
+  
+- ✅ **Activar consulta** (`PATCH /api/consultations/:id/activate`)
+  - Cambia estado de PENDING a ACTIVE después del pago
+  - Asociado al webhook de Stripe
+  
+- ✅ **Cerrar consulta** (`PATCH /api/consultations/:id/close`)
+  - El doctor cierra la consulta
+  - Cambia estado a CLOSED
+
+**Flujo de Estados de Consulta:**
+```
+PENDING → PAID → ACTIVE → CLOSED
+  ↓        ↓        ↓         ↓
+Pendiente Pagado  Activa   Cerrada
+```
+
+### 7. **Mensajes (Chat Asíncrono)**
+- ✅ **Crear mensaje** (`POST /api/messages`)
+  - Envía mensajes en una consulta activa
+  - Soporta: texto, imágenes, PDFs, audios
+  - Asociado a una consulta específica
+  
+- ✅ **Obtener mensajes de consulta** (`GET /api/messages/consultation/:consultationId`)
+  - Lista todos los mensajes de una consulta
+  - Ordenados por fecha de creación
+  
+- ✅ **Obtener mensaje por ID** (`GET /api/messages/:id`)
+  - Muestra un mensaje específico
+
+**Nota:** Aunque el backend tiene Socket.io configurado para chat en tiempo real, actualmente los mensajes se gestionan de forma asíncrona (no en tiempo real aún).
+
+### 8. **Pagos (Integración Stripe)**
+- ✅ **Crear sesión de pago** (`POST /api/payments/session`)
+  - Crea una sesión de checkout de Stripe
+  - Calcula comisión automáticamente (15% por defecto)
+  - Retorna URL para redirigir al paciente al pago
+  
+- ✅ **Webhook de Stripe** (`POST /api/payments/webhook`)
+  - Recibe notificaciones de Stripe cuando se completa un pago
+  - Activa automáticamente la consulta
+  - Actualiza estado del pago en la base de datos
+  
+- ✅ **Obtener pago de consulta** (`GET /api/payments/consultation/:consultationId`)
+  - Muestra información del pago asociado a una consulta
+  
+- ✅ **Listar pagos del doctor** (`GET /api/payments/doctor/:doctorId`)
+  - Muestra todos los pagos recibidos por un doctor
+  - Incluye paginación
+
+**Cálculo de Comisiones:**
+```
+Monto total = Tarifa del doctor
+Comisión = Monto total × 15% (configurable)
+Neto para doctor = Monto total - Comisión
+```
+
+### 9. **Archivos (AWS S3)**
+- ✅ **Subir archivo** (`POST /api/files/upload`)
+  - Sube archivos (imágenes, PDFs, audios, videos) a AWS S3
+  - Valida tipo y tamaño de archivo (máximo 10MB)
+  - Devuelve URL pública del archivo
+  
+- ✅ **Obtener URL firmada** (`GET /api/files/signed-url/:key`)
+  - Genera URL temporal firmada para descargar archivos privados
+  - Útil para archivos sensibles
+  
+- ✅ **Eliminar archivo** (`DELETE /api/files/:key`)
+  - Elimina archivos de S3
+
+**Tipos de archivos permitidos:**
+- Imágenes: JPEG, PNG, GIF, WebP
+- Documentos: PDF
+- Audio: MP3, WAV, OGG, MPEG
+- Video: MP4, QuickTime
+
+### 10. **Notificaciones Push (Firebase)**
+- ✅ **Registrar token** (`POST /api/notifications/token`)
+  - Guarda token del dispositivo para enviar notificaciones
+  - Soporta web, iOS y Android
+  
+- ✅ **Enviar notificación** (`POST /api/notifications/send`)
+  - Solo administradores y doctores pueden enviar
+  - Envía notificaciones push a dispositivos específicos
+
+### 11. **Chat en Tiempo Real (Socket.io)**
+- ✅ **Configuración de Socket.io**
+  - Servidor WebSocket configurado
+  - Autenticación de conexiones con JWT
+  - Listo para chat en tiempo real (a implementar en frontend)
+
+### 12. **Base de Datos (PostgreSQL + Prisma)**
+- ✅ **Modelos definidos:**
+  - `User` - Usuarios del sistema
+  - `Doctor` - Perfiles de doctores
+  - `Patient` - Perfiles de pacientes
+  - `Consultation` - Consultas médicas
+  - `Message` - Mensajes en consultas
+  - `Payment` - Pagos procesados
+  - `NotificationToken` - Tokens para push notifications
+
+- ✅ **Migraciones automáticas**
+  - Al iniciar el servidor en Railway, ejecuta automáticamente las migraciones
+  - Crea todas las tablas necesarias
+
+### 13. **Documentación API (Swagger)**
+- ✅ **Documentación completa**
+  - Todos los endpoints documentados
+  - Interfaz visual en `/api-docs`
+  - Permite probar endpoints directamente desde el navegador
+
+### 14. **Seguridad**
+- ✅ **JWT Tokens** - Autenticación segura
+- ✅ **Rate Limiting** - Previene ataques de fuerza bruta
+- ✅ **Validación de entrada** - Usa Zod para validar datos
+- ✅ **CORS configurado** - Controla qué dominios pueden acceder
+- ✅ **Helmet** - Headers de seguridad HTTP
+- ✅ **Contraseñas hasheadas** - Bcrypt con 10 rounds
+
+### 15. **Logging y Monitoreo**
+- ✅ **Winston Logger**
+  - Registra todas las acciones importantes
+  - Niveles: error, warn, info, debug
+  - Logs visibles en Railway para debugging
+
+### 16. **Endpoints de Sistema**
+- ✅ **Root** (`GET /`) - Información básica de la API
+- ✅ **Health Check** (`GET /health`) - Para verificar que el servidor está funcionando
+- ✅ **API Docs** (`GET /api-docs`) - Documentación Swagger
+
+---
+
+## 📊 Modelo de Datos (Base de Datos)
+
+### Relaciones Principales:
+
+```
+User (Usuario)
+├── Doctor (Perfil de Doctor) ──┐
+│   └── Consultations            │
+└── Patient (Perfil de Paciente) ┼── Consultations
+                                  │   ├── Messages (Mensajes)
+                                  │   └── Payment (Pago)
+                                  │
+User └── NotificationToken (Tokens para notificaciones)
+```
+
+### Estados y Flujos:
+
+**Estados de Consulta:**
+- `PENDING` - Creada, esperando pago
+- `PAID` - Pagada, lista para activar
+- `ACTIVE` - Activa, chat disponible
+- `CLOSED` - Cerrada por el doctor
+
+**Estados de Pago:**
+- `PENDING` - Sesión creada, esperando pago
+- `PAID` - Pago completado
+- `FAILED` - Pago fallido
+
+---
+
+## 🔄 Flujo de Trabajo Completo
+
+### Ejemplo: Paciente crea una consulta
+
+1. **Paciente se registra** (`POST /api/auth/register`)
+   - Crea cuenta como PATIENT
+   - Recibe tokens JWT
+
+2. **Paciente busca doctores** (`GET /api/doctors`)
+   - Ve lista de doctores disponibles
+   - Selecciona un doctor
+
+3. **Paciente crea consulta** (`POST /api/consultations`)
+   - Especifica doctor, tipo (NORMAL/URGENCIA)
+   - Consulta creada con estado PENDING
+
+4. **Paciente paga consulta** (`POST /api/payments/session`)
+   - Sistema calcula monto (tarifa + comisión)
+   - Crea sesión de Stripe Checkout
+   - Paciente completa pago en Stripe
+
+5. **Webhook activa consulta** (`POST /api/payments/webhook`)
+   - Stripe notifica que el pago fue exitoso
+   - Sistema cambia consulta a estado ACTIVE
+   - Paciente y doctor pueden chatear
+
+6. **Paciente envía mensaje** (`POST /api/messages`)
+   - Sube texto, foto, PDF o audio
+   - Mensaje guardado en base de datos
+
+7. **Doctor responde** (`POST /api/messages`)
+   - Doctor envía respuesta
+   - Paciente puede ver respuesta
+
+8. **Doctor cierra consulta** (`PATCH /api/consultations/:id/close`)
+   - Doctor marca consulta como cerrada
+   - Estado cambia a CLOSED
+
+---
+
+## 🌐 Estado Actual del Proyecto
+
+### ✅ Backend (100% Funcional)
+- ✅ Servidor corriendo en Railway
+- ✅ Base de datos PostgreSQL conectada
+- ✅ Migraciones automáticas funcionando
+- ✅ Todos los endpoints implementados
+- ✅ Documentación Swagger completa
+- ✅ Seguridad implementada
+- ✅ Validaciones funcionando
+
+**URL de Producción:**
+- Backend: `https://canalmedico-production.up.railway.app`
+- API Docs: `https://canalmedico-production.up.railway.app/api-docs`
+- Health Check: `https://canalmedico-production.up.railway.app/health`
+
+### 🚧 Frontend Web (Pendiente)
+- ⏳ Panel para médicos aún no desarrollado
+- ⏳ Deberá conectarse al backend vía API
+
+### 🚧 App Móvil (Pendiente)
+- ⏳ Aplicación para pacientes aún no desarrollada
+- ⏳ Deberá conectarse al backend vía API
+
+---
+
+## 🛠️ Tecnologías Usadas Actualmente
+
+### Backend:
+- **Node.js** - Runtime de JavaScript
+- **Express.js** - Framework web
+- **TypeScript** - Lenguaje tipado
+- **PostgreSQL** - Base de datos relacional
+- **Prisma ORM** - Manejo de base de datos
+- **Socket.io** - WebSockets para tiempo real
+- **JWT** - Autenticación
+- **Stripe** - Procesamiento de pagos
+- **AWS S3** - Almacenamiento de archivos
+- **Firebase** - Notificaciones push
+- **Swagger** - Documentación API
+- **Winston** - Logging
+- **Zod** - Validación
+- **bcrypt** - Hash de contraseñas
+
+---
+
+## 📝 Variables de Entorno Importantes
+
+El backend requiere estas variables (algunas tienen valores temporales):
+
+### Base de Datos:
+- `DATABASE_URL` - Conexión a PostgreSQL ✅
+
+### Autenticación:
+- `JWT_SECRET` - Clave secreta para tokens ✅
+- `JWT_REFRESH_SECRET` - Clave para refresh tokens ✅
+
+### Pagos:
+- `STRIPE_SECRET_KEY` - Clave de Stripe ⚠️ (temporal)
+- `STRIPE_PUBLISHABLE_KEY` - Clave pública de Stripe ⚠️ (temporal)
+- `STRIPE_WEBHOOK_SECRET` - Secreto para webhooks ⚠️ (opcional)
+
+### Archivos:
+- `AWS_ACCESS_KEY_ID` - Credenciales AWS ⚠️ (temporal)
+- `AWS_SECRET_ACCESS_KEY` - Credenciales AWS ⚠️ (temporal)
+- `AWS_S3_BUCKET` - Bucket de S3 ⚠️ (temporal)
+
+### Notificaciones:
+- `FIREBASE_SERVER_KEY` - Clave de Firebase ⚠️ (opcional)
+
+### URLs:
+- `API_URL` - URL del backend API ✅
+- `FRONTEND_WEB_URL` - URL del frontend web ⚠️ (temporal)
+- `MOBILE_APP_URL` - URL de la app móvil ⚠️ (temporal)
+
+---
+
+## 🎯 Próximos Pasos
+
+1. **Configurar variables de producción:**
+   - Reemplazar valores temporales de Stripe
+   - Configurar credenciales reales de AWS
+   - Configurar Firebase para notificaciones
+
+2. **Desarrollar Frontend Web:**
+   - Panel para médicos
+   - Dashboard con estadísticas
+   - Interfaz de chat
+   - Gestión de consultas
+
+3. **Desarrollar App Móvil:**
+   - Interfaz para pacientes
+   - Búsqueda de doctores
+   - Chat en tiempo real
+   - Proceso de pago integrado
+
+4. **Implementar Chat en Tiempo Real:**
+   - Conectar frontend y app móvil con Socket.io
+   - Notificaciones instantáneas
+
+---
+
+## ✅ Resumen
+
+**CanalMedico actualmente:**
+- ✅ Backend API **100% funcional**
+- ✅ Base de datos **configurada y funcionando**
+- ✅ Endpoints **todos implementados y documentados**
+- ✅ Seguridad **implementada**
+- ✅ Migraciones **automáticas**
+- ✅ Documentación **completa**
+
+**El backend está listo para:**
+- ✅ Recibir peticiones del frontend web
+- ✅ Recibir peticiones de la app móvil
+- ✅ Procesar pagos con Stripe
+- ✅ Gestionar archivos en S3
+- ✅ Enviar notificaciones push
+- ✅ Manejar chat asíncrono (y listo para tiempo real)
+
+**Próximo paso lógico:**
+Desarrollar el frontend web y la app móvil para que los usuarios puedan interactuar con el sistema.
+
+---
+
+**¿Necesitas más detalles sobre alguna parte específica del sistema?**
+
