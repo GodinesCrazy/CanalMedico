@@ -85,6 +85,17 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(generalRateLimiter);
 
+// Root endpoint
+app.get('/', (_req, res) => {
+  res.json({
+    message: 'CanalMedico API',
+    version: '1.0.0',
+    status: 'running',
+    timestamp: new Date().toISOString(),
+    environment: env.NODE_ENV,
+  });
+});
+
 // Health check
 app.get('/health', (_req, res) => {
   res.json({
@@ -118,15 +129,24 @@ socketService.initialize(httpServer);
 // Función para iniciar el servidor
 async function startServer() {
   try {
-    // Verificar conexión a la base de datos
-    await prisma.$connect();
-    logger.info('✅ Conexión a la base de datos establecida');
-
-    // Iniciar servidor HTTP
-    httpServer.listen(env.PORT, () => {
-      logger.info(`🚀 Servidor corriendo en ${env.API_URL}`);
+    // Usar PORT de Railway si está disponible, sino usar env.PORT
+    // Railway asigna PORT como string, necesitamos convertirlo a número
+    const port = process.env.PORT ? parseInt(process.env.PORT, 10) : env.PORT;
+    
+    // Iniciar servidor HTTP primero (para que Railway pueda hacer healthcheck)
+    httpServer.listen(port, '0.0.0.0', async () => {
+      logger.info(`🚀 Servidor corriendo en puerto ${port}`);
       logger.info(`📚 Documentación API disponible en ${env.API_URL}/api-docs`);
       logger.info(`🌍 Ambiente: ${env.NODE_ENV}`);
+      
+      // Intentar conectar a la base de datos después de iniciar el servidor
+      try {
+        await prisma.$connect();
+        logger.info('✅ Conexión a la base de datos establecida');
+      } catch (dbError) {
+        logger.error('⚠️ Advertencia: No se pudo conectar a la base de datos:', dbError);
+        logger.warn('El servidor continuará ejecutándose, pero algunas funcionalidades pueden no estar disponibles');
+      }
     });
   } catch (error) {
     logger.error('❌ Error al iniciar el servidor:', error);
