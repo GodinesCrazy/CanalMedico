@@ -46,8 +46,9 @@ const envSchema = z.object({
   FIREBASE_PRIVATE_KEY: z.string().optional(),
   FIREBASE_CLIENT_EMAIL: z.string().optional(),
 
-  FRONTEND_WEB_URL: z.string().url(),
-  MOBILE_APP_URL: z.string().url(),
+  // URLs de frontend - Valores por defecto temporales
+  FRONTEND_WEB_URL: z.string().url().default('http://localhost:5173'),
+  MOBILE_APP_URL: z.string().url().default('http://localhost:8081'),
 
   BCRYPT_ROUNDS: z.string().default('10').transform(Number).pipe(z.number().int().positive()),
   RATE_LIMIT_WINDOW_MS: z.string().default('900000').transform(Number).pipe(z.number().int().positive()),
