@@ -16,11 +16,11 @@ El proyecto está dividido en tres partes principales:
 
 - Node.js LTS (v18.x o superior)
 - PostgreSQL 14+
-- Docker Desktop (opcional, para PostgreSQL)
+- Docker Desktop (opcional, para PostgreSQL local)
 - npm 9.x o superior
 - Expo CLI (para app móvil)
 
-### Instalación
+### Instalación Local
 
 #### 1. Backend
 
@@ -77,6 +77,18 @@ cp .env.example .env
 npx expo start
 ```
 
+## 🚂 Despliegue en Railway
+
+Para desplegar el proyecto en Railway, sigue la guía completa en [DEPLOY_RAILWAY.md](./DEPLOY_RAILWAY.md)
+
+### Resumen rápido:
+
+1. **Backend**: Conecta el repositorio en Railway, selecciona la carpeta `backend`, agrega PostgreSQL y configura las variables de entorno
+2. **Frontend Web**: Crea un nuevo servicio en Railway, selecciona la carpeta `frontend-web` y configura las variables de entorno
+3. **Base de Datos**: Railway crea PostgreSQL automáticamente cuando agregas el servicio de base de datos
+
+Ver [DEPLOY_RAILWAY.md](./DEPLOY_RAILWAY.md) para instrucciones detalladas.
+
 ## 📁 Estructura del Proyecto
 
 ```
@@ -101,48 +113,34 @@ CanalMedico/
 │   │   └── server.ts     # Servidor principal
 │   ├── prisma/
 │   │   └── schema.prisma # Esquema de base de datos
+│   ├── railway.json      # Config Railway
+│   ├── nixpacks.toml     # Config Railway
 │   └── package.json
 │
 ├── frontend-web/         # Frontend Web (Médicos)
 │   ├── src/
 │   │   ├── pages/        # Páginas
-│   │   │   ├── LoginPage.tsx
-│   │   │   ├── DashboardPage.tsx
-│   │   │   ├── ConsultationsPage.tsx
-│   │   │   ├── ChatPage.tsx
-│   │   │   ├── SettingsPage.tsx
-│   │   │   ├── EarningsPage.tsx
-│   │   │   └── ProfilePage.tsx
 │   │   ├── components/   # Componentes
 │   │   ├── layouts/      # Layouts
 │   │   ├── store/        # Zustand
 │   │   ├── services/     # Servicios API
 │   │   └── styles/       # Estilos
+│   ├── railway.json      # Config Railway
 │   └── package.json
 │
 ├── app-mobile/           # App Móvil (Pacientes)
 │   ├── src/
 │   │   ├── screens/      # Pantallas
-│   │   │   ├── LoginScreen.tsx
-│   │   │   ├── RegisterScreen.tsx
-│   │   │   ├── HomeScreen.tsx
-│   │   │   ├── ChatScreen.tsx
-│   │   │   ├── PaymentScreen.tsx
-│   │   │   ├── HistoryScreen.tsx
-│   │   │   ├── ProfileScreen.tsx
-│   │   │   ├── ScannerScreen.tsx
-│   │   │   └── DoctorSearchScreen.tsx
 │   │   ├── navigation/   # Navegación
 │   │   ├── services/     # Servicios
 │   │   ├── store/        # Zustand
-│   │   ├── theme/        # Tema
-│   │   └── utils/        # Utilidades
-│   ├── app.json          # Config Expo
+│   │   └── theme/        # Tema
 │   └── package.json
 │
-├── docker-compose.yml    # Docker Compose para PostgreSQL
-├── README.md             # Este archivo
-└── PROMPTMAESTRO.txt     # Especificaciones completas
+├── docker-compose.yml    # Docker Compose para PostgreSQL local
+├── railway.json          # Config Railway general
+├── DEPLOY_RAILWAY.md     # Guía de despliegue en Railway
+└── README.md             # Este archivo
 ```
 
 ## 🔑 Variables de Entorno
@@ -219,11 +217,11 @@ EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY="..."
 
 ### Para Pacientes (App Móvil)
 - ✅ Registro e inicio de sesión
-- ✅ Búsqueda/selección de médicos
+- ✅ Búsqueda de doctores
 - ✅ Escaneo de códigos QR
 - ✅ Iniciar consulta (normal/urgencia)
 - ✅ Chat en tiempo real
-- ✅ Envío de archivos (fotos, PDFs, audio)
+- ✅ Envío de archivos (imágenes, PDFs, audio)
 - ✅ Pago de consultas con Stripe
 - ✅ Historial de consultas
 - ✅ Perfil del paciente
@@ -255,6 +253,7 @@ EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY="..."
 
 La documentación Swagger está disponible en:
 - Desarrollo: `http://localhost:3000/api-docs`
+- Producción: `https://tu-backend.railway.app/api-docs`
 
 ## 🧪 Desarrollo
 
@@ -285,7 +284,21 @@ npx expo start --ios      # iOS
 
 ## 🚢 Despliegue
 
-### Backend (AWS EC2)
+### Railway (Recomendado)
+
+Ver la guía completa en [DEPLOY_RAILWAY.md](./DEPLOY_RAILWAY.md)
+
+Railway es la forma más fácil de desplegar:
+1. Conecta tu repositorio de GitHub
+2. Selecciona la carpeta del servicio (backend o frontend-web)
+3. Railway detecta automáticamente la configuración
+4. Agrega PostgreSQL como servicio adicional
+5. Configura las variables de entorno
+6. ¡Listo! Tu app está en producción
+
+### AWS (Alternativa)
+
+#### Backend (AWS EC2)
 1. Configurar instancia EC2
 2. Instalar Node.js y PM2
 3. Clonar repositorio
@@ -293,21 +306,21 @@ npx expo start --ios      # iOS
 5. Ejecutar migraciones Prisma
 6. Iniciar con PM2
 
-### Base de Datos (AWS RDS)
+#### Base de Datos (AWS RDS)
 1. Crear instancia RDS PostgreSQL
 2. Actualizar `DATABASE_URL` en `.env`
 
-### Archivos (AWS S3)
+#### Archivos (AWS S3)
 1. Crear bucket S3
 2. Configurar IAM user
 3. Actualizar credenciales en `.env`
 
-### Frontend Web
+#### Frontend Web
 1. Build: `npm run build`
 2. Subir a S3 o CloudFront
 3. Configurar dominio y SSL
 
-### App Móvil
+#### App Móvil
 1. Build con EAS: `eas build`
 2. Subir a App Store / Play Store
 
@@ -319,6 +332,7 @@ npx expo start --ios      # iOS
 - Revisa los logs regularmente
 - Configura SSL/HTTPS en producción
 - Configura los deep links en producción
+- Usa Railway para un despliegue rápido y fácil
 
 ## 🎯 Estado del Proyecto
 
@@ -335,6 +349,7 @@ npx expo start --ios      # iOS
 - ✅ Notificaciones push
 - ✅ Deep links
 - ✅ Documentación completa
+- ✅ Configuración para Railway
 
 ## 📄 Licencia
 
