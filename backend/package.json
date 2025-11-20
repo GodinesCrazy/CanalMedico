@@ -11,7 +11,6 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "prisma:deploy": "prisma migrate deploy",
-    "postinstall": "prisma generate",
     "railway:deploy": "npm run build && prisma migrate deploy && npm start",
     "test": "jest",
     "lint": "eslint src --ext .ts",
