@@ -1,0 +1,98 @@
+{
+  "expo": {
+    "name": "CanalMedico",
+    "slug": "canalmedico-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0ea5e9"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.canalmedico.app",
+      "associatedDomains": [
+        "applinks:canalmedico.app"
+      ],
+      "infoPlist": {
+        "NSCameraUsageDescription": "Esta app necesita acceso a la cámara para tomar fotos de síntomas médicos.",
+        "NSPhotoLibraryUsageDescription": "Esta app necesita acceso a tu galería para seleccionar imágenes médicas.",
+        "NSMicrophoneUsageDescription": "Esta app necesita acceso al micrófono para grabar audios.",
+        "NSPhotoLibraryAddUsageDescription": "Esta app necesita guardar imágenes en tu galería."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0ea5e9"
+      },
+      "package": "com.canalmedico.app",
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "RECORD_AUDIO"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "canalmedico",
+              "host": "doctor"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "scheme": "canalmedico",
+    "plugins": [
+      "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "La app necesita acceso a tus fotos para enviar imágenes médicas."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "La app necesita acceso a la cámara para tomar fotos."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#0ea5e9"
+        }
+      ],
+      [
+        "expo-barcode-scanner",
+        {
+          "cameraPermission": "La app necesita acceso a la cámara para escanear códigos QR."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "canalmedico-project"
+      }
+    }
+  }
+}
+
