@@ -17,15 +17,17 @@ const envSchema = z.object({
   JWT_EXPIRES_IN: z.string().default('15m'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
 
-  STRIPE_SECRET_KEY: z.string().min(1),
-  STRIPE_PUBLISHABLE_KEY: z.string().min(1),
+  // Stripe - Opcional temporalmente para permitir que el servidor inicie
+  STRIPE_SECRET_KEY: z.string().default('sk_test_temporal_placeholder_minimo_32_caracteres_para_produccion'),
+  STRIPE_PUBLISHABLE_KEY: z.string().default('pk_test_temporal_placeholder_minimo_32_caracteres_para_produccion'),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
   STRIPE_COMMISSION_FEE: z.string().default('0.15').transform(Number).pipe(z.number().min(0).max(1)),
 
-  AWS_ACCESS_KEY_ID: z.string().min(1),
-  AWS_SECRET_ACCESS_KEY: z.string().min(1),
+  // AWS - Opcional temporalmente para permitir que el servidor inicie
+  AWS_ACCESS_KEY_ID: z.string().default('AKIA_TEMPORAL_PLACEHOLDER_FOR_PRODUCTION'),
+  AWS_SECRET_ACCESS_KEY: z.string().default('temporal_secret_key_placeholder_minimo_32_caracteres_para_produccion'),
   AWS_REGION: z.string().default('us-east-1'),
-  AWS_S3_BUCKET: z.string().min(1),
+  AWS_S3_BUCKET: z.string().default('canalmedico-files-temp'),
 
   FIREBASE_SERVER_KEY: z.string().optional(),
   FIREBASE_PROJECT_ID: z.string().optional(),

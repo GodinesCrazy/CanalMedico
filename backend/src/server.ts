@@ -129,6 +129,14 @@ socketService.initialize(httpServer);
 // Función para iniciar el servidor
 async function startServer() {
   try {
+    // Verificar variables temporales y mostrar advertencias
+    if (env.STRIPE_SECRET_KEY.includes('temporal_placeholder')) {
+      logger.warn('⚠️ STRIPE_SECRET_KEY está usando un valor temporal. Configura tu clave real de Stripe.');
+    }
+    if (env.AWS_ACCESS_KEY_ID.includes('TEMPORAL_PLACEHOLDER')) {
+      logger.warn('⚠️ Variables de AWS están usando valores temporales. Configura tus credenciales reales de AWS.');
+    }
+    
     // Usar PORT de Railway si está disponible, sino usar env.PORT
     // Railway asigna PORT como string, necesitamos convertirlo a número
     const port = process.env.PORT ? parseInt(process.env.PORT, 10) : env.PORT;
