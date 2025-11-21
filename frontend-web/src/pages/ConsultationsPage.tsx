@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '@/services/api';
-import { Consultation, Doctor } from '@/types';
+import { Consultation, Doctor, ConsultationStatus } from '@/types';
 import { useAuthStore } from '@/store/authStore';
-import { FiMessageSquare } from 'react-icons/fi';
+import { FiMessageSquare, FiCheck, FiX, FiFilter } from 'react-icons/fi';
+import toast from 'react-hot-toast';
 
 export default function ConsultationsPage() {
   const navigate = useNavigate();
@@ -12,10 +13,11 @@ export default function ConsultationsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [statusFilter, setStatusFilter] = useState<ConsultationStatus | 'ALL'>('ALL');
 
   useEffect(() => {
     loadConsultations();
-  }, [page]);
+  }, [page, statusFilter]);
 
   const loadConsultations = async () => {
     try {
@@ -24,7 +26,10 @@ export default function ConsultationsPage() {
 
       if (!doctorId) return;
 
-      const response = await api.get(`/consultations/doctor/${doctorId}?page=${page}&limit=10`);
+      const statusParam = statusFilter !== 'ALL' ? `&status=${statusFilter}` : '';
+      const response = await api.get(
+        `/consultations/doctor/${doctorId}?page=${page}&limit=10${statusParam}`
+      );
       if (response.success) {
         setConsultations(response.data || []);
         if (response.pagination) {
@@ -42,11 +47,44 @@ export default function ConsultationsPage() {
     navigate(`/chat/${consultationId}`);
   };
 
+  const closeConsultation = async (consultationId: string) => {
+    if (!confirm('¿Estás seguro de que deseas cerrar esta consulta?')) return;
+
+    try {
+      const response = await api.patch(`/consultations/${consultationId}/close`);
+      if (response.success) {
+        toast.success('Consulta cerrada exitosamente');
+        loadConsultations(); // Recargar lista
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Error al cerrar consulta');
+    }
+  };
+
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Consultas</h1>
-        <p className="text-gray-600 mt-2">Gestiona tus consultas médicas</p>
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Consultas</h1>
+          <p className="text-gray-600 mt-2">Gestiona tus consultas médicas</p>
+        </div>
+        <div className="flex items-center space-x-2">
+          <FiFilter className="h-5 w-5 text-gray-400" />
+          <select
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value as ConsultationStatus | 'ALL');
+              setPage(1); // Reset a primera página al cambiar filtro
+            }}
+            className="input w-auto"
+          >
+            <option value="ALL">Todas</option>
+            <option value="PENDING">Pendientes</option>
+            <option value="PAID">Pagadas</option>
+            <option value="ACTIVE">Activas</option>
+            <option value="CLOSED">Cerradas</option>
+          </select>
+        </div>
       </div>
 
       <div className="card">
@@ -97,15 +135,32 @@ export default function ConsultationsPage() {
                         {new Date(consultation.createdAt).toLocaleDateString()}
                       </td>
                       <td className="py-3 px-4">
-                        {consultation.status === 'ACTIVE' && (
-                          <button
-                            onClick={() => openChat(consultation.id)}
-                            className="btn btn-primary text-sm flex items-center"
-                          >
-                            <FiMessageSquare className="mr-2 h-4 w-4" />
-                            Abrir Chat
-                          </button>
-                        )}
+                        <div className="flex items-center space-x-2">
+                          {consultation.status === 'ACTIVE' && (
+                            <>
+                              <button
+                                onClick={() => openChat(consultation.id)}
+                                className="btn btn-primary text-sm flex items-center"
+                              >
+                                <FiMessageSquare className="mr-2 h-4 w-4" />
+                                Chat
+                              </button>
+                              <button
+                                onClick={() => closeConsultation(consultation.id)}
+                                className="btn btn-danger text-sm flex items-center"
+                              >
+                                <FiX className="mr-2 h-4 w-4" />
+                                Cerrar
+                              </button>
+                            </>
+                          )}
+                          {consultation.status === 'PENDING' && (
+                            <span className="text-xs text-gray-500">Esperando pago</span>
+                          )}
+                          {consultation.status === 'CLOSED' && (
+                            <span className="text-xs text-gray-500">Cerrada</span>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}

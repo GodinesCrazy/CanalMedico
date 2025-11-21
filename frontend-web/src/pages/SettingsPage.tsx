@@ -45,19 +45,35 @@ export default function SettingsPage() {
     setIsLoading(true);
 
     try {
-      const response = await api.put('/users/profile', formData);
-      if (response.success) {
+      // Actualizar perfil
+      const profileResponse = await api.put('/users/profile', {
+        name: formData.name,
+        speciality: formData.speciality,
+        tarifaConsulta: formData.tarifaConsulta,
+        tarifaUrgencia: formData.tarifaUrgencia,
+      });
+
+      if (profileResponse.success && user) {
+        // Actualizar estado en línea si cambió
+        const doctorId = (user.profile as Doctor)?.id;
+        if (doctorId && (user.profile as Doctor)?.estadoOnline !== formData.estadoOnline) {
+          await api.put(`/doctors/${doctorId}/online-status`, {
+            estadoOnline: formData.estadoOnline,
+          });
+        }
+
         toast.success('Configuración actualizada');
-        if (response.data) {
-          const updatedProfile = response.data as Doctor;
+        
+        // Recargar perfil completo
+        const updatedProfileResponse = await api.get('/users/profile');
+        if (updatedProfileResponse.success && updatedProfileResponse.data) {
+          const updatedProfile = updatedProfileResponse.data as Doctor;
           setDoctor(updatedProfile);
-          if (user) {
-            setUser({ ...user, profile: updatedProfile });
-          }
+          setUser({ ...user, profile: updatedProfile });
         }
       }
-    } catch (error) {
-      toast.error('Error al actualizar configuración');
+    } catch (error: any) {
+      toast.error(error.message || 'Error al actualizar configuración');
     } finally {
       setIsLoading(false);
     }

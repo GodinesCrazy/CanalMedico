@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '@/services/api';
 import { Consultation, Doctor } from '@/types';
 import { useAuthStore } from '@/store/authStore';
-import { FiMessageSquare, FiUsers, FiDollarSign, FiActivity } from 'react-icons/fi';
+import { FiMessageSquare, FiUsers, FiDollarSign, FiActivity, FiPower } from 'react-icons/fi';
+import toast from 'react-hot-toast';
 
 export default function DashboardPage() {
+  const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const [statistics, setStatistics] = useState({
     totalConsultations: 0,
@@ -41,6 +44,33 @@ export default function DashboardPage() {
       console.error('Error al cargar dashboard:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const toggleOnlineStatus = async () => {
+    try {
+      const doctorId = (user?.profile as Doctor)?.id;
+      if (!doctorId) return;
+
+      const currentStatus = (user?.profile as Doctor)?.estadoOnline || false;
+      const response = await api.put(`/doctors/${doctorId}/online-status`, {
+        estadoOnline: !currentStatus,
+      });
+
+      if (response.success && response.data) {
+        toast.success(
+          `Estado ${!currentStatus ? 'activado' : 'desactivado'} correctamente`
+        );
+        // Recargar perfil para actualizar estado
+        const profileResponse = await api.get('/users/profile');
+        if (profileResponse.success && profileResponse.data) {
+          const updatedUser = { ...user, profile: profileResponse.data };
+          useAuthStore.getState().setUser(updatedUser);
+        }
+        loadDashboardData(); // Recargar dashboard
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Error al actualizar estado');
     }
   };
 
@@ -118,10 +148,11 @@ export default function DashboardPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Paciente</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-700">Paciente</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-700">Tipo</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-700">Estado</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-700">Fecha</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -149,12 +180,47 @@ export default function DashboardPage() {
                     <td className="py-3 px-4 text-sm text-gray-600">
                       {new Date(consultation.createdAt).toLocaleDateString()}
                     </td>
+                    <td className="py-3 px-4">
+                      {consultation.status === 'ACTIVE' && (
+                        <button
+                          onClick={() => navigate(`/chat/${consultation.id}`)}
+                          className="btn btn-primary text-sm flex items-center"
+                        >
+                          <FiMessageSquare className="mr-2 h-4 w-4" />
+                          Abrir Chat
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         )}
+      </div>
+
+      {/* Online Status Toggle */}
+      <div className="card mt-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Estado de Disponibilidad</h2>
+            <p className="text-sm text-gray-600">
+              {((user?.profile as Doctor)?.estadoOnline ? 'Disponible' : 'No disponible') +
+                ' para consultas'}
+            </p>
+          </div>
+          <button
+            onClick={toggleOnlineStatus}
+            className={`btn flex items-center ${
+              (user?.profile as Doctor)?.estadoOnline
+                ? 'btn-primary'
+                : 'btn-secondary'
+            }`}
+          >
+            <FiPower className="mr-2 h-5 w-5" />
+            {((user?.profile as Doctor)?.estadoOnline ? 'Desactivar' : 'Activar') + ' Disponibilidad'}
+          </button>
+        </div>
       </div>
     </div>
   );

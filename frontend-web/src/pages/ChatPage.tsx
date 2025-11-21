@@ -1,22 +1,27 @@
 import { useEffect, useState, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
 import api from '@/services/api';
 import { Message, Consultation, UserRole } from '@/types';
 import { useAuthStore } from '@/store/authStore';
 import { API_URL } from '@/config/env';
-import { FiSend, FiPaperclip } from 'react-icons/fi';
+import { FiSend, FiPaperclip, FiX, FiFileText } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
+import FileUpload from '@/components/FileUpload';
 
 export default function ChatPage() {
   const { consultationId } = useParams<{ consultationId: string }>();
+  const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const accessToken = useAuthStore((state) => state.accessToken);
   const [consultation, setConsultation] = useState<Consultation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [socket, setSocket] = useState<Socket | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [fileType, setFileType] = useState<'image' | 'pdf' | 'audio' | null>(null);
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -41,10 +46,18 @@ export default function ChatPage() {
       const response = await api.get<Consultation>(`/consultations/${consultationId}`);
       if (response.success && response.data) {
         setConsultation(response.data);
-        setMessages(response.data.messages || []);
+
+        // Cargar mensajes por separado
+        const messagesResponse = await api.get<Message[]>(
+          `/messages/consultation/${consultationId}`
+        );
+        if (messagesResponse.success && messagesResponse.data) {
+          setMessages(messagesResponse.data);
+        }
       }
     } catch (error) {
       toast.error('Error al cargar consulta');
+      navigate('/consultations');
     } finally {
       setIsLoading(false);
     }
@@ -75,16 +88,108 @@ export default function ChatPage() {
     setSocket(newSocket);
   };
 
-  const sendMessage = () => {
-    if (!newMessage.trim() || !socket || !consultationId || !user) return;
+  const handleFileSelect = (file: File, type: 'image' | 'pdf' | 'audio') => {
+    setSelectedFile(file);
+    setFileType(type);
+  };
 
-    socket.emit('new-message', {
-      consultationId,
-      senderId: user.id,
-      text: newMessage.trim(),
-    });
+  const uploadFile = async (file: File): Promise<string | null> => {
+    try {
+      setIsUploadingFile(true);
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', 'consultations');
 
-    setNewMessage('');
+      const response = await api.post<{ key: string; url: string }>('/files/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      if (response.success && response.data) {
+        return response.data.url;
+      }
+      return null;
+    } catch (error) {
+      toast.error('Error al subir archivo');
+      return null;
+    } finally {
+      setIsUploadingFile(false);
+    }
+  };
+
+  const sendMessage = async () => {
+    if ((!newMessage.trim() && !selectedFile) || !consultationId || !user) return;
+
+    try {
+      let fileUrl: string | undefined;
+      let audioUrl: string | undefined;
+      let pdfUrl: string | undefined;
+
+      // Si hay un archivo seleccionado, subirlo primero
+      if (selectedFile) {
+        const uploadedUrl = await uploadFile(selectedFile);
+        if (!uploadedUrl) {
+          toast.error('Error al subir archivo');
+          return;
+        }
+
+        // Asignar la URL al campo correspondiente según el tipo
+        if (fileType === 'image') {
+          fileUrl = uploadedUrl;
+        } else if (fileType === 'audio') {
+          audioUrl = uploadedUrl;
+        } else if (fileType === 'pdf') {
+          pdfUrl = uploadedUrl;
+        }
+      }
+
+      // Crear el mensaje
+      const messageData: any = {
+        consultationId,
+        senderId: user.id,
+      };
+
+      if (newMessage.trim()) {
+        messageData.text = newMessage.trim();
+      }
+
+      if (fileUrl) messageData.fileUrl = fileUrl;
+      if (audioUrl) messageData.audioUrl = audioUrl;
+      if (pdfUrl) messageData.pdfUrl = pdfUrl;
+
+      // Si hay socket, usar socket.io, sino usar API REST
+      if (socket && consultation?.status === 'ACTIVE') {
+        socket.emit('new-message', messageData);
+      } else {
+        // Fallback a API REST
+        const response = await api.post<Message>('/messages', messageData);
+        if (response.success && response.data) {
+          setMessages((prev) => [...prev, response.data!]);
+        }
+      }
+
+      // Limpiar formulario
+      setNewMessage('');
+      setSelectedFile(null);
+      setFileType(null);
+    } catch (error: any) {
+      toast.error(error.message || 'Error al enviar mensaje');
+    }
+  };
+
+  const closeConsultation = async () => {
+    if (!consultationId) return;
+
+    try {
+      const response = await api.patch(`/consultations/${consultationId}/close`);
+      if (response.success) {
+        toast.success('Consulta cerrada exitosamente');
+        loadConsultation(); // Recargar para actualizar estado
+      }
+    } catch (error) {
+      toast.error('Error al cerrar consulta');
+    }
   };
 
   const scrollToBottom = () => {
@@ -111,12 +216,25 @@ export default function ChatPage() {
     <div className="flex flex-col h-[calc(100vh-8rem)]">
       {/* Header */}
       <div className="bg-white rounded-lg shadow-md p-4 mb-4">
-        <h2 className="text-xl font-bold text-gray-900">
-          Chat con {consultation.patient?.name || 'Paciente'}
-        </h2>
-        <p className="text-sm text-gray-600">
-          {consultation.type === 'URGENCIA' ? 'Consulta de Urgencia' : 'Consulta Normal'}
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">
+              Chat con {consultation.patient?.name || 'Paciente'}
+            </h2>
+            <p className="text-sm text-gray-600">
+              {consultation.type === 'URGENCIA' ? 'Consulta de Urgencia' : 'Consulta Normal'}
+            </p>
+          </div>
+          {consultation.status === 'ACTIVE' && (
+            <button
+              onClick={closeConsultation}
+              className="btn btn-danger flex items-center"
+            >
+              <FiX className="mr-2 h-4 w-4" />
+              Cerrar Consulta
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Messages */}
@@ -136,17 +254,35 @@ export default function ChatPage() {
                       : 'bg-gray-100 text-gray-900'
                   }`}
                 >
-                  {message.text && <p className="text-sm">{message.text}</p>}
-                  {(message.fileUrl || message.audioUrl || message.pdfUrl) && (
+                  {message.text && <p className="text-sm whitespace-pre-wrap">{message.text}</p>}
+                  {message.fileUrl && (
+                    <div className="mt-2">
+                      <img
+                        src={message.fileUrl}
+                        alt="Imagen adjunta"
+                        className="max-w-full h-auto rounded-lg"
+                      />
+                    </div>
+                  )}
+                  {message.pdfUrl && (
                     <div className="mt-2">
                       <a
-                        href={message.fileUrl || message.audioUrl || message.pdfUrl}
+                        href={message.pdfUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-xs underline"
+                        className="text-xs underline flex items-center"
                       >
-                        Ver archivo adjunto
+                        <FiFileText className="mr-1 h-4 w-4" />
+                        Ver PDF adjunto
                       </a>
+                    </div>
+                  )}
+                  {message.audioUrl && (
+                    <div className="mt-2">
+                      <audio controls className="w-full">
+                        <source src={message.audioUrl} type="audio/mpeg" />
+                        Tu navegador no soporta audio HTML5.
+                      </audio>
                     </div>
                   )}
                   <p className={`text-xs mt-1 ${isOwn ? 'text-primary-100' : 'text-gray-500'}`}>
@@ -162,29 +298,49 @@ export default function ChatPage() {
 
       {/* Input */}
       {consultation.status === 'ACTIVE' && (
-        <div className="bg-white rounded-lg shadow-md p-4">
-          <div className="flex items-center space-x-4">
-            <input
-              type="text"
+        <div className="bg-white rounded-lg shadow-md p-4 space-y-3">
+          <FileUpload onFileSelect={handleFileSelect} disabled={isUploadingFile} />
+
+          <div className="flex items-end space-x-4">
+            <textarea
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') {
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
                   sendMessage();
                 }
               }}
-              placeholder="Escribe un mensaje..."
-              className="input flex-1"
+              placeholder="Escribe un mensaje... (Presiona Enter para enviar, Shift+Enter para nueva línea)"
+              className="input flex-1 min-h-[60px] resize-none"
+              rows={2}
             />
             <button
               onClick={sendMessage}
-              className="btn btn-primary flex items-center"
-              disabled={!newMessage.trim()}
+              className="btn btn-primary flex items-center mb-0"
+              disabled={(!newMessage.trim() && !selectedFile) || isUploadingFile}
             >
-              <FiSend className="mr-2 h-5 w-5" />
-              Enviar
+              {isUploadingFile ? (
+                <>
+                  <span className="animate-spin mr-2">⏳</span>
+                  Subiendo...
+                </>
+              ) : (
+                <>
+                  <FiSend className="mr-2 h-5 w-5" />
+                  Enviar
+                </>
+              )}
             </button>
           </div>
+        </div>
+      )}
+
+      {consultation.status === 'CLOSED' && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <p className="text-sm text-yellow-800">
+            Esta consulta ha sido cerrada. No se pueden enviar más mensajes.
+          </p>
         </div>
       )}
     </div>
