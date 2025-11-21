@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '@/services/api';
 import { Consultation, Doctor, ConsultationStatus } from '@/types';
 import { useAuthStore } from '@/store/authStore';
-import { FiMessageSquare, FiCheck, FiX, FiFilter } from 'react-icons/fi';
+import { FiMessageSquare, FiX, FiFilter } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
 export default function ConsultationsPage() {
@@ -30,8 +30,8 @@ export default function ConsultationsPage() {
       const response = await api.get(
         `/consultations/doctor/${doctorId}?page=${page}&limit=10${statusParam}`
       );
-      if (response.success) {
-        setConsultations(response.data || []);
+      if (response.success && response.data) {
+        setConsultations(Array.isArray(response.data) ? response.data : []);
         if (response.pagination) {
           setTotalPages(response.pagination.totalPages);
         }

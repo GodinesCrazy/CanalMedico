@@ -21,10 +21,11 @@ export default function EarningsPage() {
 
       if (!doctorId) return;
 
-      const response = await api.get(`/payments/doctor/${doctorId}`);
-      if (response.success) {
-        setPayments(response.data || []);
-        const total = (response.data || []).reduce(
+      const response = await api.get<Payment[]>(`/payments/doctor/${doctorId}`);
+      if (response.success && response.data) {
+        const payments = Array.isArray(response.data) ? response.data : [];
+        setPayments(payments);
+        const total = payments.reduce(
           (sum: number, payment: Payment) => sum + Number(payment.netAmount),
           0
         );

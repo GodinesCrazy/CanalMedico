@@ -18,9 +18,9 @@ export default function ProfilePage() {
 
   const loadProfile = async () => {
     try {
-      const response = await api.get('/users/profile');
-      if (response.success && response.data) {
-        const profile = response.data.profile as any;
+      const response = await api.get<{ profile: { name?: string; speciality?: string } }>('/users/profile');
+      if (response.success && response.data && response.data.profile) {
+        const profile = response.data.profile;
         setFormData({
           name: profile.name || '',
           speciality: profile.speciality || '',
@@ -36,11 +36,11 @@ export default function ProfilePage() {
     setIsLoading(true);
 
     try {
-      const response = await api.put('/users/profile', formData);
+      const response = await api.put<{ profile: any }>('/users/profile', formData);
       if (response.success) {
         toast.success('Perfil actualizado');
-        if (response.data && user) {
-          setUser({ ...user, profile: response.data });
+        if (response.data && user && response.data.profile) {
+          setUser({ ...user, profile: response.data.profile });
         }
       }
     } catch (error) {

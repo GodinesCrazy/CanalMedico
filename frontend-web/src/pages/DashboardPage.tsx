@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '@/services/api';
 import { Consultation, Doctor } from '@/types';
 import { useAuthStore } from '@/store/authStore';
-import { FiMessageSquare, FiUsers, FiDollarSign, FiActivity, FiPower } from 'react-icons/fi';
+import { FiMessageSquare, FiDollarSign, FiActivity, FiPower } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
 export default function DashboardPage() {
@@ -30,15 +30,25 @@ export default function DashboardPage() {
       if (!doctorId) return;
 
       // Obtener estadísticas
-      const statsResponse = await api.get(`/doctors/${doctorId}/statistics`);
+      const statsResponse = await api.get<{
+        totalConsultations: number;
+        activeConsultations: number;
+        totalEarnings: number;
+        monthlyEarnings: number;
+      }>(`/doctors/${doctorId}/statistics`);
       if (statsResponse.success && statsResponse.data) {
-        setStatistics(statsResponse.data);
+        setStatistics({
+          totalConsultations: statsResponse.data.totalConsultations || 0,
+          activeConsultations: statsResponse.data.activeConsultations || 0,
+          totalEarnings: statsResponse.data.totalEarnings || 0,
+          monthlyEarnings: statsResponse.data.monthlyEarnings || 0,
+        });
       }
 
       // Obtener consultas recientes
-      const consultationsResponse = await api.get(`/consultations/doctor/${doctorId}?limit=5`);
+      const consultationsResponse = await api.get<Consultation[]>(`/consultations/doctor/${doctorId}?limit=5`);
       if (consultationsResponse.success && consultationsResponse.data) {
-        setRecentConsultations(consultationsResponse.data || []);
+        setRecentConsultations(Array.isArray(consultationsResponse.data) ? consultationsResponse.data : []);
       }
     } catch (error) {
       console.error('Error al cargar dashboard:', error);
@@ -62,9 +72,9 @@ export default function DashboardPage() {
           `Estado ${!currentStatus ? 'activado' : 'desactivado'} correctamente`
         );
         // Recargar perfil para actualizar estado
-        const profileResponse = await api.get('/users/profile');
-        if (profileResponse.success && profileResponse.data) {
-          const updatedUser = { ...user, profile: profileResponse.data };
+        const profileResponse = await api.get<{ profile: Doctor }>('/users/profile');
+        if (profileResponse.success && profileResponse.data && user) {
+          const updatedUser = { ...user, profile: profileResponse.data.profile };
           useAuthStore.getState().setUser(updatedUser);
         }
         loadDashboardData(); // Recargar dashboard

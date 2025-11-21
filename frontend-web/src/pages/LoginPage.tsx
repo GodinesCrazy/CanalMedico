@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
-import { UserRole } from '@/types';
 import toast from 'react-hot-toast';
-import { FiMail, FiLock, FiUser } from 'react-icons/fi';
+import { FiMail, FiLock } from 'react-icons/fi';
 
 export default function LoginPage() {
   const navigate = useNavigate();

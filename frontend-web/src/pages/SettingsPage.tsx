@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 export default function SettingsPage() {
   const user = useAuthStore((state) => state.user);
   const setUser = useAuthStore((state) => state.setUser);
-  const [doctor, setDoctor] = useState<Doctor | null>(null);
+  const [, setDoctor] = useState<Doctor | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     speciality: '',
@@ -23,9 +23,9 @@ export default function SettingsPage() {
 
   const loadProfile = async () => {
     try {
-      const response = await api.get('/users/profile');
-      if (response.success && response.data) {
-        const profile = response.data.profile as Doctor;
+      const response = await api.get<{ profile: Doctor }>('/users/profile');
+      if (response.success && response.data && response.data.profile) {
+        const profile = response.data.profile;
         setDoctor(profile);
         setFormData({
           name: profile.name || '',
@@ -65,9 +65,9 @@ export default function SettingsPage() {
         toast.success('Configuración actualizada');
         
         // Recargar perfil completo
-        const updatedProfileResponse = await api.get('/users/profile');
-        if (updatedProfileResponse.success && updatedProfileResponse.data) {
-          const updatedProfile = updatedProfileResponse.data as Doctor;
+        const updatedProfileResponse = await api.get<{ profile: Doctor }>('/users/profile');
+        if (updatedProfileResponse.success && updatedProfileResponse.data && updatedProfileResponse.data.profile) {
+          const updatedProfile = updatedProfileResponse.data.profile;
           setDoctor(updatedProfile);
           setUser({ ...user, profile: updatedProfile });
         }
