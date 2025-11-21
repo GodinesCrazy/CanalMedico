@@ -23,6 +23,11 @@ export default defineConfig({
     port: Number(process.env.PORT) || 8080,
     host: '0.0.0.0',
     strictPort: true,
+    allowedHosts: [
+      '.railway.app',
+      '.up.railway.app',
+      'localhost',
+    ],
   },
   build: {
     outDir: 'dist',
