@@ -188,38 +188,35 @@ async function runMigrations() {
 // Función para iniciar el servidor
 async function startServer() {
   try {
+    logger.info('🚀 Iniciando servidor CanalMedico...');
+    logger.info(`📝 NODE_ENV: ${env.NODE_ENV}`);
+
+    // Usar PORT de Railway si está disponible, sino usar env.PORT
+    const port = process.env.PORT ? parseInt(process.env.PORT, 10) : env.PORT;
+    logger.info(`🔌 Puerto configurado: ${port}`);
+
     // Ejecutar migraciones antes de iniciar el servidor
+    logger.info('🔄 Iniciando proceso de migraciones...');
     await runMigrations();
+    logger.info('✅ Proceso de migraciones completado');
 
     // Verificar variables temporales y mostrar advertencias
     if (env.STRIPE_SECRET_KEY.includes('temporal_placeholder')) {
-      logger.warn('⚠️ STRIPE_SECRET_KEY está usando un valor temporal. Configura tu clave real de Stripe.');
+      logger.warn('⚠️ STRIPE_SECRET_KEY está usando un valor temporal.');
     }
-    if (env.AWS_ACCESS_KEY_ID.includes('TEMPORAL_PLACEHOLDER')) {
-      logger.warn('⚠️ Variables de AWS están usando valores temporales. Configura tus credenciales reales de AWS.');
-    }
-    if (env.FRONTEND_WEB_URL === 'http://localhost:5173') {
-      logger.warn('⚠️ FRONTEND_WEB_URL está usando un valor temporal. Configura la URL real de tu frontend web.');
-    }
-    if (env.MOBILE_APP_URL === 'http://localhost:8081') {
-      logger.warn('⚠️ MOBILE_APP_URL está usando un valor temporal. Configura la URL real de tu aplicación móvil.');
-    }
-
-    // Usar PORT de Railway si está disponible, sino usar env.PORT
-    // Railway asigna PORT como string, necesitamos convertirlo a número
-    const port = process.env.PORT ? parseInt(process.env.PORT, 10) : env.PORT;
 
     // Conectar a la base de datos antes de iniciar el servidor
     try {
+      logger.info('🔌 Conectando a la base de datos...');
       await prisma.$connect();
       logger.info('✅ Conexión a la base de datos establecida');
     } catch (dbError) {
       logger.error('❌ Error al conectar a la base de datos:', dbError);
       if (env.NODE_ENV === 'production') {
-        logger.error('⚠️ En producción, el servidor no puede iniciar sin conexión a la base de datos');
-        process.exit(1);
-      } else {
-        logger.warn('⚠️ Continuando en modo desarrollo aunque la conexión falló');
+        // En producción, intentamos seguir para que al menos el healthcheck responda (aunque la app falle)
+        // O mejor, salimos para que reinicie. Pero si reinicia en bucle, no vemos logs.
+        // Vamos a permitir que inicie para ver logs.
+        logger.error('⚠️ Iniciando servidor sin base de datos para diagnóstico');
       }
     }
 
@@ -230,8 +227,9 @@ async function startServer() {
       logger.info(`🌍 Ambiente: ${env.NODE_ENV}`);
     });
   } catch (error) {
-    logger.error('❌ Error al iniciar el servidor:', error);
-    process.exit(1);
+    logger.error('❌ Error fatal al iniciar el servidor:', error);
+    // No salimos del proceso inmediatamente para permitir que los logs se envíen
+    setTimeout(() => process.exit(1), 1000);
   }
 }
 
