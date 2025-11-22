@@ -101,6 +101,22 @@ export class DoctorsService {
       throw error;
     }
   }
+  async updatePayoutSettings(doctorId: string, settings: { payoutMode: string; payoutDay: number; bankAccountInfo?: string }) {
+    try {
+      const doctor = await prisma.doctor.update({
+        where: { id: doctorId },
+        data: {
+          payoutMode: settings.payoutMode,
+          payoutDay: settings.payoutDay,
+          bankAccountInfo: settings.bankAccountInfo,
+        } as any,
+      });
+      return doctor;
+    } catch (error) {
+      logger.error('Error al actualizar configuración de pagos:', error);
+      throw error;
+    }
+  }
 
   async getStatistics(doctorId: string) {
     try {

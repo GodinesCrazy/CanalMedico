@@ -142,123 +142,157 @@ export class CommissionsService {
                                     },
                                 },
                             },
-                            throw error;
-                        }
-                    }
+                        },
+                    },
+                },
+            });
+
+            // Agrupar por doctor
+            const commissionsByDoctor = (payments as any[]).reduce((acc: any, payment) => {
+                if (!payment.consultation?.doctor) return acc;
+
+                const doctorId = payment.consultation.doctorId;
+                const doctorName = payment.consultation.doctor.name;
+                const doctorEmail = payment.consultation.doctor.user.email;
+
+                if (!acc[doctorId]) {
+                    acc[doctorId] = {
+                        doctorId,
+                        doctorName,
+                        doctorEmail,
+                        totalCommissions: 0,
+                        totalAmount: 0,
+                        paymentsCount: 0,
+                    };
+                }
+
+                acc[doctorId].totalCommissions += Number(payment.fee);
+                acc[doctorId].totalAmount += Number(payment.amount);
+                acc[doctorId].paymentsCount += 1;
+
+                return acc;
+            }, {});
+
+            return Object.values(commissionsByDoctor);
+        } catch (error) {
+            logger.error('Error al obtener comisiones por médico:', error);
+            throw error;
+        }
+    }
 
     /**
      * Obtener detalle de comisiones de un médico específico
      */
     async getDoctorCommissionsDetail(doctorId: string, startDate?: Date, endDate?: Date) {
-                        try {
-                            const whereClause: any = {
-                                status: 'PAID',
-                                consultation: {
-                                    doctorId,
-                                },
-                            };
+        try {
+            const whereClause: any = {
+                status: 'PAID',
+                consultation: {
+                    doctorId,
+                },
+            };
 
-                            if (startDate && endDate) {
-                                whereClause.paidAt = {
-                                    gte: startDate,
-                                    lte: endDate,
-                                };
-                            }
+            if (startDate && endDate) {
+                whereClause.paidAt = {
+                    gte: startDate,
+                    lte: endDate,
+                };
+            }
 
-                            const payments = await prisma.payment.findMany({
-                                where: whereClause,
+            const payments = await prisma.payment.findMany({
+                where: whereClause,
+                include: {
+                    consultation: {
+                        include: {
+                            patient: {
                                 include: {
-                                    consultation: {
-                                        include: {
-                                            patient: {
-                                                include: {
-                                                    user: {
-                                                        select: {
-                                                            email: true,
-                                                        },
-                                                    },
-                                                },
-                                            },
+                                    user: {
+                                        select: {
+                                            email: true,
                                         },
                                     },
                                 },
-                                orderBy: {
-                                    paidAt: 'desc',
-                                },
-                            });
+                            },
+                        },
+                    },
+                },
+                orderBy: {
+                    paidAt: 'desc',
+                },
+            });
 
-                            const totalFee = payments.reduce((sum, p) => sum + Number(p.fee), 0);
-                            const totalAmount = payments.reduce((sum, p) => sum + Number(p.amount), 0);
-                            const totalNet = payments.reduce((sum, p) => sum + Number(p.netAmount), 0);
+            const totalFee = payments.reduce((sum, p) => sum + Number(p.fee), 0);
+            const totalAmount = payments.reduce((sum, p) => sum + Number(p.amount), 0);
+            const totalNet = payments.reduce((sum, p) => sum + Number(p.netAmount), 0);
 
-                            return {
-                                payments,
-                                summary: {
-                                    totalPayments: payments.length,
-                                    totalAmount,
-                                    totalFee,
-                                    totalNet,
-                                },
-                            };
-                        } catch (error) {
-                            logger.error('Error al obtener detalle de comisiones del médico:', error);
-                            throw error;
-                        }
-                    }
+            return {
+                payments,
+                summary: {
+                    totalPayments: payments.length,
+                    totalAmount,
+                    totalFee,
+                    totalNet,
+                },
+            };
+        } catch (error) {
+            logger.error('Error al obtener detalle de comisiones del médico:', error);
+            throw error;
+        }
+    }
 
     /**
      * Obtener comisiones mensuales (últimos 12 meses)
      */
     async getMonthlyCommissions() {
-                        try {
-                            const now = new Date();
-                            const twelveMonthsAgo = new Date();
-                            twelveMonthsAgo.setMonth(now.getMonth() - 12);
+        try {
+            const now = new Date();
+            const twelveMonthsAgo = new Date();
+            twelveMonthsAgo.setMonth(now.getMonth() - 12);
 
-                            const payments = await prisma.payment.findMany({
-                                where: {
-                                    status: 'PAID',
-                                    paidAt: {
-                                        gte: twelveMonthsAgo,
-                                    },
-                                },
-                                select: {
-                                    fee: true,
-                                    amount: true,
-                                    paidAt: true,
-                                },
-                            });
+            const payments = await prisma.payment.findMany({
+                where: {
+                    status: 'PAID',
+                    paidAt: {
+                        gte: twelveMonthsAgo,
+                    },
+                },
+                select: {
+                    fee: true,
+                    amount: true,
+                    paidAt: true,
+                },
+            });
 
-                            // Agrupar por mes
-                            const monthlyData = payments.reduce((acc, payment) => {
-                                if (!payment.paidAt) return acc;
+            // Agrupar por mes
+            const monthlyData = payments.reduce((acc, payment) => {
+                if (!payment.paidAt) return acc;
 
-                                const month = payment.paidAt.toISOString().substring(0, 7); // YYYY-MM
+                const month = payment.paidAt.toISOString().substring(0, 7); // YYYY-MM
 
-                                if (!acc[month]) {
-                                    acc[month] = {
-                                        month,
-                                        totalCommissions: 0,
-                                        totalAmount: 0,
-                                        paymentsCount: 0,
-                                    };
-                                }
-
-                                acc[month].totalCommissions += Number(payment.fee);
-                                acc[month].totalAmount += Number(payment.amount);
-                                acc[month].paymentsCount += 1;
-
-                                return acc;
-                            }, {} as Record<string, any>);
-
-                            return Object.values(monthlyData).sort((a: any, b: any) =>
-                                a.month.localeCompare(b.month)
-                            );
-                        } catch (error) {
-                            logger.error('Error al obtener comisiones mensuales:', error);
-                            throw error;
-                        }
-                    }
+                if (!acc[month]) {
+                    acc[month] = {
+                        month,
+                        totalCommissions: 0,
+                        totalAmount: 0,
+                        paymentsCount: 0,
+                    };
                 }
+
+                acc[month].totalCommissions += Number(payment.fee);
+                acc[month].totalAmount += Number(payment.amount);
+                acc[month].paymentsCount += 1;
+
+                return acc;
+            }, {} as Record<string, any>);
+
+            return Object.values(monthlyData).sort((a: any, b: any) =>
+                a.month.localeCompare(b.month)
+            );
+        } catch (error) {
+            logger.error('Error al obtener comisiones mensuales:', error);
+            throw error;
+        }
+    }
+}
 
 export default new CommissionsService();

@@ -61,7 +61,7 @@ export class AuthService {
 
         // Verificar si el RUT ya está registrado
         const existingDoctor = await prisma.doctor.findUnique({
-          where: { rut: formatRut(data.rut) },
+          where: { rut: formatRut(data.rut) } as any,
         });
 
         if (existingDoctor) {
@@ -79,7 +79,7 @@ export class AuthService {
             tarifaConsulta: 0,
             tarifaUrgencia: 0,
             estadoOnline: false,
-          },
+          } as any,
         });
       } else if (data.role === 'PATIENT') {
         await prisma.patient.create({
@@ -101,7 +101,7 @@ export class AuthService {
       });
 
       // Generar tokens
-      const tokens = generateTokenPair(user.id, user.email, user.role);
+      const tokens = generateTokenPair(user.id, user.email, user.role as any);
 
       logger.info(`Usuario registrado: ${user.email} (${user.role})`);
 
@@ -143,7 +143,7 @@ export class AuthService {
       }
 
       // Generar tokens
-      const tokens = generateTokenPair(user.id, user.email, user.role);
+      const tokens = generateTokenPair(user.id, user.email, user.role as any);
 
       logger.info(`Usuario inició sesión: ${user.email} (${user.role})`);
 
@@ -177,7 +177,7 @@ export class AuthService {
       }
 
       // Generar nuevos tokens
-      const tokens = generateTokenPair(user.id, user.email, user.role);
+      const tokens = generateTokenPair(user.id, user.email, user.role as any);
 
       return tokens;
     } catch (error) {

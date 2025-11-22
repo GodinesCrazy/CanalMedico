@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
 import payoutService from './payout.service';
 import { AuthenticatedRequest } from '@/types';
 import { createError } from '@/middlewares/error.middleware';

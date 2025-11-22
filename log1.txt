@@ -1,0 +1,85 @@
+[Region: us-west1]
+=========================
+Using Detected Dockerfile
+=========================
+
+context: qxrt-eX4z
+
+internal
+load build definition from Dockerfile
+1ms
+
+internal
+load metadata for docker.io/library/node:18-alpine
+497ms
+
+auth
+library/node:pull token for registry-1.docker.io
+0ms
+
+internal
+load .dockerignore
+0ms
+
+[ 1/10] FROM docker.io/library/node:18-alpine@sha256:8d6421d663b4c28fd3ebc498332f249011d118945588d0a35cb9bc4b8ca09d9e cached
+7ms
+
+internal
+load build context
+0ms
+
+[ 2/10] RUN apk add --no-cache libpq openssl openssl-dev
+764ms
+OK: 13 MiB in 21 packages
+
+[ 3/10] WORKDIR /app
+10ms
+
+[ 4/10] COPY package*.json ./
+11ms
+
+[ 5/10] COPY prisma ./prisma/
+58ms
+
+[ 6/10] RUN npm ci
+9s
+npm notice
+
+[ 7/10] RUN npx prisma generate
+2s
+Tip: Want real-time updates to your database without manual polling? Discover how with Pulse: https://pris.ly/tip-0-pulse
+
+[ 8/10] COPY . .
+17ms
+
+[ 9/10] RUN npm run build
+5s
+> canalmedico-backend@1.0.0 build
+> tsc && tsc-alias
+src/modules/commissions/commissions.service.ts(145,35): error TS1005: ':' expected.
+
+src/modules/commissions/commissions.service.ts(145,40): error TS1005: ',' expected.
+
+src/modules/commissions/commissions.service.ts(152,5): error TS1005: ',' expected.
+
+src/modules/commissions/commissions.service.ts(212,5): error TS1005: ',' expected.
+
+src/modules/commissions/commissions.service.ts(264,1): error TS1005: ',' expected.
+
+src/modules/commissions/commissions.service.ts(264,8): error TS1005: ':' expected.
+
+src/modules/commissions/commissions.service.ts(264,16): error TS1005: ':' expected.
+
+src/modules/commissions/commissions.service.ts(264,40): error TS1005: ',' expected.
+
+src/modules/commissions/commissions.service.ts(265,1): error TS1005: '}' expected.
+
+Dockerfile:22
+-------------------
+20 |
+21 |     # Compilar TypeScript
+22 | >>> RUN npm run build
+23 |
+24 |     # Crear directorio para logs
+-------------------
+ERROR: failed to build: failed to solve: process "/bin/sh -c npm run build" did not complete successfully: exit code: 2
