@@ -35,6 +35,9 @@ const envSchema = z.object({
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
   STRIPE_COMMISSION_FEE: z.string().default('0.15').transform(Number).pipe(z.number().min(0).max(1)),
 
+  // MercadoPago
+  MERCADOPAGO_ACCESS_TOKEN: z.string().optional(),
+
   // AWS - Opcional temporalmente para permitir que el servidor inicie
   AWS_ACCESS_KEY_ID: z.string().default('AKIA_TEMPORAL_PLACEHOLDER_FOR_PRODUCTION'),
   AWS_SECRET_ACCESS_KEY: z.string().default('temporal_secret_key_placeholder_minimo_32_caracteres_para_produccion'),

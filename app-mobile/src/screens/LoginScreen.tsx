@@ -17,6 +17,7 @@ import { RootStackParamList } from '@/types';
 import { useAuthStore } from '@/store/authStore';
 import { colors } from '@/theme/colors';
 import { Ionicons } from '@expo/vector-icons';
+import { Logo } from '@/components/Logo';
 
 type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Login'>;
 
@@ -50,7 +51,7 @@ export default function LoginScreen() {
       >
         <View style={styles.content}>
           <View style={styles.header}>
-            <Text style={styles.title}>CanalMedico</Text>
+            <Logo variant="full" className="h-12 w-auto mx-auto mb-2" />
             <Text style={styles.subtitle}>Inicia sesión para continuar</Text>
           </View>
 
@@ -136,12 +137,6 @@ const styles = StyleSheet.create({
     marginBottom: 48,
     alignItems: 'center',
   },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: colors.primary[600],
-    marginBottom: 8,
-  },
   subtitle: {
     fontSize: 16,
     color: colors.gray[600],
@@ -200,4 +195,3 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
-

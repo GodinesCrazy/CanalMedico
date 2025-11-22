@@ -1,14 +1,9 @@
-import Stripe from 'stripe';
 import prisma from '@/database/prisma';
 import env from '@/config/env';
 import { createError } from '@/middlewares/error.middleware';
 import logger from '@/config/logger';
-import { PaymentStatus } from '@prisma/client';
 import consultationsService from '../consultations/consultations.service';
-
-const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
-  apiVersion: '2023-10-16',
-});
+import mercadopagoService from './mercadopago.service';
 
 export interface CreatePaymentSessionDto {
   consultationId: string;
@@ -24,7 +19,11 @@ export class PaymentsService {
         where: { id: data.consultationId },
         include: {
           doctor: true,
-          patient: true,
+          patient: {
+            include: {
+              user: true
+            }
+          },
         },
       });
 
@@ -37,7 +36,7 @@ export class PaymentsService {
       }
 
       // Calcular monto según tipo de consulta
-      const amountValue = consultation.type === 'URGENCIA' 
+      const amountValue = consultation.type === 'URGENCIA'
         ? Number(consultation.doctor.tarifaUrgencia)
         : Number(consultation.doctor.tarifaConsulta);
 
@@ -46,35 +45,21 @@ export class PaymentsService {
       }
 
       // Calcular fee y monto neto
-      const fee = amountValue * env.STRIPE_COMMISSION_FEE;
+      const fee = Math.round(amountValue * env.STRIPE_COMMISSION_FEE); // Usamos la misma variable de entorno para la comisión
       const netAmount = amountValue - fee;
 
-      // Crear sesión de pago en Stripe
-      const session = await stripe.checkout.sessions.create({
-        payment_method_types: ['card'],
-        line_items: [
-          {
-            price_data: {
-              currency: 'usd',
-              product_data: {
-                name: `Consulta médica - ${consultation.type === 'URGENCIA' ? 'Urgencia' : 'Normal'}`,
-                description: `Consulta con Dr. ${consultation.doctor.name}`,
-              },
-              unit_amount: Math.round(amountValue * 100), // Stripe usa centavos
-            },
-            quantity: 1,
-          },
-        ],
-        mode: 'payment',
-        success_url: data.successUrl,
-        cancel_url: data.cancelUrl,
-        metadata: {
-          consultationId: consultation.id,
-          doctorId: consultation.doctorId,
-          patientId: consultation.patientId,
-          type: consultation.type,
-        },
-      });
+      // Obtener email del pagador (paciente)
+      // Asumimos que el paciente tiene un usuario asociado, si no, usamos un email genérico
+      const payerEmail = consultation.patient.user?.email || 'paciente@canalmedico.cl';
+
+      // Crear preferencia en MercadoPago
+      const title = `Consulta médica - ${consultation.type === 'URGENCIA' ? 'Urgencia' : 'Normal'}`;
+      const preference = await mercadopagoService.createPreference(
+        consultation.id,
+        title,
+        amountValue,
+        payerEmail
+      );
 
       // Crear registro de pago
       const payment = await prisma.payment.create({
@@ -82,17 +67,18 @@ export class PaymentsService {
           amount: amountValue,
           fee,
           netAmount,
-          status: PaymentStatus.PENDING,
-          stripeSessionId: session.id,
+          status: 'PENDING',
+          mercadopagoPreferenceId: preference.id,
           consultationId: consultation.id,
         },
       });
 
-      logger.info(`Sesión de pago creada: ${session.id} - Consulta: ${consultation.id}`);
+      logger.info(`Preferencia MercadoPago creada: ${preference.id} - Consulta: ${consultation.id}`);
 
       return {
-        sessionId: session.id,
-        url: session.url,
+        preferenceId: preference.id,
+        initPoint: preference.init_point,
+        sandboxInitPoint: preference.sandbox_init_point,
         payment,
       };
     } catch (error) {
@@ -101,85 +87,95 @@ export class PaymentsService {
     }
   }
 
-  async handleWebhook(signature: string, body: string) {
+  async handleWebhook(_signature: string, body: any) {
     try {
-      const event = stripe.webhooks.constructEvent(
-        body,
-        signature,
-        env.STRIPE_WEBHOOK_SECRET || ''
-      );
+      // MercadoPago envía el ID del recurso en el body o query params dependiendo del tipo de notificación
+      // Para Webhooks v1 (IPN), recibimos type y data.id
 
-      switch (event.type) {
-        case 'checkout.session.completed':
-          await this.handlePaymentSuccess(event.data.object as Stripe.Checkout.Session);
-          break;
-        case 'payment_intent.payment_failed':
-          await this.handlePaymentFailed(event.data.object as Stripe.PaymentIntent);
-          break;
-        default:
-          logger.info(`Evento no manejado: ${event.type}`);
+      const { type, data } = body;
+
+      if (type === 'payment') {
+        const paymentId = data.id;
+        const paymentInfo = await mercadopagoService.getPaymentInfo(paymentId);
+
+        if (paymentInfo && paymentInfo.external_reference) {
+          const consultationId = paymentInfo.external_reference;
+          const status = paymentInfo.status;
+
+          logger.info(`Procesando webhook pago ${paymentId} para consulta ${consultationId}. Estado: ${status}`);
+
+          // Buscar el pago en nuestra BD usando consultationId (ya que external_reference es consultationId)
+          const localPayment = await prisma.payment.findUnique({
+            where: { consultationId },
+          });
+
+          if (localPayment) {
+            let newStatus = localPayment.status;
+
+            if (status === 'approved') {
+              newStatus = 'PAID';
+            } else if (status === 'rejected' || status === 'cancelled') {
+              newStatus = 'FAILED';
+            }
+
+            // Actualizar pago
+            await prisma.payment.update({
+              where: { id: localPayment.id },
+              data: {
+                status: newStatus,
+                mercadopagoPaymentId: paymentId.toString(),
+                paidAt: status === 'approved' ? new Date() : localPayment.paidAt,
+              },
+            });
+
+            // Si se aprobó, activar la consulta y manejar payout según modalidad del médico
+            if (status === 'approved' && localPayment.status !== 'PAID') {
+              // Obtener la consulta con el médico
+              const consultation = await prisma.consultation.findUnique({
+                where: { id: consultationId },
+                include: {
+                  doctor: true,
+                },
+              });
+
+              if (consultation) {
+                // Determinar payoutStatus según la modalidad del médico
+                let payoutStatus = 'PENDING';
+                let payoutDate = null;
+
+                if (consultation.doctor.payoutMode === 'IMMEDIATE') {
+                  // Pago inmediato: marcar como liquidado
+                  payoutStatus = 'PAID_OUT';
+                  payoutDate = new Date();
+                } else {
+                  // Pago mensual: queda pendiente para liquidación
+                  payoutStatus = 'PENDING';
+                }
+
+                // Actualizar el estado de payout
+                await prisma.payment.update({
+                  where: { id: localPayment.id },
+                  data: {
+                    payoutStatus,
+                    payoutDate,
+                  },
+                });
+
+                logger.info(`Pago ${localPayment.id} marcado como ${payoutStatus} (modo: ${consultation.doctor.payoutMode})`);
+              }
+
+              await consultationsService.activate(consultationId, localPayment.id);
+              logger.info(`Consulta ${consultationId} activada tras pago exitoso`);
+            }
+          }
+        }
       }
 
       return { received: true };
     } catch (error) {
       logger.error('Error al procesar webhook:', error);
-      throw createError('Error al procesar webhook', 400);
-    }
-  }
-
-  private async handlePaymentSuccess(session: Stripe.Checkout.Session) {
-    try {
-      const consultationId = session.metadata?.consultationId;
-
-      if (!consultationId) {
-        throw new Error('Consultation ID no encontrado en metadata');
-      }
-
-      // Actualizar pago
-      const payment = await prisma.payment.update({
-        where: { stripeSessionId: session.id },
-        data: {
-          status: PaymentStatus.PAID,
-          stripePaymentId: session.payment_intent as string,
-          paidAt: new Date(),
-        },
-      });
-
-      // Activar consulta
-      await consultationsService.activate(consultationId, payment.id);
-
-      logger.info(`Pago exitoso: ${session.id} - Consulta activada: ${consultationId}`);
-    } catch (error) {
-      logger.error('Error al procesar pago exitoso:', error);
-      throw error;
-    }
-  }
-
-  private async handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
-    try {
-      // Buscar pago por sessionId o paymentIntentId
-      const payment = await prisma.payment.findFirst({
-        where: {
-          OR: [
-            { stripePaymentId: paymentIntent.id },
-            { stripeSessionId: paymentIntent.id },
-          ],
-        },
-      });
-
-      if (payment) {
-        await prisma.payment.update({
-          where: { id: payment.id },
-          data: {
-            status: PaymentStatus.FAILED,
-          },
-        });
-
-        logger.info(`Pago fallido: ${paymentIntent.id}`);
-      }
-    } catch (error) {
-      logger.error('Error al procesar pago fallido:', error);
-      throw error;
+      // No lanzamos error para que MercadoPago no reintente infinitamente si es un error lógico nuestro
+      return { received: true, error: 'Error processing webhook' };
     }
   }
 
@@ -246,4 +242,3 @@ export class PaymentsService {
 }
 
 export default new PaymentsService();
-

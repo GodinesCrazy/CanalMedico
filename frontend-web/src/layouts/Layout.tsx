@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
-import { FiHome, FiMessageSquare, FiSettings, FiDollarSign, FiUser, FiLogOut } from 'react-icons/fi';
+import { FiHome, FiMessageSquare, FiSettings, FiDollarSign, FiUser, FiLogOut, FiPieChart } from 'react-icons/fi';
 
 export default function Layout() {
   const location = useLocation();
@@ -13,11 +13,12 @@ export default function Layout() {
   };
 
   const navigation = [
-    { name: 'Dashboard', href: '/', icon: FiHome },
-    { name: 'Consultas', href: '/consultations', icon: FiMessageSquare },
-    { name: 'Ingresos', href: '/earnings', icon: FiDollarSign },
-    { name: 'Configuración', href: '/settings', icon: FiSettings },
-    { name: 'Perfil', href: '/profile', icon: FiUser },
+    { name: 'Dashboard', href: '/', icon: FiHome, roles: ['DOCTOR', 'ADMIN'] },
+    { name: 'Consultas', href: '/consultations', icon: FiMessageSquare, roles: ['DOCTOR', 'ADMIN'] },
+    { name: 'Ingresos', href: '/earnings', icon: FiDollarSign, roles: ['DOCTOR'] },
+    { name: 'Comisiones', href: '/commissions', icon: FiPieChart, roles: ['ADMIN'] },
+    { name: 'Configuración', href: '/settings', icon: FiSettings, roles: ['DOCTOR', 'ADMIN'] },
+    { name: 'Perfil', href: '/profile', icon: FiUser, roles: ['DOCTOR', 'ADMIN'] },
   ];
 
   return (
@@ -26,30 +27,35 @@ export default function Layout() {
       <aside className="fixed inset-y-0 left-0 w-64 bg-white shadow-lg z-10">
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="flex items-center justify-center h-16 border-b border-gray-200">
-            <h1 className="text-2xl font-bold text-primary-600">CanalMedico</h1>
+          <div className="flex items-center justify-center h-20 border-b border-gray-200 px-4 py-3">
+            <img
+              src="/assets/logo-full.png"
+              alt="CanalMedico"
+              className="h-12 w-auto object-contain"
+            />
           </div>
 
           {/* Navigation */}
           <nav className="flex-1 px-4 py-6 space-y-2">
-            {navigation.map((item) => {
-              const Icon = item.icon;
-              const isActive = location.pathname === item.href;
-              return (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className={`flex items-center px-4 py-3 rounded-lg transition-colors ${
-                    isActive
+            {navigation
+              .filter((item) => !item.roles || item.roles.includes(user?.role || ''))
+              .map((item) => {
+                const Icon = item.icon;
+                const isActive = location.pathname === item.href;
+                return (
+                  <Link
+                    key={item.name}
+                    to={item.href}
+                    className={`flex items-center px-4 py-3 rounded-lg transition-colors ${isActive
                       ? 'bg-primary-50 text-primary-600 font-medium'
                       : 'text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  <Icon className="mr-3 h-5 w-5" />
-                  {item.name}
-                </Link>
-              );
-            })}
+                      }`}
+                  >
+                    <Icon className="mr-3 h-5 w-5" />
+                    {item.name}
+                  </Link>
+                );
+              })}
           </nav>
 
           {/* User info and logout */}
@@ -89,4 +95,3 @@ export default function Layout() {
     </div>
   );
 }
-

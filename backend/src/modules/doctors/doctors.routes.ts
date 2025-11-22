@@ -107,5 +107,45 @@ router.put('/:id/online-status', authenticate, requireRole('DOCTOR'), doctorsCon
  */
 router.get('/:id/statistics', authenticate, requireRole('DOCTOR'), doctorsController.getStatistics.bind(doctorsController));
 
+/**
+ * @swagger
+ * /api/doctors/{id}/payout-settings:
+ *   patch:
+ *     summary: Actualizar configuración de pago del doctor
+ *     tags: [Doctors]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               payoutMode:
+ *                 type: string
+ *                 enum: [IMMEDIATE, MONTHLY]
+ *               payoutDay:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 28
+ *               bankAccountInfo:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Configuración actualizada exitosamente
+ *       401:
+ *         description: No autenticado
+ *       403:
+ *         description: Solo doctores pueden actualizar su configuración
+ */
+router.patch('/:id/payout-settings', authenticate, requireRole('DOCTOR'), doctorsController.updatePayoutSettings.bind(doctorsController));
+
 export default router;
 

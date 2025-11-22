@@ -76,6 +76,29 @@ export class DoctorsController {
       next(error);
     }
   }
+
+  async updatePayoutSettings(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+      if (!req.user) {
+        res.status(401).json({ error: 'No autenticado' });
+        return;
+      }
+
+      const { payoutMode, payoutDay, bankAccountInfo } = req.body;
+      const doctor = await doctorsService.updatePayoutSettings(
+        req.params.id,
+        { payoutMode, payoutDay, bankAccountInfo }
+      );
+
+      res.json({
+        success: true,
+        data: doctor,
+        message: 'Configuración de pago actualizada exitosamente',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default new DoctorsController();

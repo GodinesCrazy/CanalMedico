@@ -18,6 +18,7 @@ import { RootStackParamList } from '@/types';
 import { useAuthStore } from '@/store/authStore';
 import { colors } from '@/theme/colors';
 import { Ionicons } from '@expo/vector-icons';
+import { Logo } from '@/components/Logo';
 
 type RegisterScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Register'>;
 
@@ -64,7 +65,7 @@ export default function RegisterScreen() {
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.content}>
             <View style={styles.header}>
-              <Text style={styles.title}>Crear Cuenta</Text>
+              <Logo variant="full" className="h-12 w-auto mx-auto mb-2" />
               <Text style={styles.subtitle}>Regístrate como paciente</Text>
             </View>
 
@@ -178,12 +179,6 @@ const styles = StyleSheet.create({
     marginBottom: 32,
     alignItems: 'center',
   },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: colors.primary[600],
-    marginBottom: 8,
-  },
   subtitle: {
     fontSize: 14,
     color: colors.gray[600],
@@ -242,4 +237,3 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
-

@@ -4,7 +4,7 @@ import consultationsService from './consultations.service';
 import doctorsService from '../doctors/doctors.service';
 import { validate } from '@/middlewares/validation.middleware';
 import { AuthenticatedRequest } from '@/types';
-import { ConsultationType, ConsultationStatus } from '@prisma/client';
+import { ConsultationType, ConsultationStatus } from '@/types';
 
 const createConsultationSchema = z.object({
   body: z.object({

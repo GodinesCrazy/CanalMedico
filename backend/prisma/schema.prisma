@@ -6,39 +6,15 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
-}
-
-enum UserRole {
-  ADMIN
-  DOCTOR
-  PATIENT
-}
-
-enum ConsultationType {
-  NORMAL
-  URGENCIA
-}
-
-enum ConsultationStatus {
-  PENDING
-  PAID
-  ACTIVE
-  CLOSED
-}
-
-enum PaymentStatus {
-  PENDING
-  PAID
-  FAILED
 }
 
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
   password  String
-  role      UserRole @default(PATIENT)
+  role      String   @default("PATIENT") // UserRole
   createdAt DateTime @default(now())
 
   // Relaciones
@@ -54,17 +30,25 @@ model Doctor {
   id            String   @id @default(cuid())
   userId        String   @unique
   name          String
+  rut           String?  @unique
   speciality    String
-  horarios      Json?    // Horarios de disponibilidad
-  tarifaConsulta Decimal  @default(0) @db.Decimal(10, 2)
-  tarifaUrgencia Decimal  @default(0) @db.Decimal(10, 2)
+  horarios      String?    
+  tarifaConsulta Decimal  @default(0) 
+  tarifaUrgencia Decimal  @default(0) 
   estadoOnline  Boolean  @default(false)
+  
+  // Configuración de pagos
+  payoutMode      String   @default("IMMEDIATE") // "IMMEDIATE" | "MONTHLY"
+  payoutDay       Int      @default(5)           // Día del mes para liquidación (1-28)
+  bankAccountInfo String?                        // JSON con datos bancarios
+  
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   // Relaciones
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   consultations Consultation[]
+  payoutBatches PayoutBatch[]
 
   @@index([userId])
   @@map("doctors")
@@ -75,7 +59,7 @@ model Patient {
   userId        String   @unique
   name          String
   age           Int?
-  medicalHistory Json?   // Historial médico en JSON
+  medicalHistory String?   
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -91,8 +75,8 @@ model Consultation {
   id        String             @id @default(cuid())
   doctorId  String
   patientId String
-  type      ConsultationType   @default(NORMAL)
-  status    ConsultationStatus @default(PENDING)
+  type      String             @default("NORMAL") // ConsultationType
+  status    String             @default("PENDING") // ConsultationStatus
   paymentId String?            @unique
   createdAt DateTime           @default(now())
   updatedAt DateTime           @updatedAt
@@ -114,8 +98,8 @@ model Consultation {
 model Message {
   id             String    @id @default(cuid())
   consultationId String
-  senderId       String    // ID del usuario que envía (doctor o patient)
-  text           String?   @db.Text
+  senderId       String    
+  text           String?   
   fileUrl        String?
   audioUrl       String?
   pdfUrl         String?
@@ -131,23 +115,30 @@ model Message {
 
 model Payment {
   id              String        @id @default(cuid())
-  amount          Decimal       @db.Decimal(10, 2)
-  fee             Decimal       @db.Decimal(10, 2)
-  netAmount       Decimal       @db.Decimal(10, 2)
-  status          PaymentStatus @default(PENDING)
-  stripeSessionId String?       @unique
-  stripePaymentId String?
+  amount          Decimal       
+  fee             Decimal       
+  netAmount       Decimal       
+  status          String        @default("PENDING") // PaymentStatus
+  mercadopagoPreferenceId String? @unique
+  mercadopagoPaymentId    String? @unique
   consultationId  String?       @unique
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
   paidAt          DateTime?
+  
+  // Estado de liquidación al médico
+  payoutStatus    String        @default("PENDING")   // "PENDING" | "SCHEDULED" | "PAID_OUT"
+  payoutDate      DateTime?                           // Fecha de liquidación efectiva
+  payoutBatchId   String?                             // ID del lote de liquidación
 
   // Relaciones
   consultation Consultation? @relation(fields: [consultationId], references: [id])
 
   @@index([status])
-  @@index([stripeSessionId])
+  @@index([mercadopagoPreferenceId])
   @@index([createdAt])
+  @@index([payoutStatus])
+  @@index([payoutBatchId])
   @@map("payments")
 }
 
@@ -165,5 +156,24 @@ model NotificationToken {
   @@index([userId])
   @@index([deviceToken])
   @@map("notification_tokens")
+}
+
+model PayoutBatch {
+  id              String   @id @default(cuid())
+  doctorId        String
+  period          String                          // "2024-11" formato año-mes
+  totalAmount     Decimal                         // Suma de netAmount de todos los pagos
+  paymentCount    Int                             // Cantidad de pagos incluidos
+  status          String   @default("PENDING")    // "PENDING" | "PROCESSED" | "PAID"
+  processedAt     DateTime?
+  createdAt       DateTime @default(now())
+  
+  // Relaciones
+  doctor          Doctor   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  
+  @@index([doctorId])
+  @@index([period])
+  @@index([status])
+  @@map("payout_batches")
 }
 

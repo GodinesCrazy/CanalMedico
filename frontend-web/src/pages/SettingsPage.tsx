@@ -3,6 +3,7 @@ import api from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
 import { Doctor } from '@/types';
 import toast from 'react-hot-toast';
+import { PayoutSettings } from '@/components/PayoutSettings';
 
 export default function SettingsPage() {
   const user = useAuthStore((state) => state.user);
@@ -63,7 +64,7 @@ export default function SettingsPage() {
         }
 
         toast.success('Configuración actualizada');
-        
+
         // Recargar perfil completo
         const updatedProfileResponse = await api.get<{ profile: Doctor }>('/users/profile');
         if (updatedProfileResponse.success && updatedProfileResponse.data && updatedProfileResponse.data.profile) {
@@ -173,6 +174,11 @@ export default function SettingsPage() {
             </button>
           </div>
         </form>
+      </div>
+
+      {/* Configuración de Modalidad de Pago */}
+      <div className="mt-8">
+        <PayoutSettings />
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
 import toast from 'react-hot-toast';
+import { validateRut, formatRutInput } from '@/utils/rut';
 
 export default function ProfilePage() {
   const user = useAuthStore((state) => state.user);
@@ -9,6 +10,7 @@ export default function ProfilePage() {
   const [formData, setFormData] = useState({
     name: '',
     speciality: '',
+    rut: '',
   });
   const [isLoading, setIsLoading] = useState(false);
 
@@ -18,12 +20,13 @@ export default function ProfilePage() {
 
   const loadProfile = async () => {
     try {
-      const response = await api.get<{ profile: { name?: string; speciality?: string } }>('/users/profile');
+      const response = await api.get<{ profile: { name?: string; speciality?: string; rut?: string } }>('/users/profile');
       if (response.success && response.data && response.data.profile) {
         const profile = response.data.profile;
         setFormData({
           name: profile.name || '',
           speciality: profile.speciality || '',
+          rut: profile.rut || '',
         });
       }
     } catch (error) {
@@ -102,6 +105,30 @@ export default function ProfilePage() {
               className="input"
               required
             />
+          </div>
+
+          <div>
+            <label htmlFor="rut" className="block text-sm font-medium text-gray-700 mb-2">
+              RUT
+            </label>
+            <input
+              id="rut"
+              type="text"
+              value={formData.rut}
+              onChange={(e) => {
+                const formatted = formatRutInput(e.target.value);
+                setFormData({ ...formData, rut: formatted });
+              }}
+              onBlur={() => {
+                if (formData.rut && !validateRut(formData.rut)) {
+                  toast.error('El RUT ingresado no es válido');
+                }
+              }}
+              className="input"
+              placeholder="12.345.678-9"
+              required
+            />
+            <p className="text-xs text-gray-500 mt-1">Formato: 12.345.678-9</p>
           </div>
 
           <div className="flex justify-end">

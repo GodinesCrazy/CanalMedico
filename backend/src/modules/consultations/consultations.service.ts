@@ -1,7 +1,7 @@
 import prisma from '@/database/prisma';
 import { createError } from '@/middlewares/error.middleware';
 import logger from '@/config/logger';
-import { ConsultationType, ConsultationStatus } from '@prisma/client';
+import { ConsultationType, ConsultationStatus } from '@/types';
 import { getPaginationParams, createPaginatedResponse } from '@/utils/pagination';
 
 export interface CreateConsultationDto {

@@ -1,10 +1,11 @@
 {
-  "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
     "target": "ES2020",
     "module": "commonjs",
-    "lib": ["ES2020"],
+    "lib": [
+      "ES2020"
+    ],
     "jsx": "react-native",
     "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
@@ -17,18 +18,41 @@
     "noFallthroughCasesInSwitch": true,
     "baseUrl": "./src",
     "paths": {
-      "@/*": ["./*"],
-      "@/screens/*": ["./screens/*"],
-      "@/components/*": ["./components/*"],
-      "@/services/*": ["./services/*"],
-      "@/store/*": ["./store/*"],
-      "@/navigation/*": ["./navigation/*"],
-      "@/theme/*": ["./theme/*"],
-      "@/types/*": ["./types/*"],
-      "@/utils/*": ["./utils/*"]
+      "@/*": [
+        "./*"
+      ],
+      "@/screens/*": [
+        "./screens/*"
+      ],
+      "@/components/*": [
+        "./components/*"
+      ],
+      "@/services/*": [
+        "./services/*"
+      ],
+      "@/store/*": [
+        "./store/*"
+      ],
+      "@/navigation/*": [
+        "./navigation/*"
+      ],
+      "@/theme/*": [
+        "./theme/*"
+      ],
+      "@/types/*": [
+        "./types/*"
+      ],
+      "@/utils/*": [
+        "./utils/*"
+      ]
     }
   },
-  "include": ["src/**/*", "*.ts", "*.tsx"],
-  "exclude": ["node_modules"]
+  "include": [
+    "src/**/*",
+    "*.ts",
+    "*.tsx"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }
-

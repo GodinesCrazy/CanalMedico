@@ -1,0 +1,7 @@
+{
+    "email": "demo_doctor@canalmedico.com",
+    "password": "Demo12345!",
+    "name": "Dr. Demo",
+    "role": "DOCTOR",
+    "speciality": "Medicina General"
+}

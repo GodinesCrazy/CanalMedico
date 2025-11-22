@@ -7,6 +7,7 @@ import ChatPage from './pages/ChatPage';
 import SettingsPage from './pages/SettingsPage';
 import EarningsPage from './pages/EarningsPage';
 import ProfilePage from './pages/ProfilePage';
+import CommissionsPage from './pages/CommissionsPage';
 import Layout from './layouts/Layout';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -38,6 +39,7 @@ function App() {
           <Route path="settings" element={<SettingsPage />} />
           <Route path="earnings" element={<EarningsPage />} />
           <Route path="profile" element={<ProfilePage />} />
+          <Route path="commissions" element={<CommissionsPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

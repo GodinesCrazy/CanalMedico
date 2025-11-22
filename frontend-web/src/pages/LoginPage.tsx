@@ -31,7 +31,13 @@ export default function LoginPage() {
       <div className="max-w-md w-full">
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-primary-600 mb-2">CanalMedico</h1>
+            <div className="flex justify-center mb-4">
+              <img
+                src="/assets/logo-full.png"
+                alt="CanalMedico"
+                className="h-16 w-auto object-contain"
+              />
+            </div>
             <p className="text-gray-600">Panel de Médicos</p>
           </div>
 

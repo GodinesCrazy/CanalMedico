@@ -1,6 +1,53 @@
 import { Request } from 'express';
 import { Socket } from 'socket.io';
-import { UserRole, ConsultationType, ConsultationStatus, PaymentStatus } from '@prisma/client';
+
+// Tipos de enum como constantes (SQLite no soporta enums nativos)
+export const UserRole = {
+  ADMIN: 'ADMIN',
+  DOCTOR: 'DOCTOR',
+  PATIENT: 'PATIENT',
+} as const;
+
+export type UserRole = typeof UserRole[keyof typeof UserRole];
+
+export const ConsultationType = {
+  NORMAL: 'NORMAL',
+  URGENCIA: 'URGENCIA',
+} as const;
+
+export type ConsultationType = typeof ConsultationType[keyof typeof ConsultationType];
+
+export const ConsultationStatus = {
+  PENDING: 'PENDING',
+  PAID: 'PAID',
+  ACTIVE: 'ACTIVE',
+  CLOSED: 'CLOSED',
+} as const;
+
+export type ConsultationStatus = typeof ConsultationStatus[keyof typeof ConsultationStatus];
+
+export const PaymentStatus = {
+  PENDING: 'PENDING',
+  PAID: 'PAID',
+  FAILED: 'FAILED',
+} as const;
+
+export type PaymentStatus = typeof PaymentStatus[keyof typeof PaymentStatus];
+
+export const PayoutMode = {
+  IMMEDIATE: 'IMMEDIATE',
+  MONTHLY: 'MONTHLY',
+} as const;
+
+export type PayoutMode = typeof PayoutMode[keyof typeof PayoutMode];
+
+export const PayoutStatus = {
+  PENDING: 'PENDING',
+  SCHEDULED: 'SCHEDULED',
+  PAID_OUT: 'PAID_OUT',
+} as const;
+
+export type PayoutStatus = typeof PayoutStatus[keyof typeof PayoutStatus];
 
 export interface AuthUser {
   id: string;
@@ -56,11 +103,11 @@ export interface S3UploadResult {
   bucket: string;
 }
 
-export interface StripeWebhookEvent {
+export interface MercadoPagoWebhookEvent {
   id: string;
   type: string;
   data: {
-    object: any;
+    id: string;
   };
 }
 
@@ -70,10 +117,3 @@ export interface NotificationPayload {
   data?: Record<string, any>;
   userId: string;
 }
-
-export {
-  UserRole,
-  ConsultationType,
-  ConsultationStatus,
-  PaymentStatus,
-};

@@ -1,0 +1,416 @@
+PROYECTO “CanalMedico” (Chile)
+
+Instrucción general:
+Actúa como un equipo completo de desarrollo senior (arquitectos de software, dev backend, dev frontend, dev mobile, DevOps, QA, UX/UI), con experiencia internacional en productos de salud y fintech.
+Tu misión es tomar el proyecto CanalMedico que ya existe parcialmente en este repositorio/proyecto, revisarlo desde el inicio y entregarlo completamente terminado, funcional, probado y listo para uso real en Chile, tanto en web como en dispositivos móviles.
+
+1️⃣ Contexto del producto
+
+CanalMedico es una plataforma que:
+
+Permite a profesionales de la salud (médicos, psicólogos, nutricionistas, etc.) atender consultas asincrónicas (por chat, no solo videollamada).
+
+Permite a pacientes enviar:
+
+Mensajes de texto
+
+Fotos (por ejemplo exámenes)
+
+PDFs
+
+Notas de voz
+
+Cada consulta se cobra (consulta normal o urgente).
+
+La plataforma retiene una comisión por cada consulta.
+
+Los médicos controlan horarios, tarifas, tipos de consulta y tienen panel financiero.
+
+El proyecto está pensado para lanzarse inicialmente en Chile, por lo que:
+
+Moneda principal: CLP (pesos chilenos)
+
+Idioma: español chileno
+
+Medios de pago: pasarela muy conocida en Chile para generar confianza (por ejemplo Webpay / Transbank o alguna otra muy usada como Flow o MercadoPago).
+
+Usa tu capacidad para detectar automáticamente el estado actual del proyecto, el código ya creado y su estructura; luego, complétalo hasta que sea un producto acabado.
+
+2️⃣ Objetivo principal de esta tarea
+
+Revisar todo el proyecto existente (código, estructura, dependencias, endpoints, modelos, etc.).
+
+Detectar huecos, errores, cosas a medio hacer o incoherencias.
+
+Proponer internamente (sin pedirme confirmación) la mejor arquitectura final para que el sistema sea:
+
+Escalable
+
+Seguro
+
+Fácil de mantener
+
+Adaptado al mercado chileno
+
+Terminar el desarrollo completo:
+
+Backend (API, lógica de negocio, seguridad, pagos, chat, notificaciones, etc.)
+
+Frontend web (panel del médico / admin)
+
+App móvil (paciente)
+
+Configurar todo para que quede listo para probar en la web, accesible desde navegadores y smartphones, y con app móvil ejecutable.
+
+Documentar claramente cómo levantar el sistema, correrlo y probarlo.
+
+3️⃣ País objetivo: Chile y pasarela de pago
+
+Debes asumir que este sistema será lanzado primero en Chile, por lo que:
+
+Moneda: CLP
+
+Zona horaria: Chile
+
+Formato de fecha y hora: estándar chileno
+
+Validaciones: considerar RUT donde tenga sentido (por ejemplo si es necesario para facturación o registro de médicos).
+
+Idioma de interfaz: español.
+
+En cuanto a pasarela de pago, debes elegir e integrar la opción que:
+
+Sea muy conocida y confiable en Chile.
+
+Sea razonablemente simple de integrar a nivel técnico.
+
+Dé confianza a médicos y pacientes.
+
+Según análisis actuales, las pasarelas más utilizadas y asociadas a confianza del cliente chileno incluyen Webpay (Transbank), Flow, MercadoPago, Khipu, etc. Webpay es descrita como una de las soluciones más usadas y sinónimo de seguridad y confianza para los clientes chilenos. 
+facturadorweb.cl
++3
+Marketing4eCommerce Chile
++3
+billowshop.com
++3
+
+Instrucción concreta:
+Evalúa brevemente (a nivel técnico) Webpay / Transbank y/o un intermediario como Flow o similar, y elige tú la opción más adecuada para CanalMedico buscando:
+
+Facilidad de integración (SDKs, documentación, soporte)
+
+Confianza para el usuario chileno
+
+Soporte para tarjetas nacionales y Redcompra
+
+Una vez elegida, implementa esa integración de extremo a extremo:
+
+Generación de pago
+
+Callback / webhook de confirmación
+
+Manejo de estados de pago
+
+Asociación de pago con la consulta
+
+Manejo de comisión de la plataforma y monto neto del médico
+
+Manejo de errores de pago y reintentos
+
+4️⃣ Objetivo técnico detallado
+
+Debes entregar el proyecto CanalMedico:
+
+✅ Backend terminado:
+
+API REST completa
+
+Modelos de datos consistentes
+
+Autenticación + autorización (roles: admin / médico / paciente)
+
+Chat en tiempo real (WebSockets o tecnología equivalente)
+
+Lógica de creación y gestión de consultas (normal / urgente)
+
+Integración con pasarela de pago chilena (por ejemplo Webpay / Transbank, Flow, MercadoPago)
+
+Registro de eventos, logs básicos y manejo de errores
+
+Seguridad adecuada para datos médicos (hash de contraseñas, tokens, CORS, protección básica)
+
+✅ Frontend web profesional:
+
+Enfocado en médico (panel profesional)
+
+Login
+
+Dashboard de consultas
+
+Pantalla de chat
+
+Configuración de horarios y tarifas
+
+Panel financiero con ingresos, comisiones, historial de pagos
+
+✅ App móvil (o PWA móvil) para paciente:
+
+Registro / login
+
+Vinculación con su médico (por código o invitación)
+
+Inicio de consulta (normal/urgente)
+
+Pantalla de chat con multimedia
+
+Flujo de pago integrado
+
+Historial de consultas
+
+✅ Listo para correr y probar:
+
+Comandos claros para levantar backend y frontend
+
+Datos de prueba o scripts de seed para simular pacientes/médicos
+
+Posibilidad de probar el flujo completo: desde registro → consulta → pago → chat → cierre → ver ingresos
+
+Este sistema debe ser accesible desde navegadores modernos y usable en smartphones (ya sea con diseño responsive o app móvil construida en el proyecto).
+
+5️⃣ Revisión y refactor interno (muy importante)
+
+Antes de seguir agregando cosas nuevas:
+
+Analiza el código actual del proyecto:
+
+Lenguajes y frameworks ya usados
+
+Estructura de carpetas
+
+Módulos presentes
+
+Endpoints ya implementados
+
+Arquitectura de datos
+
+Identifica problemas, como:
+
+Código duplicado
+
+Endpoints sin usar
+
+Cosas a medio implementar
+
+Inconsistencias entre backend y frontend
+
+Refactorea cuando sea necesario, manteniendo:
+
+Claridad
+
+Cohesión por módulo
+
+Patrones de diseño limpitos (services, controllers, repos, etc.)
+
+No tienes que preguntarme cada decisión: toma tú las mejores decisiones posibles basadas en buenas prácticas modernas.
+
+6️⃣ Decisiones de arquitectura
+
+Si el proyecto no tiene algo claro, asume y define tú:
+
+Backend:
+
+Node.js + Express (o NestJS si ya está en uso)
+
+ORM sugerido: Prisma o similar
+
+PostgreSQL como base de datos por defecto, salvo que ya exista otra elegida
+
+Frontend web:
+
+React con TypeScript, si el proyecto ya va por ahí
+
+Manejo de estado global (Zustand, Redux o similar)
+
+App móvil:
+
+Si ya hay base con React Native o similar, continúa con eso
+
+Si no, mínimo una PWA responsive que funcione bien en cualquier smartphone
+
+Si detectas una mezcla confusa de tecnologías, ordena el proyecto sin romper lo que ya funciona.
+
+7️⃣ Flujo funcional obligatorio
+
+Debes asegurarte de que se pueda realizar por completo este flujo, de punta a punta:
+
+Registro de médico
+
+El médico se registra
+
+Completa sus datos
+
+Define tarifas en CLP (consulta normal, consulta urgente)
+
+Define horarios de atención
+
+Registro de paciente
+
+Paciente se registra
+
+Se vincula con su médico (por código, link o selección)
+
+Inicio de consulta
+
+Paciente elige:
+
+Consulta normal (en horario)
+
+Consulta urgente (podría tener tarifa más alta)
+
+Antes de abrir el chat, se exige pago.
+
+Pago
+
+Se genera pago a través de la pasarela chilena elegida
+
+Al confirmarse el pago:
+
+Se cambia el estado de la consulta a “pagada/activa”
+
+Se habilita el chat
+
+Chat
+
+Paciente y médico intercambian mensajes
+
+Se pueden enviar textos, fotos, PDFs, audios
+
+Todo se asocia a la consulta
+
+Cierre
+
+El médico marca la consulta como “cerrada”
+
+Queda registro en el historial tanto del paciente como del médico
+
+La plataforma ya registró comisión y pago neto
+
+Panel médico
+
+El médico ve:
+
+Consultas en curso
+
+Historial de consultas
+
+Ingresos brutos y netos
+
+Comisiones cobradas por la plataforma
+
+Estadísticas básicas (cantidad de consultas, etc.)
+
+8️⃣ Adaptación a Chile (UX / textos / legal básico)
+
+Todos los textos visibles deben estar en español.
+
+Moneda en CLP, con formato adecuado.
+
+En formularios relevantes, puedes incluir:
+
+Campo RUT (opcional) para médicos
+
+Ubicación (ciudad, región)
+
+Ten presente que es un producto de salud:
+
+Añade textos tipo “esto no reemplaza una urgencia vital”, etc. donde corresponda.
+
+Ajusta tonos de texto, errores y mensajes pensando en usuarios chilenos.
+
+9️⃣ Entregables finales esperados
+
+Al finalizar tu trabajo, el proyecto debe tener:
+
+Backend funcional:
+
+Código limpio
+
+Endpoints documentados (idealmente con Swagger u OpenAPI)
+
+Tests básicos
+
+Scripts para levantar servidor local
+
+Frontend web funcional:
+
+Proyecto ejecutable
+
+Layout responsivo
+
+Flujo completo de login → panel → chat → cierre → panel de ingresos
+
+Parte móvil o web mobile responsiva funcional:
+
+Interfaz cómoda en smartphone
+
+Acceso al chat y pagos desde teléfono
+
+Integración de pagos Chile funcional (pruebas):
+
+Ambiente de pruebas/sandbox
+
+Documentación mínima de cómo probar un pago desde el front
+
+Documentación clara:
+
+README principal con:
+
+Requisitos previos
+
+Cómo instalar dependencias
+
+Cómo configurar variables de entorno (ejemplo .env)
+
+Cómo levantar backend
+
+Cómo levantar frontend
+
+Cómo probar el flujo completo
+
+(Opcional pero deseable) scripts en package.json para simplificar:
+
+npm run dev
+
+npm run build
+
+npm run test
+
+🔟 Estilo de trabajo que te pido
+
+No dejes nada “a medias”.
+
+No generes funciones vacías ni archivos sin uso.
+
+No te limites a ejemplos: implementa lógica real.
+
+Si ves que algo está mal planteado, mejóralo.
+
+Si debes elegir entre varias tecnologías, elige tú la más razonable.
+
+Tu meta final es que yo pueda clonar el proyecto, instalar dependencias, configurar variables y probar el sistema completo desde mi navegador y mi smartphone.
+
+🧩 Resumen final para ti (Antigravity)
+
+Explora el repo/proyecto actual de CanalMedico.
+
+Analiza y entiende su estado.
+
+Decide la arquitectura y la pasarela de pago ideal para Chile (Webpay / Flow / MercadoPago u otra conocida).
+
+Refactoriza donde haga falta.
+
+Implementa TODAS las piezas que falten: backend, frontend, app móvil o web mobile.
+
+Asegúrate de que el flujo completo paciente–médico–pago–chat–cierre funcione.
+
+Deja todo documentado y listo para ejecutar y probar.

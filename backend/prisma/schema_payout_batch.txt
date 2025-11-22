@@ -1,0 +1,18 @@
+model PayoutBatch {
+  id              String   @id @default(cuid())
+  doctorId        String
+  period          String                          // "2024-11" formato año-mes
+  totalAmount     Decimal                         // Suma de netAmount de todos los pagos
+  paymentCount    Int                             // Cantidad de pagos incluidos
+  status          String   @default("PENDING")    // "PENDING" | "PROCESSED" | "PAID"
+  processedAt     DateTime?
+  createdAt       DateTime @default(now())
+  
+  // Relaciones
+  doctor          Doctor   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  
+  @@index([doctorId])
+  @@index([period])
+  @@index([status])
+  @@map("payout_batches")
+}

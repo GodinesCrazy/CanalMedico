@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import authService from './auth.service';
 import { validate } from '@/middlewares/validation.middleware';
-import { UserRole } from '@prisma/client';
+
 
 // Schemas de validación
 const registerSchema = z.object({
@@ -10,9 +10,10 @@ const registerSchema = z.object({
     email: z.string().email('Email inválido'),
     password: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres'),
     name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
-    role: z.nativeEnum(UserRole),
+    role: z.enum(['ADMIN', 'DOCTOR', 'PATIENT']),
     age: z.number().int().positive().optional(),
     speciality: z.string().optional(),
+    rut: z.string().optional(),
   }),
 });
 

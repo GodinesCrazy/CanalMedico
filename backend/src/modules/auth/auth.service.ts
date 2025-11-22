@@ -1,17 +1,19 @@
 import prisma from '@/database/prisma';
 import { hashPassword, comparePassword } from '@/utils/hash';
 import { generateTokenPair, verifyRefreshToken } from '@/utils/jwt';
-import { UserRole } from '@prisma/client';
+
 import { createError } from '@/middlewares/error.middleware';
 import logger from '@/config/logger';
+import { validateRut, formatRut } from '@/utils/rut';
 
 export interface RegisterDto {
   email: string;
   password: string;
   name: string;
-  role: UserRole;
+  role: string;
   age?: number;
   speciality?: string;
+  rut?: string;
 }
 
 export interface LoginDto {
@@ -48,18 +50,38 @@ export class AuthService {
       });
 
       // Crear perfil según el rol
-      if (data.role === UserRole.DOCTOR) {
+      if (data.role === 'DOCTOR') {
+        if (!data.rut) {
+          throw createError('El RUT es obligatorio para médicos', 400);
+        }
+
+        if (!validateRut(data.rut)) {
+          throw createError('El RUT ingresado no es válido', 400);
+        }
+
+        // Verificar si el RUT ya está registrado
+        const existingDoctor = await prisma.doctor.findUnique({
+          where: { rut: formatRut(data.rut) },
+        });
+
+        if (existingDoctor) {
+          // Si falla aquí, deberíamos borrar el usuario creado para no dejar huérfanos
+          await prisma.user.delete({ where: { id: user.id } });
+          throw createError('El RUT ya está registrado', 409);
+        }
+
         await prisma.doctor.create({
           data: {
             userId: user.id,
             name: data.name,
+            rut: formatRut(data.rut),
             speciality: data.speciality || 'General',
             tarifaConsulta: 0,
             tarifaUrgencia: 0,
             estadoOnline: false,
           },
         });
-      } else if (data.role === UserRole.PATIENT) {
+      } else if (data.role === 'PATIENT') {
         await prisma.patient.create({
           data: {
             userId: user.id,
