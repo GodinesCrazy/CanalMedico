@@ -1,5 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
+// Force cache invalidation: 2025-11-22
 
 generator client {
   provider = "prisma-client-js"
