@@ -24,11 +24,13 @@ export function PayoutSettings() {
             try {
                 if (user?.profile?.id) {
                     const response = await api.get(`/doctors/${user.profile.id}`);
-                    const doctor = response.data.data;
+                    if (response.data && response.data.data) {
+                        const doctor = response.data.data;
 
-                    if (doctor.payoutMode) setPayoutMode(doctor.payoutMode);
-                    if (doctor.payoutDay) setPayoutDay(doctor.payoutDay);
-                    if (doctor.bankAccountInfo) setBankAccountInfo(doctor.bankAccountInfo);
+                        if (doctor.payoutMode) setPayoutMode(doctor.payoutMode);
+                        if (doctor.payoutDay) setPayoutDay(doctor.payoutDay);
+                        if (doctor.bankAccountInfo) setBankAccountInfo(doctor.bankAccountInfo);
+                    }
                 }
             } catch (error) {
                 console.error('Error al cargar configuración:', error);

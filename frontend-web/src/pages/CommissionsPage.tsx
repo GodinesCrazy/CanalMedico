@@ -48,19 +48,19 @@ export default function CommissionsPage() {
 
             // Cargar estadísticas
             const statsResponse = await api.get<CommissionStats>('/commissions/stats');
-            if (statsResponse.success && statsResponse.data) {
+            if (statsResponse.success && statsResponse.data && statsResponse.data.data) {
                 setStats(statsResponse.data.data);
             }
 
             // Cargar comisiones por médico
             const doctorsResponse = await api.get<DoctorCommission[]>('/commissions/by-doctor');
-            if (doctorsResponse.success && doctorsResponse.data) {
+            if (doctorsResponse.success && doctorsResponse.data && doctorsResponse.data.data) {
                 setDoctorCommissions(doctorsResponse.data.data || []);
             }
 
             // Cargar datos mensuales
             const monthlyResponse = await api.get<MonthlyData[]>('/commissions/monthly');
-            if (monthlyResponse.success && monthlyResponse.data) {
+            if (monthlyResponse.success && monthlyResponse.data && monthlyResponse.data.data) {
                 setMonthlyData(monthlyResponse.data.data || []);
             }
         } catch (error) {
@@ -116,7 +116,7 @@ export default function CommissionsPage() {
             const response = await api.get<DoctorCommission[]>(
                 `/commissions/by-doctor?startDate=${startDate}&endDate=${endDate}`
             );
-            if (response.success && response.data) {
+            if (response.success && response.data && response.data.data) {
                 setDoctorCommissions(response.data.data || []);
                 toast.success('Filtro aplicado');
             }
