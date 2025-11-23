@@ -106,4 +106,36 @@ router.post('/', async (_req: Request, res: Response) => {
     }
 });
 
+import { execSync } from 'child_process';
+
+// ... existing code ...
+
+router.post('/migrate', async (_req: Request, res: Response) => {
+    try {
+        logger.info('🔄 Ejecutando migración manual...');
+
+        const output = execSync('npx prisma db push --accept-data-loss', {
+            encoding: 'utf-8',
+            env: process.env
+        });
+
+        logger.info('✅ Migración manual completada');
+
+        res.json({
+            success: true,
+            message: 'Migración ejecutada exitosamente',
+            output: output
+        });
+    } catch (error: any) {
+        logger.error('❌ Error en migración manual:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Error al ejecutar migración',
+            details: error.message,
+            output: error.stdout ? error.stdout.toString() : '',
+            stderr: error.stderr ? error.stderr.toString() : ''
+        });
+    }
+});
+
 export default router;
