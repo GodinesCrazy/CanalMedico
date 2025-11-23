@@ -1,5 +1,6 @@
 [phases.setup]
 nixPkgs = ["nodejs-18_x"]
+aptPkgs = ["openssl"]
 
 [phases.install]
 cmds = ["cd backend && npm ci"]
