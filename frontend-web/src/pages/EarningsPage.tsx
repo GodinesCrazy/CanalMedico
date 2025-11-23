@@ -45,13 +45,13 @@ export default function EarningsPage() {
       // Cargar perfil del médico para saber su modalidad de pago
       const profileResponse = await api.get(`/doctors/${doctorId}`);
       if (profileResponse.success && profileResponse.data) {
-        setDoctor(profileResponse.data.data);
+        setDoctor(profileResponse.data as any);
       }
 
       // Cargar estadísticas de pagos
-      const statsResponse = await api.get<PayoutStats>('/payouts/my-stats');
+      const statsResponse = await api.get('/payouts/my-stats');
       if (statsResponse.success && statsResponse.data) {
-        setStats(statsResponse.data.data);
+        setStats(statsResponse.data as any);
       }
 
       // Cargar pagos

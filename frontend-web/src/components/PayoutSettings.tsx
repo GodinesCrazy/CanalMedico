@@ -1,15 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuthStore } from '../store/authStore';
 import api from '../services/api';
 import { toast } from 'react-hot-toast';
 
 type PayoutMode = 'IMMEDIATE' | 'MONTHLY';
-
-interface PayoutSettingsData {
-    payoutMode: PayoutMode;
-    payoutDay: number;
-    bankAccountInfo?: string;
-}
 
 export function PayoutSettings() {
     const { user } = useAuthStore();
@@ -24,8 +18,8 @@ export function PayoutSettings() {
             try {
                 if (user?.profile?.id) {
                     const response = await api.get(`/doctors/${user.profile.id}`);
-                    if (response.data && response.data.data) {
-                        const doctor = response.data.data;
+                    if (response.data) {
+                        const doctor = response.data as any;
 
                         if (doctor.payoutMode) setPayoutMode(doctor.payoutMode);
                         if (doctor.payoutDay) setPayoutDay(doctor.payoutDay);

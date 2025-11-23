@@ -47,21 +47,21 @@ export default function CommissionsPage() {
             setIsLoading(true);
 
             // Cargar estadísticas
-            const statsResponse = await api.get<CommissionStats>('/commissions/stats');
-            if (statsResponse.success && statsResponse.data && statsResponse.data.data) {
-                setStats(statsResponse.data.data);
+            const statsResponse = await api.get('/commissions/stats');
+            if (statsResponse.success && statsResponse.data) {
+                setStats(statsResponse.data as any);
             }
 
             // Cargar comisiones por médico
-            const doctorsResponse = await api.get<DoctorCommission[]>('/commissions/by-doctor');
-            if (doctorsResponse.success && doctorsResponse.data && doctorsResponse.data.data) {
-                setDoctorCommissions(doctorsResponse.data.data || []);
+            const doctorsResponse = await api.get('/commissions/by-doctor');
+            if (doctorsResponse.success && doctorsResponse.data) {
+                setDoctorCommissions((doctorsResponse.data as any) || []);
             }
 
             // Cargar datos mensuales
-            const monthlyResponse = await api.get<MonthlyData[]>('/commissions/monthly');
-            if (monthlyResponse.success && monthlyResponse.data && monthlyResponse.data.data) {
-                setMonthlyData(monthlyResponse.data.data || []);
+            const monthlyResponse = await api.get('/commissions/monthly');
+            if (monthlyResponse.success && monthlyResponse.data) {
+                setMonthlyData((monthlyResponse.data as any) || []);
             }
         } catch (error) {
             console.error('Error al cargar comisiones:', error);
@@ -113,11 +113,11 @@ export default function CommissionsPage() {
         }
 
         try {
-            const response = await api.get<DoctorCommission[]>(
+            const response = await api.get(
                 `/commissions/by-doctor?startDate=${startDate}&endDate=${endDate}`
             );
-            if (response.success && response.data && response.data.data) {
-                setDoctorCommissions(response.data.data || []);
+            if (response.success && response.data) {
+                setDoctorCommissions((response.data as any) || []);
                 toast.success('Filtro aplicado');
             }
         } catch (error) {
