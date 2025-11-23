@@ -1,6 +1,14 @@
 {
-  "dependencies": {
-    "@types/node-cron": "^3.0.11",
-    "node-cron": "^4.2.1"
+  "name": "canalmedico-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "install": "cd backend && npm ci",
+    "build": "cd backend && npx prisma generate && npm run build",
+    "start": "cd backend && node dist/server.js",
+    "dev": "cd backend && npm run dev"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
