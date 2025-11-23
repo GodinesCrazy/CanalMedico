@@ -14,7 +14,7 @@ const router = Router();
  *     summary: Poblar base de datos con usuarios de prueba
  *     description: SOLO PARA DESARROLLO - Crea usuarios de prueba en la base de datos
  */
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', async (_req: Request, res: Response) => {
     try {
         logger.info('🌱 Iniciando seed de la base de datos...');
 
