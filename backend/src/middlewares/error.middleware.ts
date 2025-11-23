@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
 import logger from '@/config/logger';
-import logger from '@/config/logger';
 
 export interface ApiError extends Error {
   statusCode?: number;
