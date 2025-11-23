@@ -75,6 +75,9 @@ const swaggerOptions: swaggerJsdoc.Options = {
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
 
 // Middlewares globales
+// Configurar trust proxy para Railway (necesario para rate limiting y proxies reversos)
+app.set('trust proxy', true);
+
 app.use(helmet());
 app.use(
   cors({
@@ -157,24 +160,42 @@ async function runMigrations() {
 
     // Intentar ejecutar migraciones (para producción, cuando ya hay migraciones creadas)
     try {
-      execSync('npx prisma migrate deploy', {
+      const migrateOutput = execSync('npx prisma migrate deploy', {
         stdio: 'pipe',
         env: process.env,
+        encoding: 'utf-8',
       });
       logger.info('✅ Migraciones ejecutadas correctamente');
-    } catch (migrateError) {
+      if (migrateOutput && migrateOutput.trim()) {
+        logger.info('Output:', migrateOutput.trim());
+      }
+    } catch (migrateError: any) {
       // Si no hay migraciones o fallan, intentar con db push (sincroniza el schema directamente)
       logger.warn('⚠️ No se pudieron aplicar migraciones con migrate deploy, intentando db push...');
       logger.warn('💡 Esto sincronizará el schema directamente con la base de datos');
+      
+      if (migrateError.stderr) {
+        logger.debug('Error de migrate deploy:', migrateError.stderr.toString());
+      }
 
       try {
-        execSync('npx prisma db push --accept-data-loss', {
+        const pushOutput = execSync('npx prisma db push --accept-data-loss --skip-generate', {
           stdio: 'pipe',
           env: process.env,
+          encoding: 'utf-8',
         });
         logger.info('✅ Schema sincronizado correctamente con db push');
-      } catch (pushError) {
-        logger.error('❌ Error al sincronizar el schema:', pushError);
+        if (pushOutput && pushOutput.trim()) {
+          logger.info('Output:', pushOutput.trim());
+        }
+      } catch (pushError: any) {
+        logger.error('❌ Error al sincronizar el schema:');
+        if (pushError.stdout) {
+          logger.error('stdout:', pushError.stdout.toString());
+        }
+        if (pushError.stderr) {
+          logger.error('stderr:', pushError.stderr.toString());
+        }
         throw pushError;
       }
     }
