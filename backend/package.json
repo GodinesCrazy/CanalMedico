@@ -1,6 +1,24 @@
-    "medical",
-    "medical",
-    "medical",
+{
+  "name": "canalmedico-backend",
+  "version": "1.0.1",
+  "description": "Backend API para CanalMedico - Plataforma de consultas médicas asíncronas",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc && tsc-alias",
+    "start": "node dist/server.js",
+    "start:migrate": "npx prisma migrate deploy && node dist/server.js",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:studio": "prisma studio",
+    "prisma:deploy": "prisma migrate deploy",
+    "prisma:seed": "tsx prisma/seed.ts",
+    "railway:deploy": "npm run build && prisma migrate deploy && npm start",
+    "test": "jest",
+    "lint": "eslint src --ext .ts",
+    "format": "prettier --write \"src/**/*.ts\""
+  },
+  "keywords": [
     "medical",
     "chat",
     "consultation",
