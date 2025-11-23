@@ -85,7 +85,8 @@ app.use(
       'http://localhost:19000',
       'http://192.168.4.43:5173',
       'http://192.168.4.43:8081',
-      'http://192.168.4.43:19000'
+      'http://192.168.4.43:19000',
+      'https://canalmedico-web-production.up.railway.app'
     ],
     credentials: true,
   })
