@@ -139,6 +139,10 @@ app.use('/api/payouts', payoutsRoutes);
 import commissionsRoutes from './modules/commissions/commissions.routes';
 app.use('/api/commissions', commissionsRoutes);
 
+// Importar rutas de seed (solo para desarrollo/pruebas)
+import seedRoutes from './modules/seed/seed.routes';
+app.use('/api/seed', seedRoutes);
+
 // Error handlers
 app.use(notFoundHandler);
 app.use(errorHandler);
