@@ -43,10 +43,9 @@ export const errorHandler = (
   });
 
   res.status(500).json({
-    error: env.NODE_ENV === 'production' 
-      ? 'Error interno del servidor' 
-      : err.message,
-    ...(env.NODE_ENV !== 'production' && { stack: err.stack }),
+    error: err.message,
+    stack: err.stack,
+    // details: err, // Circular structure might cause issues, better to just send message and stack
   });
 };
 
