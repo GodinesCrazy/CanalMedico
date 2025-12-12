@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Mapper para convertir datos de CanalMedico a recursos FHIR seg�n la Gu�a de Implementaci�n SNRE
  * Basado en HL7 FHIR R4 y perfiles chilenos (Core-CL, SNRE)
  */

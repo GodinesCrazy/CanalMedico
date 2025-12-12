@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Servicio de negocio para recetas SNRE
  * Orquesta la creaci�n de recetas, mapeo a FHIR y comunicaci�n con SNRE
  */

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Controlador de verificaci�n de m�dicos
  */
 
@@ -44,7 +44,7 @@ export class DoctorVerificationController {
    * POST /api/medicos/validar-identidad
    * Valida solo la identidad contra Registro Civil
    */
-  async verifyIdentity(req: Request, res: Response, next: NextFunction) {
+  async verifyIdentity(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { rut, name, birthDate } = req.body;
       
@@ -77,7 +77,7 @@ export class DoctorVerificationController {
    * POST /api/medicos/validar-rnpi
    * Valida solo la habilitaci�n profesional contra RNPI
    */
-  async verifyRnpi(req: Request, res: Response, next: NextFunction) {
+  async verifyRnpi(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { rut, name, specialty } = req.body;
       
@@ -110,7 +110,7 @@ export class DoctorVerificationController {
    * POST /api/medicos/validacion-completa
    * Ejecuta verificaci�n completa (identidad + RNPI)
    */
-  async verifyComplete(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  async verifyComplete(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.user) {
         return res.status(401).json({ success: false, error: 'No autenticado' });
@@ -166,7 +166,7 @@ export class DoctorVerificationController {
    * GET /api/medicos/:id/estado-validacion
    * Obtiene el estado de verificaci�n de un m�dico
    */
-  async getVerificationStatus(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  async getVerificationStatus(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.user) {
         return res.status(401).json({ success: false, error: 'No autenticado' });
@@ -204,7 +204,7 @@ export class DoctorVerificationController {
    * POST /api/admin/revalidar-medico/:id
    * Re-ejecuta la verificaci�n de un m�dico (solo admin)
    */
-  async reVerifyDoctor(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  async reVerifyDoctor(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.user) {
         return res.status(401).json({ success: false, error: 'No autenticado' });
@@ -232,3 +232,8 @@ export class DoctorVerificationController {
 }
 
 export default new DoctorVerificationController();
+
+
+
+
+
