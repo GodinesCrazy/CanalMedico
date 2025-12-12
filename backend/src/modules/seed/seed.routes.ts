@@ -109,6 +109,15 @@ router.post('/migrate', async (_req: Request, res: Response) => {
     }
 });
 
+/**
+ * @swagger
+ * /api/seed/migrate-validation:
+ *   post:
+ *     tags:
+ *       - Seed
+ *     summary: Ejecutar migraciÃ³n SQL de validaciÃ³n de doctores
+ *     description: Ejecuta el SQL para agregar columnas de validaciÃ³n a la tabla doctors
+ */
 router.post('/migrate-validation', async (_req: Request, res: Response) => {
     try {
         logger.info('ðŸ”„ Ejecutando migraciÃ³n SQL de validaciÃ³n de doctores...');
@@ -174,3 +183,4 @@ router.post('/migrate-validation', async (_req: Request, res: Response) => {
 });
 
 export default router;
+
