@@ -203,7 +203,7 @@ export default function ChatPage() {
     try {
       const response = await api.get(`/consultations/${consultationId}/prescriptions`);
       if (response.success && response.data) {
-        setPrescriptions(response.data);
+        setPrescriptions(Array.isArray(response.data) ? response.data : []);
       }
     } catch (error) {
       // Silenciar error si no hay recetas aún
@@ -473,6 +473,7 @@ export default function ChatPage() {
     </div>
   );
 }
+
 
 
 

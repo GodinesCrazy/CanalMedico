@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Controlador de verificacion de medicos
  */
 

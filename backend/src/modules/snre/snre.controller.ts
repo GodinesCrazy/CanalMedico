@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Controlador para endpoints de recetas SNRE
  */
 

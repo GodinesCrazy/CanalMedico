@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import api from '@/services/api';
 import { DoctorSignupRequest } from '@/types';
 import toast from 'react-hot-toast';
@@ -87,7 +87,7 @@ export default function AdminSignupRequestsPage() {
             // Recargar solicitud seleccionada
             api.get(`/signup-requests/${requestId}`).then((res) => {
               if (res.success && res.data) {
-                setSelectedRequest(res.data);
+                setSelectedRequest(res.data as DoctorSignupRequest);
               }
             });
           }
@@ -428,4 +428,5 @@ export default function AdminSignupRequestsPage() {
     </div>
   );
 }
+
 
