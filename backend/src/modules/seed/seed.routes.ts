@@ -194,50 +194,103 @@ router.post('/migrate-validation', async (_req: Request, res: Response) => {
  *     description: Verifica si las columnas de validaciÃ³n fueron creadas correctamente en la tabla doctors
  */
 router.get('/verify-validation', async (_req: Request, res: Response) => {
+    const startTime = Date.now();
+    
     try {
-        logger.info('[verify-validation] Verificando columnas de validaciÃ³n...');
+        logger.info('[verify-validation] Iniciando verificaciÃ³n de columnas...');
         
-        const columns = await prisma.$queryRawUnsafe(`
-            SELECT column_name, data_type, is_nullable, column_default
-            FROM information_schema.columns
-            WHERE table_name = 'doctors'
-            AND column_name IN (
-                'identidadValidada',
-                'profesionValidada',
-                'rnpiEstado',
-                'rnpiProfesion',
-                'rnpiFechaVerificacion',
-                'verificacionEstadoFinal',
-                'logsValidacion',
-                'identityVerificationData',
-                'rnpiVerificationData',
-                'lastVerificationAt',
-                'verificationErrors'
-            )
-            ORDER BY column_name
-        `) as any[];
+        let columns = [];
+        try {
+            logger.info('[verify-validation] Ejecutando query SQL...');
+            const result = await prisma.$queryRawUnsafe(`
+                SELECT column_name, data_type, is_nullable, column_default
+                FROM information_schema.columns
+                WHERE table_name = 'doctors'
+                AND column_name IN (
+                    'identidadValidada',
+                    'profesionValidada',
+                    'rnpiEstado',
+                    'rnpiProfesion',
+                    'rnpiFechaVerificacion',
+                    'verificacionEstadoFinal',
+                    'logsValidacion',
+                    'identityVerificationData',
+                    'rnpiVerificationData',
+                    'lastVerificationAt',
+                    'verificationErrors'
+                )
+                ORDER BY column_name
+            `);
+            columns = result;
+            logger.info(`[verify-validation] Query ejecutado: ${columns.length} columnas encontradas`);
+        } catch (queryError) {
+            logger.error('[verify-validation] Error en query SQL:', queryError);
+            if (!res.headersSent) {
+                return res.status(500).json({
+                    success: false,
+                    error: 'Error al ejecutar query SQL',
+                    details: queryError.message,
+                    timestamp: new Date().toISOString()
+                });
+            }
+            return;
+        }
 
-        const expectedColumns = ['identidadValidada', 'profesionValidada', 'rnpiEstado', 'rnpiProfesion', 'rnpiFechaVerificacion', 'verificacionEstadoFinal', 'logsValidacion', 'identityVerificationData', 'rnpiVerificationData', 'lastVerificationAt', 'verificationErrors'];
+        const expectedColumns = [
+            'identidadValidada',
+            'profesionValidada',
+            'rnpiEstado',
+            'rnpiProfesion',
+            'rnpiFechaVerificacion',
+            'verificacionEstadoFinal',
+            'logsValidacion',
+            'identityVerificationData',
+            'rnpiVerificationData',
+            'lastVerificationAt',
+            'verificationErrors'
+        ];
 
-        const foundColumnNames = columns.map((c: any) => c.column_name);
+        const foundColumnNames = Array.isArray(columns) ? columns.map((c) => c.column_name) : [];
         const missingColumns = expectedColumns.filter(col => !foundColumnNames.includes(col));
 
-        logger.info(`[verify-validation] Columnas encontradas: ${columns.length}/${expectedColumns.length}`);
+        logger.info(`[verify-validation] Columnas encontradas: ${foundColumnNames.length}/${expectedColumns.length}`);
         if (missingColumns.length > 0) {
             logger.warn(`[verify-validation] Columnas faltantes: ${missingColumns.join(', ')}`);
         }
 
-        res.setHeader('Content-Type', 'application/json');
-        res.status(200).json({
-            success: true,
-            message: 'VerificaciÃ³n completada',
-            totalExpected: expectedColumns.length,
-            totalFound: columns.length,
-            columns: columns,
-            missingColumns: missingColumns,
-            allColumnsPresent: missingColumns.length === 0,
-            timestamp: new Date().toISOString()
-        });
+        const duration = Date.now() - startTime;
+        logger.info(`[verify-validation] VerificaciÃ³n completada en ${duration}ms`);
+
+        if (!res.headersSent) {
+            res.setHeader('Content-Type', 'application/json');
+            return res.status(200).json({
+                success: true,
+                message: 'VerificaciÃ³n completada',
+                totalExpected: expectedColumns.length,
+                totalFound: foundColumnNames.length,
+                columns: columns,
+                missingColumns: missingColumns,
+                allColumnsPresent: missingColumns.length === 0,
+                timestamp: new Date().toISOString(),
+                duration: `${duration}ms`
+            });
+        }
+    } catch (error) {
+        const duration = Date.now() - startTime;
+        logger.error('[verify-validation] Error general:', error);
+        
+        if (!res.headersSent) {
+            res.setHeader('Content-Type', 'application/json');
+            return res.status(500).json({
+                success: false,
+                error: 'Error al verificar columnas',
+                details: error.message,
+                timestamp: new Date().toISOString(),
+                duration: `${duration}ms`
+            });
+        }
+    }
+});
     } catch (error: any) {
         logger.error('[verify-validation] Error:', error);
         res.setHeader('Content-Type', 'application/json');
