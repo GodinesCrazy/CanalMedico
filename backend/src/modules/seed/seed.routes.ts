@@ -182,5 +182,74 @@ router.post('/migrate-validation', async (_req: Request, res: Response) => {
     }
 });
 
+
+
+/**
+ * @swagger
+ * /api/seed/verify-validation:
+ *   get:
+ *     tags:
+ *       - Seed
+ *     summary: Verificar estado de migraciÃ³n de validaciÃ³n
+ *     description: Verifica si las columnas de validaciÃ³n fueron creadas correctamente en la tabla doctors
+ */
+router.get('/verify-validation', async (_req: Request, res: Response) => {
+    try {
+        logger.info('[verify-validation] Verificando columnas de validaciÃ³n...');
+        
+        const columns = await prisma.$queryRawUnsafe(`
+            SELECT column_name, data_type, is_nullable, column_default
+            FROM information_schema.columns
+            WHERE table_name = 'doctors'
+            AND column_name IN (
+                'identidadValidada',
+                'profesionValidada',
+                'rnpiEstado',
+                'rnpiProfesion',
+                'rnpiFechaVerificacion',
+                'verificacionEstadoFinal',
+                'logsValidacion',
+                'identityVerificationData',
+                'rnpiVerificationData',
+                'lastVerificationAt',
+                'verificationErrors'
+            )
+            ORDER BY column_name
+        `) as any[];
+
+        const expectedColumns = ['identidadValidada', 'profesionValidada', 'rnpiEstado', 'rnpiProfesion', 'rnpiFechaVerificacion', 'verificacionEstadoFinal', 'logsValidacion', 'identityVerificationData', 'rnpiVerificationData', 'lastVerificationAt', 'verificationErrors'];
+
+        const foundColumnNames = columns.map((c: any) => c.column_name);
+        const missingColumns = expectedColumns.filter(col => !foundColumnNames.includes(col));
+
+        logger.info(`[verify-validation] Columnas encontradas: ${columns.length}/${expectedColumns.length}`);
+        if (missingColumns.length > 0) {
+            logger.warn(`[verify-validation] Columnas faltantes: ${missingColumns.join(', ')}`);
+        }
+
+        res.setHeader('Content-Type', 'application/json');
+        res.status(200).json({
+            success: true,
+            message: 'VerificaciÃ³n completada',
+            totalExpected: expectedColumns.length,
+            totalFound: columns.length,
+            columns: columns,
+            missingColumns: missingColumns,
+            allColumnsPresent: missingColumns.length === 0,
+            timestamp: new Date().toISOString()
+        });
+    } catch (error: any) {
+        logger.error('[verify-validation] Error:', error);
+        res.setHeader('Content-Type', 'application/json');
+        res.status(500).json({
+            success: false,
+            error: 'Error al verificar columnas',
+            details: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
 export default router;
+
 
