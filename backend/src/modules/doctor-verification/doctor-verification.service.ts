@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Servicio de verificacion de medicos
  * Gestiona la persistencia y consulta de estados de verificacion
  */
@@ -10,9 +10,8 @@ import doctorVerificationPipeline from './doctor-verification-pipeline.service';
 import {
   DoctorVerificationRequest,
   DoctorVerificationResult,
-  VerificationFinalStatus,
 } from './doctor-verification.types';
-import { extractRutAndDv, formatRut } from '@/utils/rut';
+import { extractRutAndDv } from '@/utils/rut';
 import { encrypt } from '@/utils/encryption';
 import env from '@/config/env';
 
@@ -193,3 +192,5 @@ export class DoctorVerificationService {
 }
 
 export default new DoctorVerificationService();
+
+

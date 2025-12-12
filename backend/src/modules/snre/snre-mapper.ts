@@ -1,5 +1,5 @@
-/**
- * Mapper para convertir datos de CanalMedico a recursos FHIR seg�n la Gu�a de Implementaci�n SNRE
+﻿/**
+ * Mapper para convertir datos de CanalMedico a recursos FHIR segï¿½n la Guï¿½a de Implementaciï¿½n SNRE
  * Basado en HL7 FHIR R4 y perfiles chilenos (Core-CL, SNRE)
  */
 
@@ -15,7 +15,7 @@ import logger from '@/config/logger';
 
 export class SnreMapper {
   /**
-   * Crea un Bundle FHIR completo para una receta seg�n el perfil SNRE
+   * Crea un Bundle FHIR completo para una receta segï¿½n el perfil SNRE
    */
   createRecetaBundle(
     patient: PatientFhirData,
@@ -68,7 +68,7 @@ export class SnreMapper {
           fullUrl: `urn:uuid:${this.generateUUID()}`,
           resource: organizationResource,
         }] : []),
-        ...medicationRequests.map((mr, index) => ({
+        ...medicationRequests.map((mr, _index) => ({
           fullUrl: `urn:uuid:${this.generateUUID()}`,
           resource: mr,
         })),
@@ -85,7 +85,7 @@ export class SnreMapper {
   }
 
   /**
-   * Crea un recurso Patient FHIR seg�n perfil Core-CL
+   * Crea un recurso Patient FHIR segï¿½n perfil Core-CL
    */
   private createPatientResource(patient: PatientFhirData): any {
     const rutFormatted = formatRut(patient.rut);
@@ -96,7 +96,7 @@ export class SnreMapper {
       identifier: [
         {
           use: 'official',
-          system: 'http://www.registrocivil.cl/RUT', // Sistema de identificaci�n chileno
+          system: 'http://www.registrocivil.cl/RUT', // Sistema de identificaciï¿½n chileno
           value: rutFormatted,
         },
       ],
@@ -129,7 +129,7 @@ export class SnreMapper {
   }
 
   /**
-   * Crea un recurso Practitioner FHIR seg�n perfil Core-CL
+   * Crea un recurso Practitioner FHIR segï¿½n perfil Core-CL
    */
   private createPractitionerResource(practitioner: PractitionerFhirData): any {
     const rutFormatted = formatRut(practitioner.rut);
@@ -163,7 +163,7 @@ export class SnreMapper {
               {
                 system: 'http://terminology.hl7.org/CodeSystem/v2-0360',
                 code: 'MD',
-                display: 'M�dico',
+                display: 'Mï¿½dico',
               },
             ],
           },
@@ -222,7 +222,7 @@ export class SnreMapper {
   }
 
   /**
-   * Crea un recurso Composition (Receta) seg�n perfil RecetaPrescripcionCl
+   * Crea un recurso Composition (Receta) segï¿½n perfil RecetaPrescripcionCl
    */
   private createCompositionResource(
     patient: PatientFhirData,
@@ -240,10 +240,10 @@ export class SnreMapper {
           {
             system: 'http://snomed.info/sct',
             code: '761938008', // SNOMED: Prescription record
-            display: 'Receta M�dica',
+            display: 'Receta Mï¿½dica',
           },
         ],
-        text: 'Receta M�dica Electr�nica',
+        text: 'Receta Mï¿½dica Electrï¿½nica',
       },
       subject: {
         reference: `Patient/patient-${formatRut(patient.rut)}`,
@@ -254,7 +254,7 @@ export class SnreMapper {
         },
       ],
       date: timestamp,
-      title: 'Receta Electr�nica - CanalMedico',
+      title: 'Receta Electrï¿½nica - CanalMedico',
       section: [
         {
           title: 'Prescripciones',
@@ -263,7 +263,7 @@ export class SnreMapper {
               {
                 system: 'http://snomed.info/sct',
                 code: '182836005', // SNOMED: Prescription
-                display: 'Prescripci�n',
+                display: 'Prescripciï¿½n',
               },
             ],
           },
@@ -369,31 +369,31 @@ export class SnreMapper {
   }
 
   private mapSpecialityToSnomed(speciality: string): string {
-    // Mapeo b�sico de especialidades comunes a c�digos SNOMED
+    // Mapeo bï¿½sico de especialidades comunes a cï¿½digos SNOMED
     const specialityMap: Record<string, string> = {
       'Medicina General': '419192003',
-      'Pediatr�a': '419610006',
-      'Cardiolog�a': '419040004',
-      'Dermatolog�a': '419043002',
-      'Neurolog�a': '419039003',
-      'Psiquiatr�a': '419192003',
+      'Pediatrï¿½a': '419610006',
+      'Cardiologï¿½a': '419040004',
+      'Dermatologï¿½a': '419043002',
+      'Neurologï¿½a': '419039003',
+      'Psiquiatrï¿½a': '419192003',
     };
 
     return specialityMap[speciality] || '419192003'; // Default: Medicina General
   }
 
   private parseFrequency(frequency: string): number {
-    // Parsear frecuencia como "cada 8 horas" -> 3 veces al d�a
+    // Parsear frecuencia como "cada 8 horas" -> 3 veces al dï¿½a
     const match = frequency.match(/cada\s+(\d+)/i);
     if (match) {
       const hours = parseInt(match[1], 10);
-      return 24 / hours; // Veces por d�a
+      return 24 / hours; // Veces por dï¿½a
     }
     return 1; // Default
   }
 
   private parsePeriod(frequency: string): number {
-    // Parsear per�odo en horas
+    // Parsear perï¿½odo en horas
     const match = frequency.match(/cada\s+(\d+)/i);
     if (match) {
       return parseInt(match[1], 10);
@@ -402,7 +402,7 @@ export class SnreMapper {
   }
 
   private parseDosage(dosage: string): number {
-    // Extraer n�mero de la dosis (ej: "1 tableta" -> 1)
+    // Extraer nï¿½mero de la dosis (ej: "1 tableta" -> 1)
     const match = dosage.match(/(\d+(?:\.\d+)?)/);
     return match ? parseFloat(match[1]) : 1;
   }
@@ -424,3 +424,4 @@ export class SnreMapper {
 }
 
 export default new SnreMapper();
+
