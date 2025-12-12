@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+﻿import { Router, Request, Response } from 'express';
 import prisma from '@/database/prisma';
 import * as bcrypt from 'bcryptjs';
 import logger from '@/config/logger';
@@ -180,4 +180,86 @@ router.post('/migrate', async (_req: Request, res: Response) => {
     }
 });
 
+
+/**
+ * @swagger
+ * /api/seed/migrate-validation:
+ *   post:
+ *     tags:
+ *       - Seed
+ *     summary: Ejecutar migraciÃ³n SQL de validaciÃ³n de doctores
+ *     description: Ejecuta el SQL para agregar columnas de validaciÃ³n a la tabla doctors
+ */
+router.post('/migrate-validation', async (_req: Request, res: Response) => {
+    try {
+        logger.info('ðŸ”„ Ejecutando migraciÃ³n SQL de validaciÃ³n de doctores...');
+
+        const sql = `
+            ALTER TABLE "doctors" 
+            ADD COLUMN IF NOT EXISTS "identidadValidada" BOOLEAN DEFAULT false,
+            ADD COLUMN IF NOT EXISTS "profesionValidada" BOOLEAN DEFAULT false,
+            ADD COLUMN IF NOT EXISTS "rnpiEstado" TEXT,
+            ADD COLUMN IF NOT EXISTS "rnpiProfesion" TEXT,
+            ADD COLUMN IF NOT EXISTS "rnpiFechaVerificacion" TIMESTAMP,
+            ADD COLUMN IF NOT EXISTS "verificacionEstadoFinal" TEXT DEFAULT 'PENDIENTE',
+            ADD COLUMN IF NOT EXISTS "logsValidacion" TEXT,
+            ADD COLUMN IF NOT EXISTS "identityVerificationData" TEXT,
+            ADD COLUMN IF NOT EXISTS "rnpiVerificationData" TEXT,
+            ADD COLUMN IF NOT EXISTS "lastVerificationAt" TIMESTAMP,
+            ADD COLUMN IF NOT EXISTS "verificationErrors" TEXT;
+
+            CREATE INDEX IF NOT EXISTS "doctors_verificacionEstadoFinal_idx" 
+            ON "doctors"("verificacionEstadoFinal");
+
+            CREATE INDEX IF NOT EXISTS "doctors_identidadValidada_idx" 
+            ON "doctors"("identidadValidada");
+
+            CREATE INDEX IF NOT EXISTS "doctors_profesionValidada_idx" 
+            ON "doctors"("profesionValidada");
+
+            CREATE INDEX IF NOT EXISTS "doctors_rut_idx" 
+            ON "doctors"("rut");
+        `;
+
+        await prisma.$executeRawUnsafe(sql);
+
+        const columns = await prisma.$queryRawUnsafe(`
+            SELECT column_name, data_type, is_nullable, column_default
+            FROM information_schema.columns
+            WHERE table_name = 'doctors'
+            AND column_name IN (
+                'identidadValidada',
+                'profesionValidada',
+                'rnpiEstado',
+                'rnpiProfesion',
+                'rnpiFechaVerificacion',
+                'verificacionEstadoFinal',
+                'logsValidacion',
+                'identityVerificationData',
+                'rnpiVerificationData',
+                'lastVerificationAt',
+                'verificationErrors'
+            )
+            ORDER BY column_name;
+        `);
+
+        logger.info('âœ… MigraciÃ³n SQL de validaciÃ³n completada');
+
+        res.json({
+            success: true,
+            message: 'MigraciÃ³n de validaciÃ³n ejecutada exitosamente',
+            columns: columns
+        });
+    } catch (error: any) {
+        logger.error('âŒ Error en migraciÃ³n SQL de validaciÃ³n:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Error al ejecutar migraciÃ³n SQL',
+            details: error.message
+        });
+    }
+});
+
+
 export default router;
+
