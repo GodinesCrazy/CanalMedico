@@ -2,12 +2,11 @@
  * Controlador para endpoints de recetas SNRE
  */
 
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { validate } from '@/middlewares/validation.middleware';
 import { AuthenticatedRequest } from '@/types';
 import snreService from './snre.service';
-import logger from '@/config/logger';
 import prisma from '@/database/prisma';
 
 // Schema de validaci�n para crear receta
@@ -182,4 +181,6 @@ export class SnreController {
 }
 
 export default new SnreController();
+
+
 
