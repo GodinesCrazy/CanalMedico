@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Pruebas unitarias para validaciï¿½n de identidad
  */
 

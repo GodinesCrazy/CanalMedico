@@ -1,4 +1,4 @@
-﻿import prisma from '@/database/prisma';
+import prisma from '@/database/prisma';
 import { createError } from '@/middlewares/error.middleware';
 import logger from '@/config/logger';
 import { getPaginationParams, createPaginatedResponse } from '@/utils/pagination';

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Servicio de verificacion de medicos
  * Gestiona la persistencia y consulta de estados de verificacion
  */

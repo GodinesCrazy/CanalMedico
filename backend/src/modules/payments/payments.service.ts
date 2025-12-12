@@ -7,14 +7,13 @@ import mercadopagoService from './mercadopago.service';
 
 export interface CreatePaymentSessionDto {
   consultationId: string;
-  successUrl?: string; // Deep link para app móvil o URL web (opcional)
-  cancelUrl?: string;  // Deep link para app móvil o URL web (opcional)
+  successUrl?: string;
+  cancelUrl?: string;
 }
 
 export class PaymentsService {
   async createPaymentSession(data: CreatePaymentSessionDto) {
     try {
-      // Obtener consulta
       const consultation = await prisma.consultation.findUnique({
         where: { id: data.consultationId },
         include: {
@@ -35,35 +34,29 @@ export class PaymentsService {
         throw createError('La consulta ya tiene un pago procesado', 400);
       }
 
-      // Calcular monto según tipo de consulta
       const amountValue = consultation.type === 'URGENCIA'
         ? Number(consultation.doctor.tarifaUrgencia)
         : Number(consultation.doctor.tarifaConsulta);
 
       if (amountValue <= 0) {
-        throw createError('La tarifa no está configurada', 400);
+        throw createError('La tarifa no esta configurada', 400);
       }
 
-      // Calcular fee y monto neto
-      const fee = Math.round(amountValue * env.STRIPE_COMMISSION_FEE); // Usamos la misma variable de entorno para la comisión
+      const fee = Math.round(amountValue * env.STRIPE_COMMISSION_FEE);
       const netAmount = amountValue - fee;
 
-      // Obtener email del pagador (paciente)
-      // Asumimos que el paciente tiene un usuario asociado, si no, usamos un email genérico
       const payerEmail = consultation.patient.user?.email || 'paciente@canalmedico.cl';
 
-      // Crear preferencia en MercadoPago
-      const title = `Consulta médica - ${consultation.type === 'URGENCIA' ? 'Urgencia' : 'Normal'}`;
+      const title = `Consulta medica - ${consultation.type === 'URGENCIA' ? 'Urgencia' : 'Normal'}`;
       const preference = await mercadopagoService.createPreference(
         consultation.id,
         title,
         amountValue,
         payerEmail,
-        data.successUrl, // URL de éxito (puede ser deep link para app móvil)
-        data.cancelUrl  // URL de cancelación (puede ser deep link para app móvil)
+        data.successUrl,
+        data.cancelUrl
       );
 
-      // Crear registro de pago
       const payment = await prisma.payment.create({
         data: {
           amount: amountValue,
@@ -84,117 +77,97 @@ export class PaymentsService {
         payment,
       };
     } catch (error) {
-      logger.error('Error al crear sesión de pago:', error);
+      logger.error('Error al crear sesion de pago:', error);
       throw error;
     }
   }
 
   async handleWebhook(_signature: string, body: any) {
     try {
-      // MercadoPago envía el ID del recurso en el body o query params dependiendo del tipo de notificación
-      // Para Webhooks v1 (IPN), recibimos type y data.id
-      // 
-      // VALIDACIÓN DE SEGURIDAD:
-      // 1. Verificamos que el payment existe en MercadoPago (usando access token)
-      // 2. Validamos que el external_reference corresponde a una consulta válida
-      // 3. Solo procesamos si el payment está en estado válido
-
       const { type, data } = body;
 
       if (!type || !data || !data.id) {
-        logger.warn('Webhook recibido con formato inválido:', body);
+        logger.warn('Webhook recibido con formato invalido:', body);
         return { received: true, error: 'Invalid webhook format' };
       }
 
       if (type === 'payment') {
         const paymentId = data.id;
         
-        // Validar que el payment existe en MercadoPago (esto valida que viene de MercadoPago)
         let paymentInfo;
         try {
           paymentInfo = await mercadopagoService.getPaymentInfo(paymentId);
         } catch (error) {
-          logger.error(`Error al obtener información del pago ${paymentId} desde MercadoPago:`, error);
-          // Si no podemos obtener el payment desde MercadoPago, rechazamos el webhook
+          logger.error(`Error al obtener informacion del pago ${paymentId} desde MercadoPago:`, error);
           return { received: true, error: 'Payment not found in MercadoPago' };
         }
 
         if (!paymentInfo || !paymentInfo.external_reference) {
-          logger.warn(`Webhook de pago ${paymentId} sin external_reference válido`);
+          logger.warn(`Webhook de pago ${paymentId} sin external_reference valido`);
           return { received: true, error: 'Invalid payment reference' };
         }
-          const consultationId = paymentInfo.external_reference;
-          const status = paymentInfo.status;
 
-          logger.info(`Procesando webhook pago ${paymentId} para consulta ${consultationId}. Estado: ${status}`);
+        const consultationId = paymentInfo.external_reference;
+        const status = paymentInfo.status;
 
-          // Buscar el pago en nuestra BD usando consultationId (ya que external_reference es consultationId)
-          const localPayment = await prisma.payment.findUnique({
-            where: { consultationId },
+        logger.info(`Procesando webhook pago ${paymentId} para consulta ${consultationId}. Estado: ${status}`);
+
+        const localPayment = await prisma.payment.findUnique({
+          where: { consultationId },
+        });
+
+        if (localPayment) {
+          let newStatus = localPayment.status;
+
+          if (status === 'approved') {
+            newStatus = 'PAID';
+          } else if (status === 'rejected' || status === 'cancelled') {
+            newStatus = 'FAILED';
+          }
+
+          await prisma.payment.update({
+            where: { id: localPayment.id },
+            data: {
+              status: newStatus,
+              mercadopagoPaymentId: paymentId.toString(),
+              paidAt: status === 'approved' ? new Date() : localPayment.paidAt,
+            },
           });
 
-          if (localPayment) {
-            let newStatus = localPayment.status;
-
-            if (status === 'approved') {
-              newStatus = 'PAID';
-            } else if (status === 'rejected' || status === 'cancelled') {
-              newStatus = 'FAILED';
-            }
-
-            // Actualizar pago
-            await prisma.payment.update({
-              where: { id: localPayment.id },
-              data: {
-                status: newStatus,
-                mercadopagoPaymentId: paymentId.toString(),
-                paidAt: status === 'approved' ? new Date() : localPayment.paidAt,
+          if (status === 'approved' && localPayment.status !== 'PAID') {
+            const consultation = await prisma.consultation.findUnique({
+              where: { id: consultationId },
+              include: {
+                doctor: true,
               },
             });
 
-            // Si se aprobó, activar la consulta y manejar payout según modalidad del médico
-            if (status === 'approved' && localPayment.status !== 'PAID') {
-              // Obtener la consulta con el médico
-              const consultation = await prisma.consultation.findUnique({
-                where: { id: consultationId },
-                include: {
-                  doctor: true,
+            if (consultation) {
+              let payoutStatus = 'PENDING';
+              let payoutDate = null;
+
+              if (consultation.doctor.payoutMode === 'IMMEDIATE') {
+                payoutStatus = 'PAID_OUT';
+                payoutDate = new Date();
+              } else {
+                payoutStatus = 'PENDING';
+              }
+
+              await prisma.payment.update({
+                where: { id: localPayment.id },
+                data: {
+                  payoutStatus,
+                  payoutDate,
                 },
               });
 
-              if (consultation) {
-                // Determinar payoutStatus según la modalidad del médico
-                let payoutStatus = 'PENDING';
-                let payoutDate = null;
-
-                if (consultation.doctor.payoutMode === 'IMMEDIATE') {
-                  // Pago inmediato: marcar como liquidado
-                  payoutStatus = 'PAID_OUT';
-                  payoutDate = new Date();
-                } else {
-                  // Pago mensual: queda pendiente para liquidación
-                  payoutStatus = 'PENDING';
-                }
-
-                // Actualizar el estado de payout
-                await prisma.payment.update({
-                  where: { id: localPayment.id },
-                  data: {
-                    payoutStatus,
-                    payoutDate,
-                  },
-                });
-
-                logger.info(`Pago ${localPayment.id} marcado como ${payoutStatus} (modo: ${consultation.doctor.payoutMode})`);
-              }
-
-              await consultationsService.activate(consultationId, localPayment.id);
-              logger.info(`Consulta ${consultationId} activada tras pago exitoso`);
+              logger.info(`Pago ${localPayment.id} marcado como ${payoutStatus} (modo: ${consultation.doctor.payoutMode})`);
             }
+
+            await consultationsService.activate(consultationId, localPayment.id);
+            logger.info(`Consulta ${consultationId} activada tras pago exitoso`);
           }
         }
-      }
-
       } else {
         logger.info(`Webhook recibido de tipo desconocido: ${type}`);
       }
@@ -202,14 +175,10 @@ export class PaymentsService {
       return { received: true };
     } catch (error) {
       logger.error('Error al procesar webhook:', error);
-      // IMPORTANTE: No lanzamos error para que MercadoPago no reintente infinitamente
-      // si es un error lógico nuestro. Pero sí registramos el error para diagnóstico.
-      // Si es un error crítico (BD, etc.), debería lanzarse para que MercadoPago reintente.
       const isCriticalError = error instanceof Error && 
         (error.message.includes('database') || error.message.includes('connection'));
       
       if (isCriticalError) {
-        // Errores críticos: lanzamos para que MercadoPago reintente
         throw error;
       }
       
