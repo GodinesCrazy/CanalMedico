@@ -18,14 +18,18 @@
 - 📁 Gestión de archivos médicos
 - ⚙️ Configuración de tarifas y horarios
 - 📱 Notificaciones push
+- 💊 **Emisión de recetas electrónicas SNRE** (NUEVO)
+- 🔐 **Validación automática de identidad y habilitación profesional** (NUEVO)
 
 ### Para Pacientes
 - 📱 App móvil intuitiva
 - 🔍 Búsqueda de médicos por especialidad
-- 💳 Pagos seguros con MercadoPago
+- 💳 Pagos seguros con MercadoPago (con deep linking automático)
+- 🔄 Verificación automática del estado de pago
 - 💬 Chat con médicos
 - 📄 Historial médico completo
 - 🔔 Notificaciones en tiempo real
+- 💊 **Recetas electrónicas SNRE** (NUEVO) - Válidas en todas las farmacias de Chile
 
 ### Para Administradores
 - 📊 Panel de comisiones
@@ -140,6 +144,53 @@ npm start
 
 ---
 
+## 🔐 Sistema de Validación Automática de Médicos
+
+CanalMedico valida automáticamente a todos los médicos usando **fuentes oficiales del Estado de Chile**:
+
+### Validación de Identidad (Registro Civil)
+- ✅ Validación de RUN contra Registro Civil
+- ✅ Verificación de nombre y fecha de nacimiento
+- ✅ Integración con Floid (proveedor configurable)
+
+### Validación Profesional (RNPI - Superintendencia de Salud)
+- ✅ Consulta automática al Registro Nacional de Prestadores Individuales
+- ✅ Verificación de profesión (debe ser "Médico Cirujano")
+- ✅ Verificación de estado (debe estar "Habilitado")
+- ✅ Comparación de especialidades
+
+### Resultados
+- **Aprobación Automática**: Si todo coincide, el médico se crea automáticamente
+- **Rechazo Automático**: Si no cumple requisitos, se rechaza automáticamente
+- **Revisión Manual**: Si hay inconsistencias menores, requiere revisión
+
+**Garantiza que solo médicos reales y habilitados pueden atender en CanalMedico.**
+
+---
+
+## 💊 Integración SNRE - Recetas Electrónicas
+
+CanalMedico está integrado con el **Sistema Nacional de Receta Electrónica (SNRE)** del Ministerio de Salud de Chile, permitiendo emitir recetas médicas electrónicas formales e interoperables.
+
+### Características
+- ✅ Emisión de recetas electrónicas desde el panel médico
+- ✅ Integración con HL7 FHIR R4 según Guía de Implementación MINSAL
+- ✅ Códigos únicos SNRE para dispensación en farmacias
+- ✅ Visualización de recetas para pacientes
+- ✅ Validación automática de datos (RUT, medicamentos, etc.)
+
+### Configuración
+1. Obtener credenciales del MINSAL (contactar: snre@minsal.cl)
+2. Configurar variables de entorno:
+   ```env
+   SNRE_BASE_URL=https://snre-sandbox.minsal.cl/fhir
+   SNRE_API_KEY=tu_api_key
+   SNRE_ENVIRONMENT=sandbox
+   ```
+3. Ver documentación completa: `INTEGRACION_SNRE_COMPLETA.md`
+
+---
+
 ## 💳 Integración de Pagos
 
 CanalMedico utiliza **MercadoPago Chile** para procesar pagos de forma segura.
@@ -248,16 +299,26 @@ Este proyecto está bajo la Licencia MIT. Ver `LICENSE` para más información.
 
 ## 🗺️ Roadmap
 
+### ✅ Completado (Versión 1.1.0)
 - [x] Sistema de consultas asíncronas
-- [x] Chat en tiempo real
-- [x] Pagos con MercadoPago
-- [x] Sistema dual de liquidaciones
-- [x] Panel de comisiones
-- [ ] Videollamadas
-- [ ] Recetas electrónicas
+- [x] Chat en tiempo real con Socket.io
+- [x] Pagos con MercadoPago Chile
+- [x] Sistema dual de liquidaciones (inmediato/mensual)
+- [x] Panel de comisiones para administradores
+- [x] Deep linking post-pago
+- [x] Polling automático de estado de pago
+- [x] Disponibilidad automática de médicos
+- [x] Validación de propiedad en todos los endpoints
+- [x] Panel de solicitudes de registro médico
+
+### 🎯 Próximas Funcionalidades
+- [ ] Videollamadas integradas
+- [x] Recetas electrónicas SNRE (HL7 FHIR)
 - [ ] Integración con FONASA
 - [ ] App iOS nativa
 - [ ] App Android nativa
+- [ ] Modo offline
+- [ ] IA para triage inicial
 
 ---
 

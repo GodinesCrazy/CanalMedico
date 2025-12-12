@@ -28,6 +28,7 @@ import messagesRoutes from '@/modules/messages/messages.routes';
 import paymentsRoutes from '@/modules/payments/payments.routes';
 import filesRoutes from '@/modules/files/files.routes';
 import notificationsRoutes from '@/modules/notifications/notifications.routes';
+import snreRoutes from '@/modules/snre/snre.routes';
 
 // Socket service
 import socketService from '@/modules/chats/socket.service';
@@ -146,6 +147,21 @@ app.use('/api/commissions', commissionsRoutes);
 import seedRoutes from './modules/seed/seed.routes';
 app.use('/api/seed', seedRoutes);
 
+// Importar rutas de solicitudes de registro
+import signupRequestsRoutes from './modules/signup-requests/signup-requests.routes';
+app.use('/api/signup-requests', signupRequestsRoutes);
+
+// Importar rutas de recetas SNRE
+app.use('/api/prescriptions', snreRoutes);
+
+// Importar rutas de verificación de médicos
+import doctorVerificationRoutes, { doctorVerificationAdminRoutes } from './modules/doctor-verification/doctor-verification.routes';
+app.use('/api/medicos', doctorVerificationRoutes);
+app.use('/api/admin', doctorVerificationAdminRoutes);
+
+// Importar job de liquidaciones mensuales
+import { startPayoutJob } from './jobs/payout.job';
+
 // Error handlers
 app.use(notFoundHandler);
 app.use(errorHandler);
@@ -245,6 +261,15 @@ async function startServer() {
         // Vamos a permitir que inicie para ver logs.
         logger.error('⚠️ Iniciando servidor sin base de datos para diagnóstico');
       }
+    }
+
+    // Iniciar job de liquidaciones mensuales
+    try {
+      startPayoutJob();
+      logger.info('✅ Job de liquidaciones mensuales iniciado (ejecuta diariamente a las 00:00)');
+    } catch (jobError) {
+      logger.error('❌ Error al iniciar job de liquidaciones:', jobError);
+      // No bloqueamos el inicio del servidor si falla el job, pero lo registramos
     }
 
     // Iniciar servidor HTTP

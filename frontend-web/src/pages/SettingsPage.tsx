@@ -4,6 +4,8 @@ import { useAuthStore } from '@/store/authStore';
 import { Doctor } from '@/types';
 import toast from 'react-hot-toast';
 import { PayoutSettings } from '@/components/PayoutSettings';
+import { AvailabilitySettings } from '@/components/AvailabilitySettings';
+import { formatCLP } from '@/utils/currency';
 
 export default function SettingsPage() {
   const user = useAuthStore((state) => state.user);
@@ -55,14 +57,6 @@ export default function SettingsPage() {
       });
 
       if (profileResponse.success && user) {
-        // Actualizar estado en línea si cambió
-        const doctorId = (user.profile as Doctor)?.id;
-        if (doctorId && (user.profile as Doctor)?.estadoOnline !== formData.estadoOnline) {
-          await api.put(`/doctors/${doctorId}/online-status`, {
-            estadoOnline: formData.estadoOnline,
-          });
-        }
-
         toast.success('Configuración actualizada');
 
         // Recargar perfil completo
@@ -120,12 +114,12 @@ export default function SettingsPage() {
 
             <div>
               <label htmlFor="tarifaConsulta" className="block text-sm font-medium text-gray-700 mb-2">
-                Tarifa Consulta Normal (USD)
+                Tarifa Consulta Normal ($)
               </label>
               <input
                 id="tarifaConsulta"
                 type="number"
-                step="0.01"
+                step="1"
                 min="0"
                 value={formData.tarifaConsulta}
                 onChange={(e) =>
@@ -134,16 +128,19 @@ export default function SettingsPage() {
                 className="input"
                 required
               />
+              {formData.tarifaConsulta > 0 && (
+                <p className="text-xs text-gray-500 mt-1">{formatCLP(formData.tarifaConsulta)}</p>
+              )}
             </div>
 
             <div>
               <label htmlFor="tarifaUrgencia" className="block text-sm font-medium text-gray-700 mb-2">
-                Tarifa Consulta Urgencia (USD)
+                Tarifa Consulta Urgencia ($)
               </label>
               <input
                 id="tarifaUrgencia"
                 type="number"
-                step="0.01"
+                step="1"
                 min="0"
                 value={formData.tarifaUrgencia}
                 onChange={(e) =>
@@ -152,20 +149,10 @@ export default function SettingsPage() {
                 className="input"
                 required
               />
+              {formData.tarifaUrgencia > 0 && (
+                <p className="text-xs text-gray-500 mt-1">{formatCLP(formData.tarifaUrgencia)}</p>
+              )}
             </div>
-          </div>
-
-          <div className="flex items-center">
-            <input
-              id="estadoOnline"
-              type="checkbox"
-              checked={formData.estadoOnline}
-              onChange={(e) => setFormData({ ...formData, estadoOnline: e.target.checked })}
-              className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-            />
-            <label htmlFor="estadoOnline" className="ml-2 block text-sm text-gray-700">
-              Disponible para consultas
-            </label>
           </div>
 
           <div className="flex justify-end">
@@ -174,6 +161,11 @@ export default function SettingsPage() {
             </button>
           </div>
         </form>
+      </div>
+
+      {/* Configuración de Disponibilidad */}
+      <div className="mt-8">
+        <AvailabilitySettings />
       </div>
 
       {/* Configuración de Modalidad de Pago */}

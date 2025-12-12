@@ -233,7 +233,7 @@ Puedes pagar con:
 
 2. Toca **"Pagar Ahora"**
 
-3. Se abrirá la página de **MercadoPago**
+3. Se abrirá la página de **MercadoPago** en tu navegador
 
 4. Elige tu método de pago:
    - Tarjeta de crédito
@@ -250,11 +250,27 @@ Puedes pagar con:
 
 7. Espera la confirmación (puede tomar unos segundos)
 
-8. Verás un mensaje: **"¡Pago Exitoso!"**
+8. **NUEVO:** Automáticamente volverás a la app CanalMedico
 
-9. Automáticamente volverás a la app
+9. **NUEVO:** La app verificará automáticamente si el pago fue exitoso
 
-10. Tu consulta ahora está **ACTIVA** ✅
+10. **NUEVO:** Si el pago se confirmó, serás redirigido automáticamente al chat
+
+11. Tu consulta ahora está **ACTIVA** ✅
+
+### ⚡ Verificación Automática del Pago
+
+**Nueva funcionalidad:** La app verifica automáticamente cada 3 segundos si tu pago fue confirmado. Esto significa que:
+
+- ✅ No necesitas volver manualmente a la app
+- ✅ La app detecta cuando el pago se completa
+- ✅ Te redirige automáticamente al chat
+- ✅ Verás un mensaje de confirmación
+
+**Si el pago tarda:**
+- Verás un mensaje: **"Verificando estado del pago..."**
+- Puedes tocar el botón **"Verificar Pago"** para comprobar manualmente
+- La app seguirá verificando automáticamente en segundo plano
 
 ### ¿Es Seguro Pagar?
 
@@ -262,11 +278,21 @@ Puedes pagar con:
 
 ### ¿Qué pasa si el Pago Falla?
 
-- Verás un mensaje de error
+- Verás un mensaje de error en la app
+- La app detectará automáticamente el fallo
 - Revisa que los datos de tu tarjeta sean correctos
 - Verifica que tengas saldo disponible
-- Intenta nuevamente
-- Si el problema persiste, contacta a tu banco
+- Toca **"Reintentar Pago"** para intentar nuevamente
+- Si el problema persiste, contacta a tu banco o a soporte@canalmedico.cl
+
+### ¿Qué pasa si Completo el Pago pero no Vuelvo a la App?
+
+**No te preocupes:** La app detectará automáticamente cuando vuelvas a abrirla que el pago fue exitoso y te redirigirá al chat. También puedes:
+
+1. Abrir la app manualmente
+2. Ir a **"Mis Consultas"**
+3. Verás que la consulta está **ACTIVA**
+4. Toca sobre ella para abrir el chat
 
 ---
 
@@ -361,6 +387,63 @@ Tu médico puede enviarte:
 
 ---
 
+## Recetas Electrónicas SNRE
+
+### ¿Qué es una Receta Electrónica SNRE?
+
+Una **receta electrónica SNRE** es una receta médica formal emitida a través del Sistema Nacional de Receta Electrónica del Ministerio de Salud de Chile. Esta receta es válida en cualquier farmacia del país y puede ser dispensada usando un código único.
+
+### Cómo Ver tus Recetas
+
+1. **Abre la consulta** donde el médico emitió la receta
+2. **Busca la sección "Recetas Electrónicas SNRE"**
+3. **Verás todas las recetas** emitidas en esa consulta
+
+### Información de la Receta
+
+Cada receta muestra:
+- **Código SNRE**: Código único que debes mostrar en la farmacia
+- **Medicamentos**: Lista completa de medicamentos recetados
+- **Dosis y frecuencia**: Cómo tomar cada medicamento
+- **Instrucciones**: Instrucciones adicionales del médico
+- **Estado**: Si la receta fue enviada exitosamente al SNRE
+
+### Cómo Usar tu Receta en la Farmacia
+
+1. **Ve a cualquier farmacia** en Chile
+2. **Muestra el código SNRE** de tu receta (puedes mostrarlo desde tu celular)
+3. **El farmacéutico validará** la receta en el sistema SNRE
+4. **Recibirás tus medicamentos** según lo prescrito
+
+### ¿Dónde Ver el Código SNRE?
+
+- En la app móvil: Sección "Recetas Electrónicas" en el detalle de la consulta
+- En la versión web: Sección "Recetas Electrónicas SNRE" en el chat
+- El código aparece destacado en un recuadro azul
+
+### Portal "Mis Recetas" del MINSAL
+
+También puedes ver tus recetas en el portal oficial del MINSAL:
+- Visita: https://misrecetas.minsal.cl (o la URL oficial que indique el MINSAL)
+- Ingresa con tu RUT
+- Verás todas tus recetas electrónicas
+
+### Preguntas Frecuentes sobre Recetas
+
+**¿Puedo usar la receta en cualquier farmacia?**
+- Sí, las recetas SNRE son válidas en todas las farmacias de Chile.
+
+**¿Cuánto tiempo es válida una receta?**
+- Depende del tipo de receta y medicamento. Consulta con tu médico o farmacéutico.
+
+**¿Qué pasa si pierdo el código SNRE?**
+- Puedes verlo nuevamente en la app o en el portal "Mis Recetas" del MINSAL.
+
+**¿Puedo imprimir la receta?**
+- Sí, puedes mostrar el código desde tu celular o imprimirlo si prefieres.
+
+---
+
 ## Fin de la Consulta
 
 ### Cuándo Termina una Consulta
@@ -368,6 +451,7 @@ Tu médico puede enviarte:
 La consulta termina cuando:
 - ✅ El médico te ha dado el diagnóstico
 - ✅ Has recibido las indicaciones de tratamiento
+- ✅ Has recibido las recetas necesarias (si aplica)
 - ✅ Todas tus dudas fueron resueltas
 - ✅ El médico marca la consulta como **"Cerrada"**
 
@@ -376,6 +460,7 @@ La consulta termina cuando:
 Una vez cerrada:
 - ❌ No podrás enviar más mensajes
 - ✅ Podrás ver todo el historial
+- ✅ Podrás ver y usar tus recetas electrónicas
 - ✅ Podrás descargar los documentos
 - ✅ Si necesitas más atención, debes iniciar una **nueva consulta**
 
@@ -519,9 +604,16 @@ Al usar CanalMedico, recuerda:
 
 ## Actualizaciones
 
-**Versión del Manual**: 1.0  
-**Fecha**: Noviembre 2024  
-**Última actualización**: 22/11/2024
+**Versión del Manual**: 1.1.0  
+**Fecha**: Enero 2025  
+**Última actualización**: Enero 2025
+
+### Nuevas Funcionalidades en esta Versión
+
+- ✅ **Deep Linking Post-Pago**: Redirección automática después del pago
+- ✅ **Verificación Automática**: La app verifica automáticamente el estado del pago
+- ✅ **Disponibilidad Automática**: Los médicos pueden configurar horarios automáticos
+- ✅ **Mejoras de Seguridad**: Protección mejorada de datos personales
 
 ---
 

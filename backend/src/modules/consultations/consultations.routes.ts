@@ -154,5 +154,9 @@ router.patch('/:id/activate', consultationsController.activate.bind(consultation
  */
 router.patch('/:id/close', authenticate, requireRole('DOCTOR'), consultationsController.close.bind(consultationsController));
 
+// Importar rutas de recetas SNRE
+import { consultationsPrescriptionsRoutes } from '../snre/snre.routes';
+router.use('/', consultationsPrescriptionsRoutes);
+
 export default router;
 

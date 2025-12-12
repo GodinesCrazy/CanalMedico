@@ -1,0 +1,8 @@
+Email:    admin@canalmedico.com
+Password: admin123
+
+Email:    doctor1@ejemplo.com
+Password: doctor123
+
+Email:    paciente1@ejemplo.com
+Password: patient123

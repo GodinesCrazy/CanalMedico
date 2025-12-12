@@ -156,23 +156,92 @@ Use los filtros disponibles:
 
 ## Gestión de Médicos
 
-### Verificar Credenciales
+### Solicitudes de Registro (NUEVO)
 
-Antes de aprobar un médico, verifique:
+Los médicos ahora pueden solicitar su registro directamente desde la plataforma:
+
+1. Vaya a **"Solicitudes de Registro"** en el menú principal
+2. Verá todas las solicitudes pendientes con:
+   - Nombre completo
+   - Email
+   - RUT
+   - Especialidad
+   - Número de registro profesional
+   - Clínica o centro donde trabaja
+   - Comentarios adicionales
+   - Fecha de solicitud
+
+### Sistema de Validación Automática (NUEVO)
+
+CanalMedico ahora valida automáticamente a los médicos usando **dos fuentes oficiales del Estado de Chile**:
+
+1. **Registro Civil** - Valida RUN y nombre
+2. **Superintendencia de Salud (RNPI)** - Valida habilitación profesional
+
+**Estados de Validación:**
+
+- **AUTO_APPROVED**: Aprobada automáticamente (médico creado)
+- **AUTO_REJECTED**: Rechazada automáticamente (no cumple requisitos)
+- **REVIEWED**: Requiere revisión manual (inconsistencias menores)
+
+### Verificar Resultados de Validación
+
+En el panel de solicitudes, puede ver:
+
+1. **Validación de Identidad:**
+   - Estado: Verificada / No Coincide / RUN Inválido
+   - Detalles: Nombre oficial, fecha de nacimiento, estado de cédula
+
+2. **Validación RNPI:**
+   - Estado: Médico Verificado / No Médico / Suspendido / Inconsistencias
+   - Detalles: Profesión oficial, estado, especialidades registradas
+
+3. **Errores de Validación:**
+   - Lista de errores encontrados durante la validación automática
+
+### Re-ejecutar Validaciones
+
+Si necesita re-ejecutar las validaciones automáticas:
+
+1. Abra los detalles de la solicitud
+2. Haga clic en **"Re-ejecutar Validaciones"**
+3. El sistema volverá a consultar las fuentes oficiales
+4. Los resultados se actualizarán en breve
+
+### Verificar Credenciales (Revisión Manual)
+
+Para solicitudes que requieren revisión manual (`REVIEWED`), verifique:
 
 ✅ **RUT**: Válido y único en el sistema  
-✅ **Título Profesional**: Solicite copia del título  
+✅ **Validación de Identidad**: Revise si el nombre coincide  
+✅ **Validación RNPI**: Revise profesión, estado y especialidades  
+✅ **Título Profesional**: Solicite copia del título si hay dudas  
 ✅ **Registro en Superintendencia de Salud**: Verifique en https://www.supersalud.gob.cl  
 ✅ **Especialidad**: Confirme que coincida con su formación  
+✅ **Número de Registro**: Verifique que sea válido  
 
 ### Aprobar/Rechazar Médico
 
-1. Vaya a **"Médicos"** → **"Pendientes de Aprobación"**
-2. Revise la documentación adjunta
-3. Verifique credenciales
-4. Haga clic en:
-   - **"Aprobar"**: El médico podrá usar la plataforma
-   - **"Rechazar"**: Ingrese el motivo del rechazo
+1. Vaya a **"Solicitudes de Registro"**
+2. Filtre por estado: **"Pendientes"**
+3. Haga clic en una solicitud para ver todos los detalles
+4. Revise la información completa
+5. Haga clic en:
+   - **"Aprobar"**: 
+     - El sistema creará automáticamente la cuenta del médico
+     - Se enviará un correo con instrucciones de acceso
+     - El médico podrá usar la plataforma inmediatamente
+   - **"Rechazar"**: 
+     - Ingrese el motivo del rechazo
+     - Se enviará un correo al médico explicando el motivo
+     - La solicitud quedará archivada
+
+### Estados de Solicitudes
+
+- **PENDING**: Pendiente de revisión
+- **REVIEWED**: En revisión
+- **APPROVED**: Aprobada (médico creado)
+- **REJECTED**: Rechazada
 
 ### Configurar Tarifas Sugeridas
 
@@ -327,30 +396,52 @@ En caso de que un médico no cierre una consulta:
 
 ### Procesar Pagos a Médicos
 
-#### Ciclo de Pago Mensual
+#### Sistema Dual de Pagos
 
-Los pagos a médicos se procesan el **día 5 de cada mes**.
+CanalMedico ahora soporta dos modalidades de pago:
 
-**Proceso**:
+1. **Pago Inmediato**: Se procesan automáticamente después de cada consulta
+2. **Pago Mensual**: Se acumulan y liquidan mensualmente
 
-1. Vaya a **"Finanzas"** → **"Pagos a Médicos"**
-2. Seleccione el mes a procesar
-3. El sistema generará un listado con:
-   - Nombre del médico
-   - RUT
-   - Total de consultas
-   - Monto bruto
-   - Comisión retenida
-   - **Monto a transferir**
-   - Datos bancarios
+#### Procesar Liquidaciones Mensuales (NUEVO)
 
-4. Revise el listado
-5. Haga clic en **"Generar Archivo para Banco"**
-6. Descargue el archivo (formato compatible con su banco)
-7. Suba el archivo al portal de su banco
-8. Procese las transferencias
-9. En CanalMedico, marque los pagos como **"Transferidos"**
-10. El sistema enviará comprobantes a cada médico
+Los médicos con modalidad mensual se liquidan automáticamente, pero puede revisar y gestionar:
+
+1. Vaya a **"Finanzas"** → **"Liquidaciones Mensuales"**
+2. Verá todas las liquidaciones:
+   - **Pendientes**: Aún no procesadas
+   - **Programadas**: Para el próximo día de liquidación
+   - **Procesadas**: Ya transferidas
+
+3. Para procesar manualmente una liquidación:
+   - Seleccione el médico
+   - Revise el monto acumulado
+   - Haga clic en **"Procesar Liquidación"**
+   - El sistema generará el lote de liquidación
+
+#### Proceso de Liquidación Automático
+
+El sistema procesa automáticamente las liquidaciones mensuales:
+- **Cuándo**: El día configurado por cada médico (por defecto día 5)
+- **Qué incluye**: Todas las consultas pagadas del mes anterior
+- **Proceso**: 
+  1. Se agrupan todos los pagos pendientes del médico
+  2. Se calcula el monto total
+  3. Se crea un lote de liquidación
+  4. Se marca como "SCHEDULED"
+  5. Se envía notificación al médico
+
+#### Procesar Transferencias
+
+1. Vaya a **"Finanzas"** → **"Pagos Pendientes"**
+2. Filtre por médicos con modalidad mensual
+3. Revise los lotes de liquidación pendientes
+4. Haga clic en **"Generar Archivo para Banco"**
+5. Descargue el archivo (formato compatible con su banco)
+6. Suba el archivo al portal de su banco
+7. Procese las transferencias
+8. En CanalMedico, marque los pagos como **"Transferidos"**
+9. El sistema enviará comprobantes a cada médico
 
 ### Gestionar Pagos Fallidos
 
@@ -422,6 +513,126 @@ Los pagos a médicos se procesan el **día 5 de cada mes**.
 3. Haga clic en **"Generar"**
 4. Espere a que se procese (puede tomar unos minutos)
 5. Descargue el archivo
+
+---
+
+## Sistema de Validación Automática de Médicos
+
+### ¿Cómo Funciona?
+
+CanalMedico valida automáticamente a todos los médicos que solicitan registro usando **dos fuentes oficiales del Estado de Chile**:
+
+1. **Registro Civil** - Valida que el RUN existe y que el nombre coincide
+2. **Superintendencia de Salud (RNPI)** - Valida que sea médico habilitado
+
+### Estados de Validación
+
+**En el panel de solicitudes, verá:**
+
+- **AUTO_APPROVED**: Aprobada automáticamente (médico ya creado)
+- **AUTO_REJECTED**: Rechazada automáticamente (no cumple requisitos)
+- **REVIEWED**: Requiere revisión manual (inconsistencias menores)
+- **PENDING**: Validaciones en curso
+
+### Revisar Resultados de Validación
+
+1. Abra los detalles de una solicitud
+2. En la sección **"Validaciones Automáticas"** verá:
+   - **Validación de Identidad**: Estado y detalles
+   - **Validación RNPI**: Estado y datos oficiales
+   - **Errores**: Si hubo errores durante la validación
+
+### Re-ejecutar Validaciones
+
+Si necesita re-validar una solicitud:
+
+1. Abra los detalles de la solicitud
+2. Haga clic en **"Re-ejecutar Validaciones"**
+3. El sistema volverá a consultar las fuentes oficiales
+4. Los resultados se actualizarán en breve
+
+### Qué Hacer con Cada Estado
+
+**AUTO_APPROVED:**
+- ✅ No requiere acción
+- El médico ya fue creado automáticamente
+- Puede verificar que el médico puede iniciar sesión
+
+**AUTO_REJECTED:**
+- ✅ No requiere acción
+- El sistema rechazó automáticamente por no cumplir requisitos
+- Revise los errores para entender el motivo
+
+**REVIEWED:**
+- ⚠️ Requiere revisión manual
+- Revise las inconsistencias encontradas
+- Compare datos proporcionados vs datos oficiales
+- Decida aprobar o rechazar según corresponda
+
+**PENDING:**
+- ⏳ Validaciones en curso
+- Espere a que se completen (puede tomar unos minutos)
+- Si tarda mucho, puede re-ejecutar manualmente
+
+### Fuentes Oficiales Utilizadas
+
+1. **Registro Civil de Chile**
+   - Proveedor: Floid (configurable)
+   - Valida: RUN, nombre, fecha de nacimiento
+   - URL: https://www.registrocivil.gob.cl
+
+2. **Superintendencia de Salud - RNPI**
+   - Registro Nacional de Prestadores Individuales
+   - Valida: Profesión, estado, especialidades
+   - URL: https://www.supersalud.gob.cl
+
+---
+
+## Monitoreo de Recetas SNRE
+
+### Ver Recetas Emitidas
+
+1. Vaya a **"Consultas"** → **"Todas las Consultas"**
+2. Filtre por consultas con recetas
+3. Haga clic en una consulta para ver detalles
+4. Verá todas las recetas emitidas en esa consulta
+
+### Monitorear Errores de SNRE
+
+1. Vaya a **"Sistema"** → **"Logs"** o **"Recetas SNRE"**
+2. Filtre por estado **"ERROR_SNRE"**
+3. Revise cada error:
+   - **Error de autenticación**: Verificar credenciales SNRE
+   - **Error de validación**: Revisar datos de la receta
+   - **Error del servidor SNRE**: Contactar al MINSAL
+
+### Qué Hacer si SNRE está Caído
+
+1. **Verificar estado del SNRE:**
+   - Revisar logs del backend
+   - Intentar health check manual
+   - Contactar soporte MINSAL si es necesario
+
+2. **Comunicar a médicos:**
+   - Enviar notificación si el SNRE está caído
+   - Indicar que pueden seguir emitiendo recetas localmente
+   - Las recetas se enviarán automáticamente cuando SNRE vuelva
+
+3. **Reintentar envíos fallidos:**
+   - El sistema puede reintentar automáticamente
+   - O puede hacerlo manualmente desde el panel de administración
+
+### Configuración SNRE
+
+Para configurar credenciales SNRE:
+
+1. Vaya a **"Sistema"** → **"Configuración"** → **"SNRE"**
+2. Configure:
+   - **SNRE_BASE_URL**: URL de la API FHIR
+   - **SNRE_API_KEY**: API Key proporcionada por MINSAL
+   - **SNRE_ENVIRONMENT**: sandbox o production
+3. Guarde los cambios
+4. El sistema validará la conexión automáticamente
 
 ---
 
@@ -594,9 +805,16 @@ El sistema realiza backups automáticos:
 
 ## Actualizaciones del Manual
 
-**Versión**: 1.0  
-**Fecha**: Noviembre 2024  
-**Última actualización**: 22/11/2024
+**Versión**: 1.1.0  
+**Fecha**: Enero 2025  
+**Última actualización**: Enero 2025
+
+### Nuevas Funcionalidades en esta Versión
+
+- ✅ **Panel de Solicitudes de Registro**: Gestión completa de solicitudes de médicos
+- ✅ **Sistema Dual de Liquidaciones**: Pago inmediato y mensual
+- ✅ **Liquidaciones Automáticas**: Procesamiento automático de liquidaciones mensuales
+- ✅ **Mejoras de Seguridad**: Validación de propiedad en todos los endpoints
 
 ---
 

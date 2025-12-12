@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
 import LoginPage from './pages/LoginPage';
+import SignupRequestPage from './pages/SignupRequestPage';
 import DashboardPage from './pages/DashboardPage';
 import ConsultationsPage from './pages/ConsultationsPage';
 import ChatPage from './pages/ChatPage';
@@ -8,6 +9,7 @@ import SettingsPage from './pages/SettingsPage';
 import EarningsPage from './pages/EarningsPage';
 import ProfilePage from './pages/ProfilePage';
 import CommissionsPage from './pages/CommissionsPage';
+import AdminSignupRequestsPage from './pages/AdminSignupRequestsPage';
 import Layout from './layouts/Layout';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -25,6 +27,7 @@ function App() {
     <Router>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup-request" element={<SignupRequestPage />} />
         <Route
           path="/"
           element={
@@ -40,6 +43,7 @@ function App() {
           <Route path="earnings" element={<EarningsPage />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="commissions" element={<CommissionsPage />} />
+          <Route path="admin/signup-requests" element={<AdminSignupRequestsPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

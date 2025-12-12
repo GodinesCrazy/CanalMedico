@@ -1,10 +1,10 @@
-import { config } from 'dotenv';
+﻿import { config } from 'dotenv';
 import { z } from 'zod';
 
 config();
 
-// Preprocesar variables de entorno: convertir strings vacíos a undefined
-// Esto permite que Zod aplique los valores por defecto cuando las variables están vacías
+// Preprocesar variables de entorno: convertir strings vacÃ­os a undefined
+// Esto permite que Zod aplique los valores por defecto cuando las variables estÃ¡n vacÃ­as
 const preprocessEnv = () => {
   const env = { ...process.env };
   Object.keys(env).forEach((key) => {
@@ -17,8 +17,8 @@ const preprocessEnv = () => {
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  // PORT es opcional porque Railway lo asigna automáticamente en runtime (process.env.PORT)
-  // Si no está definido, usamos 3000 por defecto
+  // PORT es opcional porque Railway lo asigna automÃ¡ticamente en runtime (process.env.PORT)
+  // Si no estÃ¡ definido, usamos 3000 por defecto
   PORT: z.string().default('3000').transform(Number).pipe(z.number().int().positive()),
   API_URL: z.string().url(),
 
@@ -37,6 +37,7 @@ const envSchema = z.object({
 
   // MercadoPago
   MERCADOPAGO_ACCESS_TOKEN: z.string().optional(),
+  MERCADOPAGO_WEBHOOK_SECRET: z.string().optional(), // Secret para validar webhooks (opcional pero recomendado en producciÃ³n)
 
   // AWS - Opcional temporalmente para permitir que el servidor inicie
   AWS_ACCESS_KEY_ID: z.string().default('AKIA_TEMPORAL_PLACEHOLDER_FOR_PRODUCTION'),
@@ -59,6 +60,28 @@ const envSchema = z.object({
 
   LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
   LOG_FILE: z.string().optional(),
+
+  // SNRE (Sistema Nacional de Receta ElectrÃ³nica)
+  SNRE_BASE_URL: z.string().url().optional(), // URL base de la API FHIR del SNRE
+  SNRE_API_KEY: z.string().optional(), // API Key para autenticaciÃ³n con SNRE
+  SNRE_CLIENT_ID: z.string().optional(), // Client ID si usa OAuth2
+  SNRE_CLIENT_SECRET: z.string().optional(), // Client Secret si usa OAuth2
+  SNRE_ENVIRONMENT: z.enum(['sandbox', 'production']).default('sandbox'), // Ambiente SNRE
+
+  // ValidaciÃ³n de Identidad (Registro Civil)
+  FLOID_BASE_URL: z.string().url().optional(), // URL base de Floid API
+  FLOID_API_KEY: z.string().optional(), // API Key de Floid
+  FLOID_TIMEOUT_MS: z.string().optional().transform((val) => val ? parseInt(val, 10) : 10000), // Timeout para Floid
+  IDENTITY_VERIFICATION_PROVIDER: z.enum(['FLOID', 'OTRO']).default('FLOID'), // Proveedor de validaciÃ³n
+
+  // ValidaciÃ³n Profesional (RNPI - Superintendencia de Salud)
+  RNPI_API_URL: z.string().url().optional(), // URL de API de Prestadores de Superintendencia de Salud
+  RNPI_TIMEOUT_MS: z.string().optional().transform((val) => val ? parseInt(val, 10) : 15000), // Timeout para RNPI (default: 15000ms)
+
+  // Aliases para compatibilidad
+  RC_API_URL: z.string().url().optional(), // Alias para FLOID_BASE_URL
+  RC_API_KEY: z.string().optional(), // Alias para FLOID_API_KEY
+  RC_TIMEOUT_MS: z.string().optional().transform((val) => val ? parseInt(val, 10) : 10000), // Timeout para Registro Civil (default: 10000ms)
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;
@@ -66,12 +89,12 @@ export type EnvConfig = z.infer<typeof envSchema>;
 let env: EnvConfig;
 
 try {
-  // Usar variables preprocesadas (strings vacíos convertidos a undefined)
+  // Usar variables preprocesadas (strings vacÃ­os convertidos a undefined)
   const preprocessedEnv = preprocessEnv();
   env = envSchema.parse(preprocessedEnv);
 } catch (error) {
   if (error instanceof z.ZodError) {
-    console.error('❌ Error de configuración de variables de entorno:');
+    console.error('âŒ Error de configuraciÃ³n de variables de entorno:');
     console.error('');
     error.errors.forEach((err) => {
       const path = err.path.join('.');
@@ -79,13 +102,13 @@ try {
       console.error(`  - ${path}: ${message}`);
     });
     console.error('');
-    console.error('📋 Variables requeridas que deben configurarse en Railway:');
-    console.error('  1. DATABASE_URL → ${{Postgres.DATABASE_URL}}');
-    console.error('  2. API_URL → URL del backend (ej: https://canalmedico-production.up.railway.app)');
-    console.error('  3. JWT_SECRET → Mínimo 32 caracteres (genera con: openssl rand -base64 32)');
-    console.error('  4. JWT_REFRESH_SECRET → Mínimo 32 caracteres (genera con: openssl rand -base64 32)');
+    console.error('ðŸ“‹ Variables requeridas que deben configurarse en Railway:');
+    console.error('  1. DATABASE_URL â†’ ${{Postgres.DATABASE_URL}}');
+    console.error('  2. API_URL â†’ URL del backend (ej: https://canalmedico-production.up.railway.app)');
+    console.error('  3. JWT_SECRET â†’ MÃ­nimo 32 caracteres (genera con: openssl rand -base64 32)');
+    console.error('  4. JWT_REFRESH_SECRET â†’ MÃ­nimo 32 caracteres (genera con: openssl rand -base64 32)');
     console.error('');
-    console.error('Ve a Railway → Servicio CanalMedico → Variables y configura estas variables.');
+    console.error('Ve a Railway â†’ Servicio CanalMedico â†’ Variables y configura estas variables.');
     process.exit(1);
   }
   throw error;

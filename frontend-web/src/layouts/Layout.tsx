@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
-import { FiHome, FiMessageSquare, FiSettings, FiDollarSign, FiUser, FiLogOut, FiPieChart } from 'react-icons/fi';
+import { FiHome, FiMessageSquare, FiSettings, FiDollarSign, FiUser, FiLogOut, FiPieChart, FiUsers } from 'react-icons/fi';
 
 export default function Layout() {
   const location = useLocation();
@@ -17,6 +17,7 @@ export default function Layout() {
     { name: 'Consultas', href: '/consultations', icon: FiMessageSquare, roles: ['DOCTOR', 'ADMIN'] },
     { name: 'Ingresos', href: '/earnings', icon: FiDollarSign, roles: ['DOCTOR'] },
     { name: 'Comisiones', href: '/commissions', icon: FiPieChart, roles: ['ADMIN'] },
+    { name: 'Solicitudes de Registro', href: '/admin/signup-requests', icon: FiUsers, roles: ['ADMIN'] },
     { name: 'Configuración', href: '/settings', icon: FiSettings, roles: ['DOCTOR', 'ADMIN'] },
     { name: 'Perfil', href: '/profile', icon: FiUser, roles: ['DOCTOR', 'ADMIN'] },
   ];

@@ -5,10 +5,12 @@ import api from '@/services/api';
 import { Message, Consultation } from '@/types';
 import { useAuthStore } from '@/store/authStore';
 import { API_URL } from '@/config/env';
-import { FiSend, FiX, FiFileText } from 'react-icons/fi';
+import { FiSend, FiX, FiFileText, FiFile } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import FileUpload from '@/components/FileUpload';
+import PrescriptionModal from '@/components/PrescriptionModal';
+import { Prescription } from '@/types';
 
 export default function ChatPage() {
   const { consultationId } = useParams<{ consultationId: string }>();
@@ -24,10 +26,13 @@ export default function ChatPage() {
   const [isUploadingFile, setIsUploadingFile] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPrescriptionModalOpen, setIsPrescriptionModalOpen] = useState(false);
+  const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
 
   useEffect(() => {
     loadConsultation();
     initializeSocket();
+    loadPrescriptions();
 
     return () => {
       if (socket) {
@@ -192,6 +197,25 @@ export default function ChatPage() {
     }
   };
 
+  const loadPrescriptions = async () => {
+    if (!consultationId) return;
+
+    try {
+      const response = await api.get(`/consultations/${consultationId}/prescriptions`);
+      if (response.success && response.data) {
+        setPrescriptions(response.data);
+      }
+    } catch (error) {
+      // Silenciar error si no hay recetas aún
+      console.error('Error al cargar recetas:', error);
+    }
+  };
+
+  const handlePrescriptionSuccess = () => {
+    loadPrescriptions();
+    loadConsultation();
+  };
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -225,7 +249,25 @@ export default function ChatPage() {
               {consultation.type === 'URGENCIA' ? 'Consulta de Urgencia' : 'Consulta Normal'}
             </p>
           </div>
-          {consultation.status === 'ACTIVE' && (
+          {consultation.status === 'ACTIVE' && user?.role === 'DOCTOR' && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsPrescriptionModalOpen(true)}
+                className="btn btn-primary flex items-center"
+              >
+                <FiFile className="mr-2 h-4 w-4" />
+                Emitir Receta SNRE
+              </button>
+              <button
+                onClick={closeConsultation}
+                className="btn btn-danger flex items-center"
+              >
+                <FiX className="mr-2 h-4 w-4" />
+                Cerrar Consulta
+              </button>
+            </div>
+          )}
+          {consultation.status === 'ACTIVE' && user?.role === 'PATIENT' && (
             <button
               onClick={closeConsultation}
               className="btn btn-danger flex items-center"
@@ -342,6 +384,92 @@ export default function ChatPage() {
             Esta consulta ha sido cerrada. No se pueden enviar más mensajes.
           </p>
         </div>
+      )}
+
+      {/* Recetas Electrónicas */}
+      {prescriptions.length > 0 && (
+        <div className="bg-white rounded-lg shadow-md p-4 mb-4">
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">
+            Recetas Electrónicas SNRE
+          </h3>
+          <div className="space-y-3">
+            {prescriptions.map((prescription) => (
+              <div
+                key={prescription.id}
+                className="border border-gray-200 rounded-lg p-4 bg-gray-50"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <p className="font-medium text-gray-900">
+                      Receta #{prescription.id.slice(0, 8)}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      {format(new Date(prescription.createdAt), 'dd/MM/yyyy HH:mm')}
+                    </p>
+                  </div>
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-medium ${
+                      prescription.status === 'ENVIADA_SNRE'
+                        ? 'bg-green-100 text-green-800'
+                        : prescription.status === 'ERROR_SNRE'
+                        ? 'bg-red-100 text-red-800'
+                        : 'bg-yellow-100 text-yellow-800'
+                    }`}
+                  >
+                    {prescription.status === 'ENVIADA_SNRE'
+                      ? 'Enviada'
+                      : prescription.status === 'ERROR_SNRE'
+                      ? 'Error'
+                      : 'Pendiente'}
+                  </span>
+                </div>
+                {prescription.snreCode && (
+                  <div className="bg-primary-50 border border-primary-200 rounded-lg p-3 mb-3">
+                    <p className="text-xs font-semibold text-gray-700 mb-1">Código SNRE:</p>
+                    <p className="text-lg font-bold text-primary-700 font-mono mb-2">
+                      {prescription.snreCode}
+                    </p>
+                    <p className="text-xs text-gray-600 italic">
+                      Muestra este código en la farmacia para dispensar tus medicamentos
+                    </p>
+                  </div>
+                )}
+                {prescription.prescriptionItems && prescription.prescriptionItems.length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-sm font-medium text-gray-700 mb-1">Medicamentos:</p>
+                    <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
+                      {prescription.prescriptionItems.map((item: any, idx: number) => (
+                        <li key={idx}>
+                          <strong>{item.medicationName}</strong> - {item.dosage} {item.frequency}
+                          {item.duration && ` por ${item.duration}`}
+                          {item.instructions && (
+                            <span className="text-gray-500 italic"> ({item.instructions})</span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {prescription.errorMessage && (
+                  <p className="text-sm text-red-600 mt-2">
+                    <strong>Error:</strong> {prescription.errorMessage}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      </div>
+
+      {/* Modal de Receta */}
+      {consultationId && (
+        <PrescriptionModal
+          consultationId={consultationId}
+          isOpen={isPrescriptionModalOpen}
+          onClose={() => setIsPrescriptionModalOpen(false)}
+          onSuccess={handlePrescriptionSuccess}
+        />
       )}
     </div>
   );

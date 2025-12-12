@@ -17,6 +17,26 @@ const createConsultationSchema = z.object({
 export class ConsultationsController {
   async create(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
+      if (!req.user) {
+        res.status(401).json({ error: 'No autenticado' });
+        return;
+      }
+
+      // Validar que el usuario solo puede crear consultas como paciente
+      if (req.user.role !== 'PATIENT') {
+        res.status(403).json({ error: 'Solo los pacientes pueden crear consultas' });
+        return;
+      }
+
+      // Validar que el patientId corresponde al usuario autenticado
+      const patientsService = require('../patients/patients.service').default;
+      const patient = await patientsService.getByUserId(req.user.id);
+      
+      if (patient.id !== req.body.patientId) {
+        res.status(403).json({ error: 'No puedes crear consultas para otros pacientes' });
+        return;
+      }
+
       const consultation = await consultationsService.create(req.body);
       res.status(201).json({
         success: true,
@@ -51,14 +71,21 @@ export class ConsultationsController {
       const status = req.query.status as ConsultationStatus | undefined;
 
       // Verificar que el doctor existe
+      let doctor;
       try {
-        await doctorsService.getById(req.params.doctorId);
+        doctor = await doctorsService.getById(req.params.doctorId);
       } catch (error: any) {
         if (error.status === 404) {
           res.status(404).json({ error: 'Doctor no encontrado' });
           return;
         }
         throw error;
+      }
+
+      // Validar que el usuario solo puede ver sus propias consultas
+      if (doctor.userId !== req.user.id) {
+        res.status(403).json({ error: 'No tienes permiso para ver estas consultas' });
+        return;
       }
 
       const result = await consultationsService.getByDoctor(req.params.doctorId, page, limit, status);
@@ -75,6 +102,16 @@ export class ConsultationsController {
     try {
       if (!req.user) {
         res.status(401).json({ error: 'No autenticado' });
+        return;
+      }
+
+      // Validar que el usuario solo puede ver sus propias consultas
+      // Obtener el paciente para verificar que pertenece al usuario autenticado
+      const patientsService = require('../patients/patients.service').default;
+      const patient = await patientsService.getByUserId(req.user.id);
+      
+      if (patient.id !== req.params.patientId) {
+        res.status(403).json({ error: 'No tienes permiso para ver estas consultas' });
         return;
       }
 
@@ -112,10 +149,20 @@ export class ConsultationsController {
         return;
       }
 
-      const consultation = await consultationsService.close(req.params.id);
+      // Validar que el usuario es el doctor de la consulta
+      const consultation = await consultationsService.getById(req.params.id);
+      const doctorsService = require('../doctors/doctors.service').default;
+      const doctor = await doctorsService.getById(consultation.doctorId);
+      
+      if (doctor.userId !== req.user.id) {
+        res.status(403).json({ error: 'Solo el doctor de la consulta puede cerrarla' });
+        return;
+      }
+
+      const closedConsultation = await consultationsService.close(req.params.id);
       res.json({
         success: true,
-        data: consultation,
+        data: closedConsultation,
       });
     } catch (error) {
       next(error);

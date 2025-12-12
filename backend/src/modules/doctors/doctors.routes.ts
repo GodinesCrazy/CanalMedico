@@ -147,5 +147,64 @@ router.get('/:id/statistics', authenticate, requireRole('DOCTOR'), doctorsContro
  */
 router.patch('/:id/payout-settings', authenticate, requireRole('DOCTOR'), doctorsController.updatePayoutSettings.bind(doctorsController));
 
+/**
+ * @swagger
+ * /api/doctors/{id}/availability:
+ *   get:
+ *     summary: Obtener disponibilidad actual del doctor
+ *     tags: [Doctors]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Disponibilidad actual del doctor
+ *       401:
+ *         description: No autenticado
+ */
+router.get('/:id/availability', authenticate, requireRole('DOCTOR'), doctorsController.getCurrentAvailability.bind(doctorsController));
+
+/**
+ * @swagger
+ * /api/doctors/{id}/availability-settings:
+ *   patch:
+ *     summary: Actualizar configuración de disponibilidad del doctor
+ *     tags: [Doctors]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               modoDisponibilidad:
+ *                 type: string
+ *                 enum: [MANUAL, AUTOMATICO]
+ *               horariosAutomaticos:
+ *                 type: string
+ *                 description: JSON string con configuración de horarios
+ *               estadoOnline:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Configuración actualizada exitosamente
+ *       401:
+ *         description: No autenticado
+ */
+router.patch('/:id/availability-settings', authenticate, requireRole('DOCTOR'), doctorsController.updateAvailabilitySettings.bind(doctorsController));
+
 export default router;
 

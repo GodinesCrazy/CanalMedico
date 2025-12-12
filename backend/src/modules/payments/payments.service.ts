@@ -7,8 +7,8 @@ import mercadopagoService from './mercadopago.service';
 
 export interface CreatePaymentSessionDto {
   consultationId: string;
-  successUrl: string;
-  cancelUrl: string;
+  successUrl?: string; // Deep link para app móvil o URL web (opcional)
+  cancelUrl?: string;  // Deep link para app móvil o URL web (opcional)
 }
 
 export class PaymentsService {
@@ -58,7 +58,9 @@ export class PaymentsService {
         consultation.id,
         title,
         amountValue,
-        payerEmail
+        payerEmail,
+        data.successUrl, // URL de éxito (puede ser deep link para app móvil)
+        data.cancelUrl  // URL de cancelación (puede ser deep link para app móvil)
       );
 
       // Crear registro de pago
@@ -91,14 +93,36 @@ export class PaymentsService {
     try {
       // MercadoPago envía el ID del recurso en el body o query params dependiendo del tipo de notificación
       // Para Webhooks v1 (IPN), recibimos type y data.id
+      // 
+      // VALIDACIÓN DE SEGURIDAD:
+      // 1. Verificamos que el payment existe en MercadoPago (usando access token)
+      // 2. Validamos que el external_reference corresponde a una consulta válida
+      // 3. Solo procesamos si el payment está en estado válido
 
       const { type, data } = body;
 
+      if (!type || !data || !data.id) {
+        logger.warn('Webhook recibido con formato inválido:', body);
+        return { received: true, error: 'Invalid webhook format' };
+      }
+
       if (type === 'payment') {
         const paymentId = data.id;
-        const paymentInfo = await mercadopagoService.getPaymentInfo(paymentId);
+        
+        // Validar que el payment existe en MercadoPago (esto valida que viene de MercadoPago)
+        let paymentInfo;
+        try {
+          paymentInfo = await mercadopagoService.getPaymentInfo(paymentId);
+        } catch (error) {
+          logger.error(`Error al obtener información del pago ${paymentId} desde MercadoPago:`, error);
+          // Si no podemos obtener el payment desde MercadoPago, rechazamos el webhook
+          return { received: true, error: 'Payment not found in MercadoPago' };
+        }
 
-        if (paymentInfo && paymentInfo.external_reference) {
+        if (!paymentInfo || !paymentInfo.external_reference) {
+          logger.warn(`Webhook de pago ${paymentId} sin external_reference válido`);
+          return { received: true, error: 'Invalid payment reference' };
+        }
           const consultationId = paymentInfo.external_reference;
           const status = paymentInfo.status;
 
@@ -171,10 +195,24 @@ export class PaymentsService {
         }
       }
 
+      } else {
+        logger.info(`Webhook recibido de tipo desconocido: ${type}`);
+      }
+
       return { received: true };
     } catch (error) {
       logger.error('Error al procesar webhook:', error);
-      // No lanzamos error para que MercadoPago no reintente infinitamente si es un error lógico nuestro
+      // IMPORTANTE: No lanzamos error para que MercadoPago no reintente infinitamente
+      // si es un error lógico nuestro. Pero sí registramos el error para diagnóstico.
+      // Si es un error crítico (BD, etc.), debería lanzarse para que MercadoPago reintente.
+      const isCriticalError = error instanceof Error && 
+        (error.message.includes('database') || error.message.includes('connection'));
+      
+      if (isCriticalError) {
+        // Errores críticos: lanzamos para que MercadoPago reintente
+        throw error;
+      }
+      
       return { received: true, error: 'Error processing webhook' };
     }
   }

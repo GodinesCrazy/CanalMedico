@@ -1,4 +1,4 @@
-export enum UserRole {
+﻿export enum UserRole {
   ADMIN = 'ADMIN',
   DOCTOR = 'DOCTOR',
   PATIENT = 'PATIENT',
@@ -38,6 +38,13 @@ export interface Doctor {
   tarifaConsulta: number;
   tarifaUrgencia: number;
   estadoOnline: boolean;
+  modoDisponibilidad?: string;
+  horariosAutomaticos?: string;
+  estadoOnlineCalculado?: boolean;
+  identidadValidada?: boolean;
+  profesionValidada?: boolean;
+  verificacionEstadoFinal?: string;
+  lastVerificationAt?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -66,6 +73,49 @@ export interface Consultation {
   patient?: Patient;
   payment?: Payment;
   messages?: Message[];
+  prescriptions?: Prescription[];
+}
+
+export enum PrescriptionStatus {
+  PENDIENTE_ENVIO_SNRE = 'PENDIENTE_ENVIO_SNRE',
+  ENVIADA_SNRE = 'ENVIADA_SNRE',
+  ERROR_SNRE = 'ERROR_SNRE',
+  ANULADA_SNRE = 'ANULADA_SNRE',
+}
+
+export interface PrescriptionItem {
+  id: string;
+  prescriptionId: string;
+  medicationName: string;
+  tfcCode?: string;
+  snomedCode?: string;
+  presentation?: string;
+  pharmaceuticalForm?: string;
+  dosage: string;
+  frequency: string;
+  duration?: string;
+  quantity?: string;
+  instructions?: string;
+  order: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Prescription {
+  id: string;
+  consultationId: string;
+  doctorId: string;
+  patientId: string;
+  status: PrescriptionStatus;
+  snreId?: string;
+  snreCode?: string;
+  snreBundleId?: string;
+  errorMessage?: string;
+  createdAt: string;
+  updatedAt: string;
+  sentToSnreAt?: string;
+  prescriptionItems: PrescriptionItem[];
+  consultation?: Consultation;
 }
 
 export interface Message {
@@ -125,3 +175,27 @@ export interface ApiResponse<T> {
   };
 }
 
+export interface DoctorSignupRequest {
+  id: string;
+  name: string;
+  rut?: string;
+  birthDate?: string;
+  specialty: string;
+  registrationNumber?: string;
+  email: string;
+  phone?: string;
+  clinicOrCenter?: string;
+  notes?: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  reviewedAt?: string;
+  reviewedBy?: string;
+  identityVerificationStatus?: string;
+  identityVerificationResult?: string;
+  identityVerifiedAt?: string;
+  rnpiVerificationStatus?: string;
+  rnpiVerificationResult?: string;
+  rnpiVerifiedAt?: string;
+  autoVerificationErrors?: string;
+}

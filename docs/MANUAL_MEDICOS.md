@@ -56,13 +56,42 @@ CanalMedico es una plataforma digital que le permite atender consultas médicas 
 
 ## Registro e Inicio de Sesión
 
-### Primer Acceso - Registro
+### Primer Acceso - Solicitud de Registro
 
-> **Nota**: El registro de médicos es gestionado por el administrador de la plataforma. Contacte a soporte@canalmedico.cl para solicitar su cuenta.
+Los médicos pueden solicitar su registro directamente desde la plataforma:
 
-Una vez que el administrador haya creado su cuenta, recibirá un correo electrónico con:
+1. **Acceda a la página de solicitud de registro:**
+   - Visite: https://app.canalmedico.cl/signup-request
+   - O haga clic en "Solicitar Registro" en la página de login
+
+2. **Complete el formulario:**
+   - **Nombre Completo** (obligatorio): Su nombre tal como aparece en su cédula
+   - **RUT** (obligatorio): Su RUN en formato 12345678-9
+   - **Fecha de Nacimiento** (recomendado): Ayuda a validar su identidad
+   - **Especialidad** (obligatorio): Su especialidad médica
+   - **Email** (obligatorio): Correo electrónico profesional
+   - **Teléfono** (opcional): Número de contacto
+   - **Número de Registro/Colegiatura** (opcional)
+   - **Clínica/Centro** (opcional): Lugar donde atiende
+   - **Comentarios** (opcional): Información adicional
+
+3. **Validación Automática:**
+   - Al enviar su solicitud, el sistema validará automáticamente:
+     - **Su identidad** contra el Registro Civil de Chile
+     - **Su habilitación profesional** contra el Registro Nacional de Prestadores Individuales (RNPI) de la Superintendencia de Salud
+   - Si sus datos coinciden con los registros oficiales, su solicitud será **aprobada automáticamente**
+   - Si hay discrepancias menores, será revisada manualmente por un administrador
+
+4. **Resultado de la Solicitud:**
+   - **Aprobación Automática:** Recibirá un correo con sus credenciales de acceso
+   - **Revisión Manual:** Un administrador revisará su solicitud y le contactará
+   - **Rechazo:** Si no cumple los requisitos, recibirá un correo explicando el motivo
+
+### Inicio de Sesión
+
+Una vez que su solicitud sea aprobada, recibirá un correo electrónico con:
 - Su email de acceso
-- Instrucciones para establecer su contraseña
+- Contraseña temporal (debe cambiarla en el primer acceso)
 
 ### Iniciar Sesión
 
@@ -145,6 +174,146 @@ CanalMedico retiene una comisión del **15%** sobre cada consulta pagada.
 - Tarifa cobrada al paciente: $20.000
 - Comisión plataforma (15%): $3.000
 - **Ingreso neto para usted**: $17.000
+
+---
+
+## Configuración de Disponibilidad
+
+### Modo Manual
+
+En modo manual, usted controla manualmente cuándo está disponible:
+
+1. Vaya a **"Configuración"** → **"Disponibilidad"**
+2. Active o desactive el botón **"Estoy en línea"**
+3. Los pacientes verán su estado en tiempo real
+
+### Modo Automático (NUEVO)
+
+En modo automático, el sistema calcula su disponibilidad según los horarios que configure:
+
+1. Vaya a **"Configuración"** → **"Disponibilidad"**
+2. Seleccione **"Modo Automático"**
+3. Configure sus horarios de atención:
+   - Seleccione los días de la semana (Lunes a Domingo)
+   - Establezca horarios de inicio y fin para cada día
+   - Ejemplo: Lunes a Viernes, 9:00 - 18:00 hrs
+
+4. Guarde la configuración
+5. El sistema mostrará automáticamente si está disponible según la hora actual
+
+**Ventajas del modo automático:**
+- ✅ No necesita recordar activar/desactivar manualmente
+- ✅ Los pacientes ven siempre su disponibilidad correcta
+- ✅ Puede configurar diferentes horarios por día
+
+**Nota:** Puede cambiar entre modo manual y automático en cualquier momento.
+
+---
+
+## Configuración de Pagos
+
+### Modalidad de Pago
+
+CanalMedico ofrece dos modalidades de pago para médicos:
+
+#### 1. Pago Inmediato (Por Defecto)
+
+- Recibe el pago de cada consulta **inmediatamente** después de que el paciente paga
+- Ideal si necesita liquidez constante
+- El dinero se transfiere a su cuenta bancaria en 1-2 días hábiles
+
+#### 2. Pago Mensual
+
+- Los pagos se acumulan durante el mes
+- Se liquidan el **día 5 de cada mes** (configurable)
+- Ideal si prefiere recibir un pago consolidado mensual
+- Puede elegir el día del mes (1-28) para la liquidación
+
+### Configurar Modalidad de Pago
+
+1. Vaya a **"Configuración"** → **"Pagos"**
+2. Seleccione su modalidad preferida:
+   - **Inmediato**: Pago por cada consulta
+   - **Mensual**: Liquidación mensual
+3. Si elige **Mensual**, seleccione el día del mes (1-28)
+4. Configure sus datos bancarios:
+   - Nombre del banco
+   - Tipo de cuenta (Corriente / Ahorro)
+   - Número de cuenta
+   - RUT del titular
+5. Guarde los cambios
+
+> **Importante**: Los datos bancarios son necesarios para recibir pagos. Manténgalos actualizados.
+
+---
+
+## Configuración de Disponibilidad
+
+### Modo Manual
+
+En modo manual, usted controla manualmente cuándo está disponible:
+
+1. Vaya a **"Configuración"** → **"Disponibilidad"**
+2. Active o desactive el botón **"Estoy en línea"**
+3. Los pacientes verán su estado en tiempo real
+
+### Modo Automático (NUEVO)
+
+En modo automático, el sistema calcula su disponibilidad según los horarios que configure:
+
+1. Vaya a **"Configuración"** → **"Disponibilidad"**
+2. Seleccione **"Modo Automático"**
+3. Configure sus horarios de atención:
+   - Seleccione los días de la semana (Lunes a Domingo)
+   - Establezca horarios de inicio y fin para cada día
+   - Ejemplo: Lunes a Viernes, 9:00 - 18:00 hrs
+
+4. Guarde la configuración
+5. El sistema mostrará automáticamente si está disponible según la hora actual
+
+**Ventajas del modo automático:**
+- ✅ No necesita recordar activar/desactivar manualmente
+- ✅ Los pacientes ven siempre su disponibilidad correcta
+- ✅ Puede configurar diferentes horarios por día
+
+**Nota:** Puede cambiar entre modo manual y automático en cualquier momento.
+
+---
+
+## Configuración de Pagos
+
+### Modalidad de Pago
+
+CanalMedico ofrece dos modalidades de pago para médicos:
+
+#### 1. Pago Inmediato (Por Defecto)
+
+- Recibe el pago de cada consulta **inmediatamente** después de que el paciente paga
+- Ideal si necesita liquidez constante
+- El dinero se transfiere a su cuenta bancaria en 1-2 días hábiles
+
+#### 2. Pago Mensual
+
+- Los pagos se acumulan durante el mes
+- Se liquidan el **día 5 de cada mes** (configurable)
+- Ideal si prefiere recibir un pago consolidado mensual
+- Puede elegir el día del mes (1-28) para la liquidación
+
+### Configurar Modalidad de Pago
+
+1. Vaya a **"Configuración"** → **"Pagos"**
+2. Seleccione su modalidad preferida:
+   - **Inmediato**: Pago por cada consulta
+   - **Mensual**: Liquidación mensual
+3. Si elige **Mensual**, seleccione el día del mes (1-28)
+4. Configure sus datos bancarios:
+   - Nombre del banco
+   - Tipo de cuenta (Corriente / Ahorro)
+   - Número de cuenta
+   - RUT del titular
+5. Guarde los cambios
+
+> **Importante**: Los datos bancarios son necesarios para recibir pagos. Manténgalos actualizados.
 
 ---
 
@@ -251,6 +420,76 @@ Cuando un paciente envía un archivo:
 
 ---
 
+## Emitir Recetas Electrónicas SNRE
+
+### ¿Qué es el SNRE?
+
+El **Sistema Nacional de Receta Electrónica (SNRE)** es una plataforma del Ministerio de Salud de Chile que permite emitir recetas médicas electrónicas formales e interoperables. Las recetas emitidas a través del SNRE pueden ser validadas y dispensadas en cualquier farmacia del país.
+
+### Cuándo Emitir una Receta SNRE
+
+Emita una receta electrónica cuando:
+- ✅ Necesite prescribir medicamentos al paciente
+- ✅ La consulta esté activa o cerrada
+- ✅ Tenga los datos completos del paciente (RUT, nombre, etc.)
+
+### Cómo Emitir una Receta
+
+1. **Abrir la consulta activa** en el chat
+2. **Hacer clic en "Emitir Receta SNRE"** (botón en la parte superior)
+3. **Completar el formulario:**
+   - **Tipo de receta**: Simple o Retenida
+   - **Medicamentos**: Agregar cada medicamento con:
+     - Nombre del medicamento (obligatorio)
+     - Código TFC (opcional, pero recomendado)
+     - Presentación (ej: "Tabletas 500mg")
+     - Dosis (ej: "1 tableta")
+     - Frecuencia (ej: "cada 8 horas")
+     - Duración (ej: "7 días")
+     - Cantidad total (ej: "21 tabletas")
+     - Instrucciones adicionales
+4. **Agregar más medicamentos** si es necesario (botón "Agregar Medicamento")
+5. **Notas adicionales** (opcional)
+6. **Confirmar** haciendo clic en "Emitir Receta Electrónica"
+
+### Qué Sucede Después
+
+- El sistema construye automáticamente el documento FHIR según la guía del MINSAL
+- Se envía la receta al SNRE
+- Si es exitoso:
+  - La receta queda registrada en el SNRE
+  - Se genera un código único (código SNRE)
+  - El paciente puede usar este código en cualquier farmacia
+- Si hay error:
+  - Se muestra un mensaje de error
+  - La receta se guarda localmente con estado "ERROR_SNRE"
+  - Puede revisar los detalles del error
+
+### Ver Recetas Emitidas
+
+- Todas las recetas emitidas aparecen en la pantalla de chat
+- Puede ver:
+  - Estado de la receta (Enviada, Error, Pendiente)
+  - Código SNRE (si fue exitosa)
+  - Lista de medicamentos
+  - Fecha de emisión
+
+### Requisitos para Emitir Recetas
+
+- ✅ El paciente debe tener **RUT registrado** en su perfil
+- ✅ Usted debe tener **RUT registrado** en su perfil
+- ✅ La consulta debe estar **ACTIVA o CERRADA**
+- ✅ Al menos un medicamento con nombre, dosis y frecuencia
+
+### Códigos TFC (Terminología Farmacéutica Chilena)
+
+- El código TFC identifica unívocamente cada medicamento
+- Si conoce el código TFC, inclúyalo para mayor precisión
+- Si no lo conoce, puede emitir la receta con el nombre del medicamento
+- El sistema intentará mapear automáticamente cuando sea posible
+
+---
+
 ## Cerrar una Consulta
 
 ### Cuándo Cerrar una Consulta
@@ -258,6 +497,7 @@ Cuando un paciente envía un archivo:
 Cierre la consulta cuando:
 - ✅ Haya resuelto la consulta del paciente
 - ✅ Haya entregado todas las indicaciones necesarias
+- ✅ Haya emitido las recetas necesarias (si aplica)
 - ✅ El paciente confirme que no tiene más dudas
 
 ### Cómo Cerrar una Consulta
@@ -300,14 +540,51 @@ Consulta Normal: $20.000
 = Ingreso Neto: $17.000
 ```
 
+### Entender el Desglose de Pagos
+
+Para cada consulta pagada, verá:
+- **Fecha**: Fecha en que se realizó el pago
+- **Monto**: Tarifa cobrada al paciente
+- **Comisión**: 15% retenido por la plataforma
+- **Neto**: Su ingreso real (Monto - Comisión)
+- **Estado de Pago**: PAID (Pagado)
+- **Estado de Liquidación**: 
+  - **PENDING**: Pendiente de liquidación
+  - **SCHEDULED**: Programado para liquidación
+  - **PAID_OUT**: Ya liquidado y transferido
+
 ### Retiro de Fondos
 
-> **Importante**: Los retiros de fondos se procesan mensualmente. Contacte a soporte@canalmedico.cl para coordinar la transferencia a su cuenta bancaria.
+#### Si tiene Modalidad Inmediato
 
-**Requisitos para retiro**:
-- Mínimo acumulado: $50.000 CLP
+- Los pagos se procesan automáticamente después de cada consulta
+- El dinero se transfiere a su cuenta en 1-2 días hábiles
+- No necesita hacer nada adicional
+- Verá cada pago individual en su historial
+
+#### Si tiene Modalidad Mensual
+
+- Los pagos se acumulan durante el mes
+- Se liquidan automáticamente el día configurado (por defecto día 5)
+- El sistema genera un lote de liquidación
+- El dinero se transfiere a su cuenta en 1-2 días hábiles después de la liquidación
+- Verá un resumen mensual en lugar de pagos individuales
+
+**Requisitos para recibir pagos**:
 - Cuenta bancaria chilena a su nombre
 - RUT registrado en el sistema
+- Datos bancarios completos en su perfil
+
+**Ver Historial de Liquidaciones:**
+
+1. Vaya a **"Ingresos"** → **"Liquidaciones"**
+2. Verá todas sus liquidaciones mensuales (si aplica)
+3. Cada liquidación muestra:
+   - Período (mes/año)
+   - Cantidad de consultas incluidas
+   - Monto total liquidado
+   - Fecha de procesamiento
+   - Estado (Procesada / Pendiente)
 
 ---
 
@@ -414,9 +691,16 @@ Para más información, consulte los **Términos y Condiciones** completos en nu
 
 ## Actualizaciones del Manual
 
-**Versión**: 1.0  
-**Fecha**: Noviembre 2024  
-**Última actualización**: 22/11/2024
+**Versión**: 1.1.0  
+**Fecha**: Enero 2025  
+**Última actualización**: Enero 2025
+
+### Nuevas Funcionalidades en esta Versión
+
+- ✅ **Disponibilidad Automática**: Configure horarios y el sistema mostrará su disponibilidad automáticamente
+- ✅ **Modalidad de Pago Mensual**: Opción de recibir pagos consolidados mensualmente
+- ✅ **Panel de Liquidaciones**: Vea el historial completo de sus liquidaciones mensuales
+- ✅ **Mejoras de Seguridad**: Protección mejorada de datos y validación de propiedad
 
 ---
 

@@ -2,6 +2,7 @@ import prisma from '@/database/prisma';
 import { createError } from '@/middlewares/error.middleware';
 import logger from '@/config/logger';
 import { getPaginationParams, createPaginatedResponse } from '@/utils/pagination';
+import { calculateAvailability } from '@/utils/availability';
 
 export class DoctorsService {
   async getAll(page?: number, limit?: number) {
@@ -54,7 +55,18 @@ export class DoctorsService {
         throw createError('Doctor no encontrado', 404);
       }
 
-      return doctor;
+      // Calcular disponibilidad real según modo
+      const isAvailable = calculateAvailability(
+        (doctor as any).modoDisponibilidad || 'MANUAL',
+        doctor.estadoOnline,
+        (doctor as any).horariosAutomaticos
+      );
+
+      // Retornar doctor con disponibilidad calculada
+      return {
+        ...doctor,
+        estadoOnlineCalculado: isAvailable,
+      } as any;
     } catch (error) {
       logger.error('Error al obtener doctor:', error);
       throw error;
@@ -63,10 +75,8 @@ export class DoctorsService {
 
   async getOnlineDoctors() {
     try {
-      const doctors = await prisma.doctor.findMany({
-        where: {
-          estadoOnline: true,
-        },
+      // Obtener todos los doctores para calcular disponibilidad
+      const allDoctors = await prisma.doctor.findMany({
         include: {
           user: {
             select: {
@@ -81,7 +91,17 @@ export class DoctorsService {
         },
       });
 
-      return doctors;
+      // Filtrar solo los que están disponibles (manual o automático)
+      const onlineDoctors = allDoctors.filter((doctor) => {
+        const isAvailable = calculateAvailability(
+          (doctor as any).modoDisponibilidad || 'MANUAL',
+          doctor.estadoOnline,
+          (doctor as any).horariosAutomaticos
+        );
+        return isAvailable;
+      });
+
+      return onlineDoctors;
     } catch (error) {
       logger.error('Error al obtener doctores en línea:', error);
       throw error;
@@ -98,6 +118,68 @@ export class DoctorsService {
       return doctor;
     } catch (error) {
       logger.error('Error al actualizar estado en línea:', error);
+      throw error;
+    }
+  }
+
+  async updateAvailabilitySettings(
+    doctorId: string,
+    settings: {
+      modoDisponibilidad: string;
+      horariosAutomaticos?: string;
+      estadoOnline?: boolean;
+    }
+  ) {
+    try {
+      const updateData: any = {
+        modoDisponibilidad: settings.modoDisponibilidad,
+      };
+
+      if (settings.horariosAutomaticos !== undefined) {
+        updateData.horariosAutomaticos = settings.horariosAutomaticos;
+      }
+
+      // Si cambia a modo manual, permitir actualizar estadoOnline directamente
+      if (settings.modoDisponibilidad === 'MANUAL' && settings.estadoOnline !== undefined) {
+        updateData.estadoOnline = settings.estadoOnline;
+      }
+
+      const doctor = await prisma.doctor.update({
+        where: { id: doctorId },
+        data: updateData as any,
+      });
+
+      return doctor;
+    } catch (error) {
+      logger.error('Error al actualizar configuración de disponibilidad:', error);
+      throw error;
+    }
+  }
+
+  async getCurrentAvailability(doctorId: string) {
+    try {
+      const doctor = await prisma.doctor.findUnique({
+        where: { id: doctorId },
+      });
+
+      if (!doctor) {
+        throw createError('Doctor no encontrado', 404);
+      }
+
+      const isAvailable = calculateAvailability(
+        (doctor as any).modoDisponibilidad || 'MANUAL',
+        doctor.estadoOnline,
+        (doctor as any).horariosAutomaticos
+      );
+
+      return {
+        isAvailable,
+        modoDisponibilidad: (doctor as any).modoDisponibilidad || 'MANUAL',
+        estadoOnlineManual: doctor.estadoOnline,
+        horariosAutomaticos: (doctor as any).horariosAutomaticos,
+      };
+    } catch (error) {
+      logger.error('Error al obtener disponibilidad actual:', error);
       throw error;
     }
   }

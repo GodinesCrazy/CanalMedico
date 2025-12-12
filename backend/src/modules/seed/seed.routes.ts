@@ -108,8 +108,50 @@ router.post('/', async (_req: Request, res: Response) => {
 
 import { execSync } from 'child_process';
 
-// ... existing code ...
-
+/**
+ * @swagger
+ * /api/seed/migrate:
+ *   post:
+ *     tags:
+ *       - Seed
+ *     summary: Ejecutar migraciones de base de datos
+ *     description: Ejecuta Prisma db push para aplicar cambios del schema a la base de datos. Crea los campos y tablas nuevos definidos en schema.prisma
+ *     responses:
+ *       200:
+ *         description: Migración ejecutada exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Migración ejecutada exitosamente"
+ *                 output:
+ *                   type: string
+ *                   description: "Salida del comando Prisma"
+ *       500:
+ *         description: Error al ejecutar migración
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 error:
+ *                   type: string
+ *                 details:
+ *                   type: string
+ *                 output:
+ *                   type: string
+ *                 stderr:
+ *                   type: string
+ */
 router.post('/migrate', async (_req: Request, res: Response) => {
     try {
         logger.info('🔄 Ejecutando migración manual...');

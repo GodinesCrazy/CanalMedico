@@ -17,8 +17,16 @@ export class MercadoPagoService {
     /**
      * Crea una preferencia de pago para una consulta
      */
-    async createPreference(consultationId: string, title: string, price: number, payerEmail: string) {
+    async createPreference(consultationId: string, title: string, price: number, payerEmail: string, successUrl?: string, cancelUrl?: string) {
         try {
+            // URLs de retorno: usar las proporcionadas o defaults
+            // Para app móvil, se pasan deep links; para web, URLs HTTP
+            const backUrls = {
+                success: successUrl || `${env.FRONTEND_WEB_URL || env.API_URL}/consultations/${consultationId}?status=success`,
+                failure: cancelUrl || `${env.FRONTEND_WEB_URL || env.API_URL}/consultations/${consultationId}?status=failure`,
+                pending: `${env.FRONTEND_WEB_URL || env.API_URL}/consultations/${consultationId}?status=pending`,
+            };
+
             const result = await this.preference.create({
                 body: {
                     items: [
@@ -33,11 +41,7 @@ export class MercadoPagoService {
                     payer: {
                         email: payerEmail,
                     },
-                    back_urls: {
-                        success: `${env.FRONTEND_WEB_URL}/consultations/${consultationId}?status=success`,
-                        failure: `${env.FRONTEND_WEB_URL}/consultations/${consultationId}?status=failure`,
-                        pending: `${env.FRONTEND_WEB_URL}/consultations/${consultationId}?status=pending`,
-                    },
+                    back_urls: backUrls,
                     auto_return: 'approved',
                     notification_url: `${env.API_URL}/api/payments/webhook`,
                     external_reference: consultationId,

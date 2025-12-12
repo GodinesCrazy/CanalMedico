@@ -1,6 +1,7 @@
 import prisma from '@/database/prisma';
 import { createError } from '@/middlewares/error.middleware';
 import logger from '@/config/logger';
+import { calculateAvailability } from '@/utils/availability';
 
 export class UsersService {
   async getProfile(userId: string) {
@@ -17,11 +18,25 @@ export class UsersService {
         throw createError('Usuario no encontrado', 404);
       }
 
+      // Si es doctor, calcular disponibilidad automática
+      let profile: any = user.doctor || user.patient;
+      if (user.doctor) {
+        const isAvailable = calculateAvailability(
+          (user.doctor as any).modoDisponibilidad || 'MANUAL',
+          user.doctor.estadoOnline,
+          (user.doctor as any).horariosAutomaticos
+        );
+        profile = {
+          ...user.doctor,
+          estadoOnlineCalculado: isAvailable,
+        };
+      }
+
       return {
         id: user.id,
         email: user.email,
         role: user.role,
-        profile: user.doctor || user.patient,
+        profile,
         createdAt: user.createdAt,
       };
     } catch (error) {

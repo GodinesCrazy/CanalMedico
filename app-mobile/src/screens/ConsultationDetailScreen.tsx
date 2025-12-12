@@ -16,6 +16,7 @@ import api from '@/services/api';
 import { colors } from '@/theme/colors';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
+import { formatCLP } from '@/utils/currency';
 
 type ConsultationDetailScreenRouteProp = RouteProp<RootStackParamList, 'ConsultationDetail'>;
 type ConsultationDetailScreenNavigationProp = StackNavigationProp<RootStackParamList, 'ConsultationDetail'>;
@@ -27,9 +28,11 @@ export default function ConsultationDetailScreen() {
 
   const [consultation, setConsultation] = useState<Consultation | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [prescriptions, setPrescriptions] = useState<any[]>([]);
 
   useEffect(() => {
     loadConsultation();
+    loadPrescriptions();
   }, [consultationId]);
 
   const loadConsultation = async () => {
@@ -43,6 +46,18 @@ export default function ConsultationDetailScreen() {
       Alert.alert('Error', 'No se pudo cargar la consulta');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadPrescriptions = async () => {
+    try {
+      const response = await api.get(`/consultations/${consultationId}/prescriptions`);
+      if (response.success && response.data) {
+        setPrescriptions(response.data);
+      }
+    } catch (error) {
+      // Silenciar error si no hay recetas aún
+      console.log('No hay recetas o error al cargar:', error);
     }
   };
 
@@ -132,11 +147,88 @@ export default function ConsultationDetailScreen() {
             <View style={styles.section}>
               <Text style={styles.label}>Monto Pagado</Text>
               <Text style={styles.value}>
-                ${Number(consultation.payment.amount).toFixed(2)}
+                {formatCLP(Number(consultation.payment.amount))}
               </Text>
             </View>
           )}
         </View>
+
+        {/* Recetas Electrónicas */}
+        {prescriptions.length > 0 && (
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Recetas Electrónicas SNRE</Text>
+            {prescriptions.map((prescription) => (
+              <View key={prescription.id} style={styles.prescriptionCard}>
+                <View style={styles.prescriptionHeader}>
+                  <View>
+                    <Text style={styles.prescriptionTitle}>
+                      Receta #{prescription.id.slice(0, 8)}
+                    </Text>
+                    <Text style={styles.prescriptionDate}>
+                      {format(new Date(prescription.createdAt), 'dd/MM/yyyy HH:mm')}
+                    </Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.statusBadge,
+                      prescription.status === 'ENVIADA_SNRE'
+                        ? styles.statusBadgeSuccess
+                        : prescription.status === 'ERROR_SNRE'
+                        ? styles.statusBadgeError
+                        : styles.statusBadgePending,
+                    ]}
+                  >
+                    <Text style={styles.statusBadgeText}>
+                      {prescription.status === 'ENVIADA_SNRE'
+                        ? 'Enviada'
+                        : prescription.status === 'ERROR_SNRE'
+                        ? 'Error'
+                        : 'Pendiente'}
+                    </Text>
+                  </View>
+                </View>
+
+                {prescription.snreCode && (
+                  <View style={styles.snreCodeContainer}>
+                    <Text style={styles.snreCodeLabel}>Código SNRE:</Text>
+                    <Text style={styles.snreCode}>{prescription.snreCode}</Text>
+                    <Text style={styles.snreCodeHint}>
+                      Muestra este código en la farmacia para dispensar tus medicamentos
+                    </Text>
+                  </View>
+                )}
+
+                {prescription.prescriptionItems && prescription.prescriptionItems.length > 0 && (
+                  <View style={styles.medicationsContainer}>
+                    <Text style={styles.medicationsTitle}>Medicamentos:</Text>
+                    {prescription.prescriptionItems.map((item: any, idx: number) => (
+                      <View key={idx} style={styles.medicationItem}>
+                        <Text style={styles.medicationName}>{item.medicationName}</Text>
+                        <Text style={styles.medicationDosage}>
+                          {item.dosage} {item.frequency}
+                          {item.duration && ` por ${item.duration}`}
+                        </Text>
+                        {item.instructions && (
+                          <Text style={styles.medicationInstructions}>
+                            {item.instructions}
+                          </Text>
+                        )}
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+                {prescription.errorMessage && (
+                  <View style={styles.errorContainer}>
+                    <Text style={styles.errorText}>
+                      Error: {prescription.errorMessage}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            ))}
+          </View>
+        )}
 
         <View style={styles.actions}>
           {consultation.status === 'PENDING' && (
@@ -270,6 +362,122 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: 16,
     fontWeight: '600',
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.gray[900],
+    marginBottom: 16,
+  },
+  prescriptionCard: {
+    backgroundColor: colors.gray[50],
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: colors.gray[200],
+  },
+  prescriptionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  prescriptionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.gray[900],
+  },
+  prescriptionDate: {
+    fontSize: 12,
+    color: colors.gray[600],
+    marginTop: 4,
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statusBadgeSuccess: {
+    backgroundColor: colors.success[100],
+  },
+  statusBadgeError: {
+    backgroundColor: colors.error[100],
+  },
+  statusBadgePending: {
+    backgroundColor: colors.warning[100],
+  },
+  statusBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.gray[900],
+  },
+  snreCodeContainer: {
+    backgroundColor: colors.primary[50],
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: colors.primary[200],
+  },
+  snreCodeLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.gray[700],
+    marginBottom: 4,
+  },
+  snreCode: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.primary[700],
+    fontFamily: 'monospace',
+    marginBottom: 8,
+  },
+  snreCodeHint: {
+    fontSize: 11,
+    color: colors.gray[600],
+    fontStyle: 'italic',
+  },
+  medicationsContainer: {
+    marginTop: 8,
+  },
+  medicationsTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.gray[700],
+    marginBottom: 8,
+  },
+  medicationItem: {
+    marginBottom: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.gray[200],
+  },
+  medicationName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.gray[900],
+    marginBottom: 4,
+  },
+  medicationDosage: {
+    fontSize: 14,
+    color: colors.gray[700],
+    marginBottom: 4,
+  },
+  medicationInstructions: {
+    fontSize: 13,
+    color: colors.gray[600],
+    fontStyle: 'italic',
+  },
+  errorContainer: {
+    backgroundColor: colors.error[50],
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 8,
+  },
+  errorText: {
+    fontSize: 13,
+    color: colors.error[700],
   },
 });
 

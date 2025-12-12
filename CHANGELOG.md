@@ -7,6 +7,104 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
 ---
 
+## [1.3.0] - 2025-01-XX
+
+### ✨ Agregado
+
+#### Sistema de Validación Automática de Médicos
+- **Validación de Identidad**: Módulo completo para validar RUN contra Registro Civil
+- **Validación Profesional**: Módulo completo para validar contra RNPI (Superintendencia de Salud)
+- **Aprobación/Rechazo Automático**: Sistema aprueba o rechaza solicitudes automáticamente según validaciones
+- **Revisión Manual**: Inconsistencias menores se marcan para revisión manual
+- **Panel Admin Mejorado**: Visualización completa de resultados de validación
+- **Logs de Auditoría**: Todas las validaciones se registran para auditoría
+
+#### Backend
+- Nuevo módulo `identity-verification/` con proveedor Floid
+- Nuevo módulo `rnpi-verification/` para consulta a Superintendencia de Salud
+- Integración automática en flujo de registro de médicos
+- Endpoint `POST /api/signup-requests/:id/re-verify` para re-ejecutar validaciones
+
+#### Frontend Web
+- Formulario de registro actualizado (RUT obligatorio, fecha de nacimiento)
+- Mensaje informativo sobre validación automática
+- Panel admin con visualización de validaciones
+- Botón para re-ejecutar validaciones
+
+#### Base de Datos
+- Campos de validación agregados a `DoctorSignupRequest`
+- Migración SQL: `MIGRACION_VALIDACION_MEDICOS.sql`
+
+### 🔧 Mejorado
+- Seguridad mejorada: Solo médicos reales y habilitados pueden registrarse
+- Proceso de registro más rápido: Aprobación automática cuando todo coincide
+- Transparencia: Médicos ven qué fuentes oficiales se usan
+
+---
+
+## [1.2.0] - 2025-01-XX
+
+### ✨ Agregado
+
+#### Integración SNRE - Recetas Electrónicas
+- **Módulo completo SNRE** con cliente FHIR para comunicación con Sistema Nacional de Receta Electrónica
+- **Mapper FHIR** que convierte datos de CanalMedico a recursos HL7 FHIR R4 según Guía MINSAL
+- **Emisión de recetas electrónicas** desde el panel médico
+- **Visualización de recetas** para pacientes en app móvil y web
+- **Códigos SNRE únicos** para dispensación en farmacias
+- **Validaciones completas** (RUT médico, RUT paciente, etc.)
+- **Manejo robusto de errores** con estados y mensajes claros
+- **Modelos de datos** para recetas y items de medicamentos
+- **Migración SQL** lista para ejecutar
+
+#### Backend
+- Nuevo módulo `snre/` con 6 archivos (types, client, mapper, service, controller, routes)
+- Endpoints: `POST /api/prescriptions`, `GET /api/prescriptions/:id`, `GET /api/consultations/:id/prescriptions`
+- Variables de entorno para configuración SNRE
+- Integración con API FHIR del SNRE
+
+#### Frontend Web
+- Componente `PrescriptionModal` para crear recetas
+- Botón "Emitir Receta SNRE" en ChatPage
+- Visualización de recetas con código SNRE destacado
+- Estados visuales (enviada, error, pendiente)
+
+#### App Móvil
+- Visualización de recetas en `ConsultationDetailScreen`
+- Código SNRE destacado para uso en farmacia
+- Lista de medicamentos con dosis y frecuencia
+
+#### Documentación
+- `INTEGRACION_SNRE_COMPLETA.md` - Documentación técnica completa
+- `RESUMEN_INTEGRACION_SNRE.md` - Resumen ejecutivo
+- Manuales actualizados (Médicos, Pacientes, Administrador)
+- README actualizado con sección SNRE
+
+### 🔧 Mejorado
+- Modelo `Patient` ahora incluye RUT, birthDate, gender, address (necesarios para SNRE)
+- Validaciones mejoradas en todos los endpoints de recetas
+
+---
+
+## [1.1.0] - 2025-01-XX
+
+### ✨ Agregado
+
+#### Deep Linking y Polling
+- Deep linking post-pago automático
+- Polling de estado de pago cada 3 segundos
+- Redirección automática al chat cuando pago se confirma
+
+#### Validación de Propiedad
+- Validación mejorada en todos los endpoints
+- Usuarios solo pueden acceder a sus propios recursos
+
+#### Disponibilidad Automática
+- Sistema de horarios automáticos para médicos
+- Cálculo automático de disponibilidad
+
+---
+
 ## [1.0.0] - 2024-11-22
 
 ### 🎉 Lanzamiento Inicial
@@ -112,6 +210,59 @@ Primera versión completa de CanalMedico, plataforma de consultas médicas asín
 
 ---
 
+## [1.1.0] - 2025-01-XX
+
+### 🎉 Versión de Producción - 100% Completa
+
+Esta versión completa todas las funcionalidades críticas y mejora la experiencia del usuario con deep linking y polling de pagos.
+
+### ✨ Agregado
+
+#### App Móvil
+- **Deep Linking Post-Pago**: Redirección automática después de completar pago en MercadoPago
+- **Polling de Estado de Pago**: Verificación automática cada 3 segundos del estado del pago
+- **Manejo de Deep Links**: Sistema completo de deep linking para callbacks de pago
+- **Mejoras en PaymentScreen**: UI mejorada con estados de pago (pending, checking, paid, failed)
+- **Botón de Verificación Manual**: Opción para verificar estado del pago manualmente
+
+#### Backend
+- **URLs de Retorno Configurables**: MercadoPago ahora acepta deep links desde app móvil
+- **Validación de Propiedad Mejorada**: Todos los endpoints validan que usuarios solo accedan a sus recursos
+- **Soporte para Deep Links**: Backend acepta URLs de retorno personalizadas (deep links o URLs web)
+
+### 🔧 Mejorado
+
+#### Seguridad
+- **Validación de Propiedad en Consultas**: Pacientes solo pueden ver sus propias consultas
+- **Validación de Propiedad en Doctores**: Doctores solo pueden modificar su propio perfil
+- **Validación de Propiedad en Pagos**: Doctores solo pueden ver sus propios pagos
+- **Validación en Creación de Consultas**: Solo pacientes pueden crear consultas para sí mismos
+
+#### UX de Pagos
+- **Experiencia de Pago Mejorada**: Redirección automática al chat después de pago confirmado
+- **Feedback Visual**: Estados claros durante el proceso de pago
+- **Manejo de Errores**: Mensajes claros cuando el pago falla o se cancela
+- **Polling Inteligente**: Verificación automática que se detiene cuando se confirma el pago
+
+#### Disponibilidad
+- **Disponibilidad Automática en App Móvil**: La app móvil ahora muestra correctamente la disponibilidad calculada
+- **Sincronización de Estados**: Estados de disponibilidad sincronizados entre backend y frontend
+
+### 🐛 Corregido
+
+- **Flujo de Pago**: Corregido uso de `initPoint` y `sandboxInitPoint` en app móvil
+- **Memory Leaks**: Polling se limpia correctamente al desmontar componente
+- **Deep Links**: Manejo correcto de deep links cuando la app vuelve al foreground
+- **Estados de Pago**: Estados se actualizan correctamente durante el proceso
+
+### 📚 Documentación
+
+- **Pruebas E2E**: Documento completo de pruebas end-to-end
+- **Guía de Deep Linking**: Documentación de implementación de deep linking
+- **Actualización de Manuales**: Todos los manuales actualizados con nuevas funcionalidades
+
+---
+
 ## [Unreleased]
 
 ### Planeado para Futuras Versiones
@@ -148,4 +299,4 @@ Primera versión completa de CanalMedico, plataforma de consultas médicas asín
 
 ---
 
-**Última actualización**: 22 de Noviembre de 2024
+**Última actualización**: Enero 2025

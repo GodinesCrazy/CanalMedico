@@ -17,6 +17,7 @@ import api from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
 import { colors } from '@/theme/colors';
 import { Ionicons } from '@expo/vector-icons';
+import { formatCLP } from '@/utils/currency';
 
 type DoctorSearchScreenRouteProp = RouteProp<RootStackParamList, 'DoctorSearch'>;
 type DoctorSearchScreenNavigationProp = StackNavigationProp<RootStackParamList, 'DoctorSearch'>;
@@ -144,11 +145,11 @@ export default function DoctorSearchScreen() {
                 <View
                   style={[
                     styles.onlineDot,
-                    doctor.estadoOnline ? styles.onlineDotActive : styles.onlineDotInactive,
+                    (doctor.estadoOnlineCalculado ?? doctor.estadoOnline) ? styles.onlineDotActive : styles.onlineDotInactive,
                   ]}
                 />
                 <Text style={styles.onlineText}>
-                  {doctor.estadoOnline ? 'En línea' : 'Fuera de línea'}
+                  {(doctor.estadoOnlineCalculado ?? doctor.estadoOnline) ? 'En línea' : 'Fuera de línea'}
                 </Text>
               </View>
             </View>
@@ -158,11 +159,11 @@ export default function DoctorSearchScreen() {
             <Text style={styles.pricingTitle}>Tarifas</Text>
             <View style={styles.pricingRow}>
               <Text style={styles.pricingLabel}>Consulta Normal:</Text>
-              <Text style={styles.pricingValue}>${doctor.tarifaConsulta.toFixed(2)}</Text>
+              <Text style={styles.pricingValue}>{formatCLP(doctor.tarifaConsulta)}</Text>
             </View>
             <View style={styles.pricingRow}>
               <Text style={styles.pricingLabel}>Consulta Urgencia:</Text>
-              <Text style={styles.pricingValue}>${doctor.tarifaUrgencia.toFixed(2)}</Text>
+              <Text style={styles.pricingValue}>{formatCLP(doctor.tarifaUrgencia)}</Text>
             </View>
           </View>
 
@@ -205,9 +206,9 @@ export default function DoctorSearchScreen() {
           </View>
 
           <TouchableOpacity
-            style={[styles.createButton, (!doctor.estadoOnline || isLoading) && styles.createButtonDisabled]}
+            style={[styles.createButton, (!(doctor.estadoOnlineCalculado ?? doctor.estadoOnline) || isLoading) && styles.createButtonDisabled]}
             onPress={handleCreateConsultation}
-            disabled={!doctor.estadoOnline || isLoading}
+            disabled={!(doctor.estadoOnlineCalculado ?? doctor.estadoOnline) || isLoading}
           >
             {isLoading ? (
               <ActivityIndicator color={colors.white} />
@@ -215,10 +216,9 @@ export default function DoctorSearchScreen() {
               <>
                 <Ionicons name="medical" size={24} color={colors.white} />
                 <Text style={styles.createButtonText}>
-                  Crear Consulta - $
-                  {(
+                  Crear Consulta - {formatCLP(
                     consultationType === 'URGENCIA' ? doctor.tarifaUrgencia : doctor.tarifaConsulta
-                  ).toFixed(2)}
+                  )}
                 </Text>
               </>
             )}
@@ -267,11 +267,11 @@ export default function DoctorSearchScreen() {
                   <View
                     style={[
                       styles.onlineDot,
-                      item.estadoOnline ? styles.onlineDotActive : styles.onlineDotInactive,
+                      (item.estadoOnlineCalculado ?? item.estadoOnline) ? styles.onlineDotActive : styles.onlineDotInactive,
                     ]}
                   />
                   <Text style={styles.onlineText}>
-                    {item.estadoOnline ? 'En línea' : 'Fuera de línea'}
+                    {(item.estadoOnlineCalculado ?? item.estadoOnline) ? 'En línea' : 'Fuera de línea'}
                   </Text>
                 </View>
               </View>

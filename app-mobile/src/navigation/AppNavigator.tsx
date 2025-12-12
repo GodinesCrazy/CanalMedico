@@ -4,6 +4,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { RootStackParamList } from '@/types';
 import { useAuthStore } from '@/store/authStore';
+import { linking } from '@/utils/linking';
 
 // Screens
 import LoginScreen from '@/screens/LoginScreen';
@@ -72,7 +73,7 @@ export default function AppNavigator() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
   return (
-    <NavigationContainer>
+    <NavigationContainer linking={linking}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!isAuthenticated ? (
           <>

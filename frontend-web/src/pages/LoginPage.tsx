@@ -87,8 +87,14 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="mt-6 text-center text-sm text-gray-600">
-            <p>¿No tienes cuenta? Contacta al administrador</p>
+          <div className="mt-6 text-center">
+            <button
+              type="button"
+              onClick={() => navigate('/signup-request')}
+              className="text-sm text-primary-600 hover:text-primary-700 font-medium underline"
+            >
+              ¿No tienes cuenta? Contacta al administrador
+            </button>
           </div>
         </div>
       </div>

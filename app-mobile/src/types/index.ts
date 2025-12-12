@@ -38,6 +38,9 @@ export interface Doctor {
   tarifaConsulta: number;
   tarifaUrgencia: number;
   estadoOnline: boolean;
+  estadoOnlineCalculado?: boolean; // Disponibilidad calculada (manual o automático)
+  modoDisponibilidad?: 'MANUAL' | 'AUTOMATICO';
+  horariosAutomaticos?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -66,6 +69,49 @@ export interface Consultation {
   patient?: Patient;
   payment?: Payment;
   messages?: Message[];
+  prescriptions?: Prescription[];
+}
+
+export enum PrescriptionStatus {
+  PENDIENTE_ENVIO_SNRE = 'PENDIENTE_ENVIO_SNRE',
+  ENVIADA_SNRE = 'ENVIADA_SNRE',
+  ERROR_SNRE = 'ERROR_SNRE',
+  ANULADA_SNRE = 'ANULADA_SNRE',
+}
+
+export interface PrescriptionItem {
+  id: string;
+  prescriptionId: string;
+  medicationName: string;
+  tfcCode?: string;
+  snomedCode?: string;
+  presentation?: string;
+  pharmaceuticalForm?: string;
+  dosage: string;
+  frequency: string;
+  duration?: string;
+  quantity?: string;
+  instructions?: string;
+  order: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Prescription {
+  id: string;
+  consultationId: string;
+  doctorId: string;
+  patientId: string;
+  status: PrescriptionStatus;
+  snreId?: string;
+  snreCode?: string;
+  snreBundleId?: string;
+  errorMessage?: string;
+  createdAt: string;
+  updatedAt: string;
+  sentToSnreAt?: string;
+  prescriptionItems: PrescriptionItem[];
+  consultation?: Consultation;
 }
 
 export interface Message {
