@@ -1,6 +1,6 @@
-﻿/**
+/**
  * Servicio de negocio para recetas SNRE
- * Orquesta la creaciï¿½n de recetas, mapeo a FHIR y comunicaciï¿½n con SNRE
+ * Orquesta la creaci�n de recetas, mapeo a FHIR y comunicaci�n con SNRE
  */
 
 import prisma from '@/database/prisma';
@@ -14,18 +14,18 @@ import {
   PatientFhirData,
   PractitionerFhirData,
 } from './snre.types';
-// formatRut no usado
+import { formatRut } from '@/utils/rut';
 
 export class SnreService {
   /**
-   * Crea una receta electrï¿½nica y la envï¿½a al SNRE
+   * Crea una receta electr�nica y la env�a al SNRE
    */
   async createPrescription(
     data: CreatePrescriptionDto,
     doctorId: string
   ) {
     try {
-      // 1. Validar que la consulta existe y pertenece al mï¿½dico
+      // 1. Validar que la consulta existe y pertenece al m�dico
       const consultation = await prisma.consultation.findUnique({
         where: { id: data.consultationId },
         include: {
@@ -51,14 +51,14 @@ export class SnreService {
         throw createError('No tienes permiso para emitir recetas en esta consulta', 403);
       }
 
-      // Validar que la consulta estï¿½ activa o cerrada
+      // Validar que la consulta est� activa o cerrada
       if (consultation.status !== 'ACTIVE' && consultation.status !== 'CLOSED') {
         throw createError('Solo se pueden emitir recetas en consultas activas o cerradas', 400);
       }
 
-      // 2. Validar que el mï¿½dico tiene RUT (obligatorio para SNRE)
+      // 2. Validar que el m�dico tiene RUT (obligatorio para SNRE)
       if (!consultation.doctor.rut) {
-        throw createError('El mï¿½dico debe tener RUT registrado para emitir recetas SNRE', 400);
+        throw createError('El m�dico debe tener RUT registrado para emitir recetas SNRE', 400);
       }
 
       // 3. Validar que el paciente tiene RUT (obligatorio para SNRE)
@@ -85,7 +85,7 @@ export class SnreService {
         rut: consultation.doctor.rut,
         name: consultation.doctor.name,
         speciality: consultation.doctor.speciality,
-        registrationNumber: undefined, // TODO: Agregar al modelo Doctor si estï¿½ disponible
+        registrationNumber: undefined, // TODO: Agregar al modelo Doctor si est� disponible
       };
 
       // 5. Crear Bundle FHIR
@@ -189,7 +189,7 @@ export class SnreService {
           },
         });
 
-        logger.error(`Error de comunicaciï¿½n con SNRE: ${prescription.id}`, snreError);
+        logger.error(`Error de comunicaci�n con SNRE: ${prescription.id}`, snreError);
         throw createError(errorMessage, 500);
       }
     } catch (error: any) {
@@ -294,24 +294,11 @@ export class SnreService {
   /**
    * Calcula fecha de nacimiento aproximada a partir de la edad
    */
-  /**
-   * Parsea una direccion de texto a objeto estructurado
-   */
-  private parseAddress(address: string): { line: string[]; city?: string; country: string } {
-    return {
-      line: [address],
-      city: undefined,
-      country: 'CL',
-    };
-  }
-
   private calculateBirthDate(age: number): string {
     const today = new Date();
     const birthYear = today.getFullYear() - age;
-    return `${birthYear}-01-01`; // Aproximaciï¿½n: 1 de enero del aï¿½o calculado
+    return `${birthYear}-01-01`; // Aproximaci�n: 1 de enero del a�o calculado
   }
 }
 
 export default new SnreService();
-
-

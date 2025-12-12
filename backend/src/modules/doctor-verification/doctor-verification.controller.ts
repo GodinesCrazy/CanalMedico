@@ -1,5 +1,5 @@
 ﻿/**
- * Controlador de verificaciï¿½n de mï¿½dicos
+ * Controlador de verificacion de medicos
  */
 
 import { Request, Response, NextFunction } from 'express';
@@ -9,10 +9,10 @@ import { validate } from '@/middlewares/validation.middleware';
 import doctorVerificationService from './doctor-verification.service';
 import { extractRutAndDv } from '@/utils/rut';
 
-// Schemas de validaciï¿½n
+// Schemas de validacion
 const verifyIdentitySchema = z.object({
   body: z.object({
-    rut: z.string().min(8, 'RUT invï¿½lido'),
+    rut: z.string().min(8, 'RUT invalido'),
     name: z.string().min(2, 'Nombre requerido'),
     birthDate: z.string().optional(),
   }),
@@ -20,7 +20,7 @@ const verifyIdentitySchema = z.object({
 
 const verifyRnpiSchema = z.object({
   body: z.object({
-    rut: z.string().min(8, 'RUT invï¿½lido'),
+    rut: z.string().min(8, 'RUT invalido'),
     name: z.string().min(2, 'Nombre requerido'),
     specialty: z.string().optional(),
   }),
@@ -28,7 +28,7 @@ const verifyRnpiSchema = z.object({
 
 const verifyCompleteSchema = z.object({
   body: z.object({
-    rut: z.string().min(8, 'RUT invï¿½lido'),
+    rut: z.string().min(8, 'RUT invalido'),
     name: z.string().min(2, 'Nombre requerido'),
     birthDate: z.string().optional(),
     specialty: z.string().optional(),
@@ -42,18 +42,18 @@ export const validateVerifyComplete = validate(verifyCompleteSchema);
 export class DoctorVerificationController {
   /**
    * POST /api/medicos/validar-identidad
-   * Valida solo la identidad contra Registro Civil
    */
-  async verifyIdentity(req: Request, res: Response, next: NextFunction) {
+  async verifyIdentity(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { rut, name, birthDate } = req.body;
       
       const { rut: run, dv } = extractRutAndDv(rut);
       if (!run || !dv) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
-          error: 'Formato de RUT invï¿½lido. Use formato: 12345678-9',
+          error: 'Formato de RUT invalido. Use formato: 12345678-9',
         });
+        return;
       }
 
       const identityVerificationService = (await import('../identity-verification/identity-verification.service')).default;
@@ -64,7 +64,7 @@ export class DoctorVerificationController {
         birthDate,
       });
 
-      return res.json({
+      res.json({
         success: true,
         data: result,
       });
@@ -75,18 +75,18 @@ export class DoctorVerificationController {
 
   /**
    * POST /api/medicos/validar-rnpi
-   * Valida solo la habilitaciï¿½n profesional contra RNPI
    */
-  async verifyRnpi(req: Request, res: Response, next: NextFunction) {
+  async verifyRnpi(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { rut, name, specialty } = req.body;
       
       const { rut: run, dv } = extractRutAndDv(rut);
       if (!run || !dv) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
-          error: 'Formato de RUT invï¿½lido. Use formato: 12345678-9',
+          error: 'Formato de RUT invalido. Use formato: 12345678-9',
         });
+        return;
       }
 
       const rnpiVerificationService = (await import('../rnpi-verification/rnpi-verification.service')).default;
@@ -97,7 +97,7 @@ export class DoctorVerificationController {
         specialty,
       });
 
-      return res.json({
+      res.json({
         success: true,
         data: result,
       });
@@ -108,40 +108,41 @@ export class DoctorVerificationController {
 
   /**
    * POST /api/medicos/validacion-completa
-   * Ejecuta verificaciï¿½n completa (identidad + RNPI)
    */
-  async verifyComplete(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  async verifyComplete(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.user) {
-        return res.status(401).json({ success: false, error: 'No autenticado' });
+        res.status(401).json({ success: false, error: 'No autenticado' });
+        return;
       }
 
-      // Solo mï¿½dicos pueden verificar su propia cuenta
       if (req.user.role !== 'DOCTOR') {
-        return res.status(403).json({ success: false, error: 'Solo mï¿½dicos pueden ejecutar verificaciï¿½n' });
+        res.status(403).json({ success: false, error: 'Solo medicos pueden ejecutar verificacion' });
+        return;
       }
 
       const { rut, name, birthDate, specialty } = req.body;
       
       const { rut: run, dv } = extractRutAndDv(rut);
       if (!run || !dv) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
-          error: 'Formato de RUT invï¿½lido. Use formato: 12345678-9',
+          error: 'Formato de RUT invalido. Use formato: 12345678-9',
         });
+        return;
       }
 
-      // Obtener doctorId del usuario autenticado
       const prisma = (await import('@/database/prisma')).default;
       const doctor = await prisma.doctor.findUnique({
         where: { userId: req.user.id },
       });
 
       if (!doctor) {
-        return res.status(404).json({
+        res.status(404).json({
           success: false,
-          error: 'Perfil de mï¿½dico no encontrado',
+          error: 'Perfil de medico no encontrado',
         });
+        return;
       }
 
       const result = await doctorVerificationService.verifyAndSave(doctor.id, {
@@ -152,10 +153,10 @@ export class DoctorVerificationController {
         specialty,
       });
 
-      return res.json({
+      res.json({
         success: true,
         data: result,
-        message: 'Verificaciï¿½n completada exitosamente',
+        message: 'Verificacion completada exitosamente',
       });
     } catch (error) {
       next(error);
@@ -164,17 +165,16 @@ export class DoctorVerificationController {
 
   /**
    * GET /api/medicos/:id/estado-validacion
-   * Obtiene el estado de verificaciï¿½n de un mï¿½dico
    */
-  async getVerificationStatus(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  async getVerificationStatus(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.user) {
-        return res.status(401).json({ success: false, error: 'No autenticado' });
+        res.status(401).json({ success: false, error: 'No autenticado' });
+        return;
       }
 
       const { id } = req.params;
 
-      // Mï¿½dicos solo pueden ver su propio estado, admins pueden ver cualquiera
       if (req.user.role === 'DOCTOR') {
         const prisma = (await import('@/database/prisma')).default;
         const doctor = await prisma.doctor.findUnique({
@@ -182,16 +182,17 @@ export class DoctorVerificationController {
         });
 
         if (!doctor || doctor.id !== id) {
-          return res.status(403).json({
+          res.status(403).json({
             success: false,
-            error: 'Solo puedes ver tu propio estado de verificaciï¿½n',
+            error: 'Solo puedes ver tu propio estado de verificacion',
           });
+          return;
         }
       }
 
       const status = await doctorVerificationService.getVerificationStatus(id);
 
-      return res.json({
+      res.json({
         success: true,
         data: status,
       });
@@ -202,28 +203,29 @@ export class DoctorVerificationController {
 
   /**
    * POST /api/admin/revalidar-medico/:id
-   * Re-ejecuta la verificaciï¿½n de un mï¿½dico (solo admin)
    */
-  async reVerifyDoctor(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  async reVerifyDoctor(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.user) {
-        return res.status(401).json({ success: false, error: 'No autenticado' });
+        res.status(401).json({ success: false, error: 'No autenticado' });
+        return;
       }
 
       if (req.user.role !== 'ADMIN') {
-        return res.status(403).json({
+        res.status(403).json({
           success: false,
-          error: 'Solo administradores pueden re-verificar mï¿½dicos',
+          error: 'Solo administradores pueden re-verificar medicos',
         });
+        return;
       }
 
       const { id } = req.params;
       const result = await doctorVerificationService.reVerifyDoctor(id);
 
-      return res.json({
+      res.json({
         success: true,
         data: result,
-        message: 'Re-verificaciï¿½n completada exitosamente',
+        message: 'Re-verificacion completada exitosamente',
       });
     } catch (error) {
       next(error);
@@ -232,4 +234,3 @@ export class DoctorVerificationController {
 }
 
 export default new DoctorVerificationController();
-

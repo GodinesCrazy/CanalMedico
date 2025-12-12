@@ -1,15 +1,16 @@
-﻿/**
+/**
  * Controlador para endpoints de recetas SNRE
  */
 
-import { Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { validate } from '@/middlewares/validation.middleware';
 import { AuthenticatedRequest } from '@/types';
 import snreService from './snre.service';
-// Logger y prisma no usados directamente
+import logger from '@/config/logger';
+import prisma from '@/database/prisma';
 
-// Schema de validaciï¿½n para crear receta
+// Schema de validaci�n para crear receta
 const createPrescriptionSchema = z.object({
   body: z.object({
     consultationId: z.string().min(1, 'ID de consulta requerido'),
@@ -37,7 +38,7 @@ export const validateCreatePrescription = validate(createPrescriptionSchema);
 export class SnreController {
   /**
    * POST /api/prescriptions
-   * Crear una nueva receta electrï¿½nica
+   * Crear una nueva receta electr�nica
    */
   async create(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
@@ -46,19 +47,19 @@ export class SnreController {
         return;
       }
 
-      // Solo mï¿½dicos pueden crear recetas
+      // Solo m�dicos pueden crear recetas
       if (req.user.role !== 'DOCTOR') {
-        res.status(403).json({ error: 'Solo los mï¿½dicos pueden emitir recetas' });
+        res.status(403).json({ error: 'Solo los m�dicos pueden emitir recetas' });
         return;
       }
 
-      // Obtener ID del mï¿½dico desde el perfil
+      // Obtener ID del m�dico desde el perfil
       const doctor = await prisma.doctor.findUnique({
         where: { userId: req.user.id },
       });
 
       if (!doctor) {
-        res.status(404).json({ error: 'Perfil de mï¿½dico no encontrado' });
+        res.status(404).json({ error: 'Perfil de m�dico no encontrado' });
         return;
       }
 
@@ -70,7 +71,7 @@ export class SnreController {
       res.status(201).json({
         success: true,
         data: prescription,
-        message: 'Receta electrï¿½nica creada exitosamente',
+        message: 'Receta electr�nica creada exitosamente',
       });
     } catch (error) {
       next(error);
@@ -88,14 +89,14 @@ export class SnreController {
         return;
       }
 
-      // Obtener ID del usuario segï¿½n su rol
+      // Obtener ID del usuario seg�n su rol
       let userId: string;
       if (req.user.role === 'DOCTOR') {
         const doctor = await prisma.doctor.findUnique({
           where: { userId: req.user.id },
         });
         if (!doctor) {
-          res.status(404).json({ error: 'Perfil de mï¿½dico no encontrado' });
+          res.status(404).json({ error: 'Perfil de m�dico no encontrado' });
           return;
         }
         userId = doctor.id;
@@ -139,14 +140,14 @@ export class SnreController {
         return;
       }
 
-      // Obtener ID del usuario segï¿½n su rol
+      // Obtener ID del usuario seg�n su rol
       let userId: string;
       if (req.user.role === 'DOCTOR') {
         const doctor = await prisma.doctor.findUnique({
           where: { userId: req.user.id },
         });
         if (!doctor) {
-          res.status(404).json({ error: 'Perfil de mï¿½dico no encontrado' });
+          res.status(404).json({ error: 'Perfil de m�dico no encontrado' });
           return;
         }
         userId = doctor.id;
@@ -180,10 +181,7 @@ export class SnreController {
   }
 }
 
-// Importar prisma aquï¿½ para evitar dependencia circular
+// Importar prisma aqu� para evitar dependencia circular
 import prisma from '@/database/prisma';
 
 export default new SnreController();
-
-
-
