@@ -79,7 +79,7 @@ router.post('/', async (_req: Request, res: Response) => {
         res.status(500).json({
             success: false,
             error: 'Error al poblar la base de datos',
-            details: error.message,
+            details: error?.message || 'Error desconocido',
         });
     }
 });
@@ -102,7 +102,7 @@ router.post('/migrate', async (_req: Request, res: Response) => {
         res.status(500).json({
             success: false,
             error: 'Error al ejecutar migraciÃ³n',
-            details: error.message,
+            details: error?.message || 'Error desconocido',
             output: error.stdout ? error.stdout.toString() : '',
             stderr: error.stderr ? error.stderr.toString() : ''
         });
@@ -193,13 +193,13 @@ router.post('/migrate-validation', async (_req: Request, res: Response) => {
  *     summary: Verificar estado de migraciÃ³n de validaciÃ³n
  *     description: Verifica si las columnas de validaciÃ³n fueron creadas correctamente en la tabla doctors
  */
-router.get('/verify-validation', async (_req: Request, res: Response) => {
+router.get('/verify-validation', async (_req: Request, res: Response): Promise<void> => {
     const startTime = Date.now();
     
     try {
         logger.info('[verify-validation] Iniciando verificaciÃ³n de columnas...');
         
-        let columns = [];
+        let columns: any[] = [];
         try {
             logger.info('[verify-validation] Ejecutando query SQL...');
             const result = await prisma.$queryRawUnsafe(`
@@ -221,17 +221,18 @@ router.get('/verify-validation', async (_req: Request, res: Response) => {
                 )
                 ORDER BY column_name
             `);
-            columns = result;
+            columns = result as any[];
             logger.info(`[verify-validation] Query ejecutado: ${columns.length} columnas encontradas`);
-        } catch (queryError) {
+        } catch (queryError: any) {
             logger.error('[verify-validation] Error en query SQL:', queryError);
             if (!res.headersSent) {
-                return res.status(500).json({
+                res.status(500).json({
                     success: false,
                     error: 'Error al ejecutar query SQL',
-                    details: queryError.message,
+                    details: queryError?.message || 'Error desconocido',
                     timestamp: new Date().toISOString()
                 });
+                return;
             }
             return;
         }
@@ -263,7 +264,7 @@ router.get('/verify-validation', async (_req: Request, res: Response) => {
 
         if (!res.headersSent) {
             res.setHeader('Content-Type', 'application/json');
-            return res.status(200).json({
+            res.status(200).json({
                 success: true,
                 message: 'VerificaciÃ³n completada',
                 totalExpected: expectedColumns.length,
@@ -274,23 +275,26 @@ router.get('/verify-validation', async (_req: Request, res: Response) => {
                 timestamp: new Date().toISOString(),
                 duration: `${duration}ms`
             });
+            return;
         }
-    } catch (error) {
+    } catch (error: any) {
         const duration = Date.now() - startTime;
         logger.error('[verify-validation] Error general:', error);
         
         if (!res.headersSent) {
             res.setHeader('Content-Type', 'application/json');
-            return res.status(500).json({
+            res.status(500).json({
                 success: false,
                 error: 'Error al verificar columnas',
-                details: error.message,
+                details: error?.message || "Error desconocido",
                 timestamp: new Date().toISOString(),
                 duration: `${duration}ms`
             });
+            return;
         }
     }
 });
 
 export default router;
+
 
