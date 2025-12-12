@@ -291,18 +291,6 @@ router.get('/verify-validation', async (_req: Request, res: Response) => {
         }
     }
 });
-    } catch (error: any) {
-        logger.error('[verify-validation] Error:', error);
-        res.setHeader('Content-Type', 'application/json');
-        res.status(500).json({
-            success: false,
-            error: 'Error al verificar columnas',
-            details: error.message,
-            timestamp: new Date().toISOString()
-        });
-    }
-});
 
 export default router;
-
 
