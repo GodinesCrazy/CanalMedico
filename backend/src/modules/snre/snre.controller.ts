@@ -1,14 +1,13 @@
-/**
+﻿/**
  * Controlador para endpoints de recetas SNRE
  */
 
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { validate } from '@/middlewares/validation.middleware';
 import { AuthenticatedRequest } from '@/types';
 import snreService from './snre.service';
-import logger from '@/config/logger';
-import prisma from '@/database/prisma';
+// logger and prisma imports removed - not used directly
 
 // Schema de validaci�n para crear receta
 const createPrescriptionSchema = z.object({
@@ -181,7 +180,8 @@ export class SnreController {
   }
 }
 
-// Importar prisma aqu� para evitar dependencia circular
-import prisma from '@/database/prisma';
 
 export default new SnreController();
+
+
+

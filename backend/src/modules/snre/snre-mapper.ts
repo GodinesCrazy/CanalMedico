@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Mapper para convertir datos de CanalMedico a recursos FHIR seg�n la Gu�a de Implementaci�n SNRE
  * Basado en HL7 FHIR R4 y perfiles chilenos (Core-CL, SNRE)
  */
@@ -68,7 +68,7 @@ export class SnreMapper {
           fullUrl: `urn:uuid:${this.generateUUID()}`,
           resource: organizationResource,
         }] : []),
-        ...medicationRequests.map((mr, index) => ({
+        ...medicationRequests.map((mr, _index) => ({
           fullUrl: `urn:uuid:${this.generateUUID()}`,
           resource: mr,
         })),
@@ -424,3 +424,4 @@ export class SnreMapper {
 }
 
 export default new SnreMapper();
+

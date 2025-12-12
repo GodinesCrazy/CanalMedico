@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Servicio de negocio para recetas SNRE
  * Orquesta la creaci�n de recetas, mapeo a FHIR y comunicaci�n con SNRE
  */
@@ -14,7 +14,7 @@ import {
   PatientFhirData,
   PractitionerFhirData,
 } from './snre.types';
-import { formatRut } from '@/utils/rut';
+// formatRut not used
 
 export class SnreService {
   /**
@@ -292,6 +292,17 @@ export class SnreService {
   }
 
   /**
+   * Parsea una direccion de texto a objeto estructurado
+   */
+  private parseAddress(address: string): { line: string[]; city?: string; country: string } {
+    return {
+      line: [address],
+      city: undefined,
+      country: 'CL',
+    };
+  }
+
+  /**
    * Calcula fecha de nacimiento aproximada a partir de la edad
    */
   private calculateBirthDate(age: number): string {
@@ -302,3 +313,5 @@ export class SnreService {
 }
 
 export default new SnreService();
+
+
