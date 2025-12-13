@@ -45,7 +45,7 @@ export class FloidProvider implements IdentityVerificationProvider {
       // Health check simple
       const response = await this.client.get('/health', { timeout: 5000 });
       return response.status === 200;
-    } catch (error) {
+    } catch (error: any) {
       const errorMsg = error?.message || String(error) || 'Error desconocido';
       logger.warn('Floid provider no disponible:', { message: errorMsg });
       return false;
@@ -178,5 +178,6 @@ export class FloidProvider implements IdentityVerificationProvider {
     }
   }
 }
+
 
 
