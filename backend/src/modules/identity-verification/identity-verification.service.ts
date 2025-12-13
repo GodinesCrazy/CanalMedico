@@ -111,7 +111,6 @@ export class IdentityVerificationService {
         nameProvided: request.name,
         errors: [errorMessage],
       };
-    };
     }
   }
 
