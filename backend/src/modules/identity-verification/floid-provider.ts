@@ -46,7 +46,8 @@ export class FloidProvider implements IdentityVerificationProvider {
       const response = await this.client.get('/health', { timeout: 5000 });
       return response.status === 200;
     } catch (error) {
-      logger.warn('Floid provider no disponible:', error);
+      const errorMsg = error?.message || String(error) || 'Error desconocido';
+      logger.warn('Floid provider no disponible:', { message: errorMsg });
       return false;
     }
   }
@@ -122,7 +123,9 @@ export class FloidProvider implements IdentityVerificationProvider {
       // Respuesta inesperada
       throw new Error('Respuesta inesperada de Floid');
     } catch (error: any) {
-      logger.error('Error al validar identidad con Floid:', error);
+      // Extraer mensaje primero para evitar circular structure
+      let errorMessageForLog = error?.message || String(error) || 'Error desconocido';
+      logger.error('Error al validar identidad con Floid:', { message: errorMessageForLog, rut: request.rut });
 
       // Si es error de red o timeout
       if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
@@ -175,4 +178,5 @@ export class FloidProvider implements IdentityVerificationProvider {
     }
   }
 }
+
 

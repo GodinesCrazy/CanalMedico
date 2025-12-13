@@ -86,7 +86,9 @@ export class IdentityVerificationService {
 
       return result;
     } catch (error: any) {
-      logger.error('Error en servicio de validaciÃ³n de identidad:', error);
+      // Extraer mensaje primero para evitar circular structure
+      let errorMessageForLog = error?.message || String(error) || 'Error desconocido';
+      logger.error('Error en servicio de validaciÃ³n de identidad:', { message: errorMessageForLog, rut: request.rut });
       
       // Extraer mensaje de error de forma segura (evitar referencias circulares)
       let errorMessage = 'Error al validar identidad';
@@ -199,5 +201,6 @@ export class IdentityVerificationService {
 }
 
 export default new IdentityVerificationService();
+
 
 
