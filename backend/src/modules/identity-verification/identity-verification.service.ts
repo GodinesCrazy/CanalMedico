@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Servicio de validaci�n de identidad
  * Orquesta la validaci�n usando el proveedor configurado
  */
@@ -86,15 +86,32 @@ export class IdentityVerificationService {
 
       return result;
     } catch (error: any) {
-      logger.error('Error en servicio de validaci�n de identidad:', error);
+      logger.error('Error en servicio de validaciÃ³n de identidad:', error);
+      
+      // Extraer mensaje de error de forma segura (evitar referencias circulares)
+      let errorMessage = 'Error al validar identidad';
+      try {
+        if (error?.message) {
+          errorMessage = String(error.message);
+        } else if (error?.response?.data?.message) {
+          errorMessage = String(error.response.data.message);
+        } else if (error?.response?.statusText) {
+          errorMessage = `Error HTTP ${error.response.status}: ${error.response.statusText}`;
+        } else if (typeof error === 'string') {
+          errorMessage = error;
+        }
+      } catch (e) {
+        errorMessage = 'Error al validar identidad (error de serializaciÃ³n)';
+      }
       
       return {
         status: IdentityVerificationStatus.ERROR_VALIDACION,
         rut: request.rut,
         dv: request.dv,
         nameProvided: request.name,
-        errors: [error.message || 'Error al validar identidad'],
+        errors: [errorMessage],
       };
+    };
     }
   }
 
@@ -183,3 +200,4 @@ export class IdentityVerificationService {
 }
 
 export default new IdentityVerificationService();
+

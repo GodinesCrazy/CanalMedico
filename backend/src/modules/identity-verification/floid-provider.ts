@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Proveedor de validaci�n de identidad usando Floid
  * Floid es un servicio que permite validar RUN contra Registro Civil de Chile
  */
@@ -148,15 +148,31 @@ export class FloidProvider implements IdentityVerificationProvider {
         };
       }
 
-      // Otro error
+      // Otro error - extraer mensaje de forma segura
+      let errorMessage = 'Error desconocido al validar identidad';
+      try {
+        if (error?.message) {
+          errorMessage = String(error.message);
+        } else if (error?.response?.data?.message) {
+          errorMessage = String(error.response.data.message);
+        } else if (error?.response?.statusText) {
+          errorMessage = `Error HTTP ${error.response.status}: ${error.response.statusText}`;
+        } else if (typeof error === 'string') {
+          errorMessage = error;
+        }
+      } catch (e) {
+        errorMessage = 'Error al validar identidad (error de serializaciÃ³n)';
+      }
+      
       return {
         status: IdentityVerificationStatus.ERROR_VALIDACION,
         rut: request.rut,
         dv: request.dv,
         nameProvided: request.name,
-        errors: [error.message || 'Error desconocido al validar identidad'],
+        errors: [errorMessage],
         provider: 'FLOID',
       };
     }
   }
 }
+
