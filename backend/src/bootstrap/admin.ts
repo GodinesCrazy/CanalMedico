@@ -43,14 +43,16 @@ export async function bootstrapTestAdmin(): Promise<void> {
       }
       
       // Si ENABLE_TEST_ADMIN está deshabilitado y el usuario existe, no hacer nada más
-      if (!env.ENABLE_TEST_ADMIN) {
+      const enableTestAdmin = (env as any).ENABLE_TEST_ADMIN ?? false;
+      if (!enableTestAdmin) {
         logger.debug('[BOOTSTRAP] ENABLE_TEST_ADMIN=false, pero usuario ya existe. Continuando...');
       }
       return;
     }
 
     // Si el usuario NO existe, verificar flag antes de crear
-    if (!env.ENABLE_TEST_ADMIN) {
+    const enableTestAdmin = (env as any).ENABLE_TEST_ADMIN ?? false;
+    if (!enableTestAdmin) {
       logger.warn('[BOOTSTRAP] Admin de pruebas no existe y ENABLE_TEST_ADMIN=false');
       logger.warn('[BOOTSTRAP] ⚠️ Creando admin de todas formas para desbloquear acceso...');
       // Continuar para crear el usuario (comportamiento de emergencia)
