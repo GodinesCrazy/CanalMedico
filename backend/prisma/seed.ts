@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
@@ -39,7 +39,7 @@ async function seed() {
         });
         console.log('✅ Doctor creado: doctor1@ejemplo.com / doctor123');
 
-        // 2. Crear usuario Admin
+        // 2. Crear usuario Admin (admin@canalmedico.com)
         const adminUser = await prisma.user.upsert({
             where: { email: 'admin@canalmedico.com' },
             update: {},
@@ -51,7 +51,23 @@ async function seed() {
         });
         console.log('✅ Admin creado: admin@canalmedico.com / admin123');
 
-        // 3. Crear usuario Paciente
+        // 3. Crear o actualizar usuario Admin para pruebas (admin@canalmedico.test)
+        const hashedPasswordTest = await bcrypt.hash('Admin123!', 10);
+        const adminTestUser = await prisma.user.upsert({
+            where: { email: 'admin@canalmedico.test' },
+            update: {
+                password: hashedPasswordTest,
+                role: 'ADMIN', // Asegurar que el rol sea ADMIN
+            },
+            create: {
+                email: 'admin@canalmedico.test',
+                password: hashedPasswordTest,
+                role: 'ADMIN',
+            },
+        });
+        console.log('✅ Admin de pruebas creado/actualizado: admin@canalmedico.test / Admin123!');
+
+        // 4. Crear usuario Paciente
         const patientUser = await prisma.user.upsert({
             where: { email: 'paciente1@ejemplo.com' },
             update: {},
@@ -79,6 +95,7 @@ async function seed() {
         console.log('------------------------');
         console.log('Doctor:   doctor1@ejemplo.com / doctor123');
         console.log('Admin:    admin@canalmedico.com / admin123');
+        console.log('Admin (Test): admin@canalmedico.test / Admin123!');
         console.log('Paciente: paciente1@ejemplo.com / patient123');
     } catch (error) {
         console.error('Error durante el seed:', error);
