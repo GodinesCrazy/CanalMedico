@@ -2,9 +2,11 @@
  * Bootstrap Admin User
  * 
  * Crea automáticamente un usuario ADMIN de pruebas al iniciar el servidor.
- * Solo se ejecuta si ENABLE_TEST_ADMIN=true y NODE_ENV !== 'production'.
+ * SOLO se ejecuta si ENABLE_TEST_ADMIN=true.
  * 
  * Esta función es idempotente: si el usuario ya existe, no hace nada.
+ * 
+ * SEGURIDAD: Solo se ejecuta si ENABLE_TEST_ADMIN=true está configurado.
  */
 
 import prisma from '@/database/prisma';
@@ -18,11 +20,27 @@ const TEST_ADMIN_PASSWORD = 'Admin123!';
 /**
  * Verifica y crea el usuario ADMIN de pruebas si no existe
  * 
+ * Lógica:
+ * IF ENABLE_TEST_ADMIN === true
+ *   IF no existe usuario con email admin@canalmedico.test
+ *     crear usuario: email, password hasheado, role ADMIN
+ *   ELSE
+ *     verificar que rol sea ADMIN, si no, actualizar
+ * END
+ * 
  * @returns Promise<void>
  */
 export async function bootstrapTestAdmin(): Promise<void> {
+  // Verificar flag de habilitación (type-safe)
+  const enableTestAdmin = (env as any).ENABLE_TEST_ADMIN ?? false;
+  
+  if (!enableTestAdmin) {
+    logger.debug('[BOOTSTRAP] Admin de pruebas deshabilitado (ENABLE_TEST_ADMIN=false)');
+    return;
+  }
+
   try {
-    logger.info('[BOOTSTRAP] Verificando admin de pruebas...');
+    logger.info('[BOOTSTRAP] Verificando usuario ADMIN de pruebas...');
 
     // Verificar si el usuario ya existe
     const existingAdmin = await prisma.user.findUnique({
@@ -39,29 +57,15 @@ export async function bootstrapTestAdmin(): Promise<void> {
         });
         logger.info('[BOOTSTRAP] Rol actualizado a ADMIN');
       } else {
-        logger.info('[BOOTSTRAP] Admin de pruebas ya existe');
-      }
-      
-      // Si ENABLE_TEST_ADMIN está deshabilitado y el usuario existe, no hacer nada más
-      const enableTestAdmin = (env as any).ENABLE_TEST_ADMIN ?? false;
-      if (!enableTestAdmin) {
-        logger.debug('[BOOTSTRAP] ENABLE_TEST_ADMIN=false, pero usuario ya existe. Continuando...');
+        logger.info('[BOOTSTRAP] Usuario ADMIN ya existe');
       }
       return;
     }
 
-    // Si el usuario NO existe, verificar flag antes de crear
-    const enableTestAdmin = (env as any).ENABLE_TEST_ADMIN ?? false;
-    if (!enableTestAdmin) {
-      logger.warn('[BOOTSTRAP] Admin de pruebas no existe y ENABLE_TEST_ADMIN=false');
-      logger.warn('[BOOTSTRAP] ⚠️ Creando admin de todas formas para desbloquear acceso...');
-      // Continuar para crear el usuario (comportamiento de emergencia)
-    }
+    // El usuario NO existe, crearlo
+    logger.info('[BOOTSTRAP] Creando usuario ADMIN de pruebas...');
 
-    // El usuario no existe, crearlo
-    logger.info('[BOOTSTRAP] Creando admin de pruebas...');
-
-    // Hashear contraseña usando el mismo método que el login
+    // Hashear contraseña usando el MISMO método que el login (hashPassword)
     const hashedPassword = await hashPassword(TEST_ADMIN_PASSWORD);
 
     // Crear usuario ADMIN
@@ -73,7 +77,7 @@ export async function bootstrapTestAdmin(): Promise<void> {
       },
     });
 
-    logger.info('[BOOTSTRAP] Admin creado correctamente');
+    logger.info('[BOOTSTRAP] Usuario ADMIN creado correctamente');
     logger.info(`[BOOTSTRAP] Email: ${TEST_ADMIN_EMAIL}`);
     logger.info(`[BOOTSTRAP] ID: ${adminUser.id}`);
     logger.info('[BOOTSTRAP] ✅ Admin de pruebas listo para uso');
