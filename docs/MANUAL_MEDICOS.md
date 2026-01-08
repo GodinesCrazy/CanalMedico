@@ -34,6 +34,30 @@ CanalMedico es una plataforma digital que le permite atender consultas médicas 
 ✅ **Registro completo**: Historial de todas las conversaciones  
 ✅ **Pagos seguros**: Cobro garantizado antes de iniciar la atención  
 
+### ¿Por Qué CanalMedico No Es Invasivo?
+
+CanalMedico está diseñado para **proteger su tiempo y profesionalizar la atención**, sin cambiar su forma de ejercer medicina ni interferir con su relación con los pacientes.
+
+**CanalMedico NO cambia su forma de ejercer medicina:**
+- ✅ Sigue siendo el mismo médico
+- ✅ Sigue atendiendo de la misma forma profesional
+- ✅ Solo canaliza consultas formales a un flujo pagado
+- ✅ No interfiere con su relación directa con pacientes cuando es necesaria
+
+**CanalMedico SÍ protege su tiempo:**
+- ✅ Auto-respuesta automática por WhatsApp (no recibe notificaciones en su teléfono)
+- ✅ Solo ve consultas pagadas en su panel (no pierde tiempo en mensajes no pagados)
+- ✅ El sistema gestiona el cobro automáticamente (no tiene que "pedir" el pago)
+- ✅ Estadísticas claras que muestran el valor de no responder gratis
+
+**CanalMedico NO invade la relación médico-paciente:**
+- ✅ El paciente sigue siendo el mismo paciente
+- ✅ La relación fundamental no cambia
+- ✅ Solo se profesionaliza cuando el paciente necesita atención formal
+- ✅ No crea barreras entre usted y su paciente
+
+**Resultado:** Usted recupera control de cuándo, cómo y a quién responde, sin perder la relación con sus pacientes.
+
 ---
 
 ## Requisitos del Sistema

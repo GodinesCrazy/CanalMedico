@@ -26,8 +26,20 @@
 
 CanalMedico es una aplicación que te permite **consultar con tu médico por chat**, sin necesidad de ir presencialmente o hacer videollamadas. 
 
+> **💡 Importante:** CanalMedico no es una app tradicional de telemedicina. Se integra con WhatsApp (el canal que ya usas) y te permite acceder sin registro manual complicado. Si tu médico te envía un link por WhatsApp, puedes entrar directamente con tu número de teléfono, sin crear contraseña ni verificar email.
+
 ### ¿Cómo funciona?
 
+**Opción 1: Desde WhatsApp (Más Rápido)**
+1. 📱 Tu médico te envía un link por WhatsApp
+2. 🔗 Haces clic en el link
+3. 📲 Recibes un código por WhatsApp (OTP)
+4. ✅ Ingresas el código (6 dígitos)
+5. 💳 Pagas de forma segura
+6. 🩺 Conversas con tu médico por chat
+7. 📋 Recibes diagnóstico y tratamiento
+
+**Opción 2: Registro Tradicional**
 1. 📱 Descargas la app en tu celular
 2. 👤 Te registras con tu correo
 3. 🔗 Te vinculas con tu médico
