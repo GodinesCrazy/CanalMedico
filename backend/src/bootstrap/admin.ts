@@ -46,12 +46,19 @@ const TEST_ADMIN_PASSWORD = 'Admin123!';
  */
 export async function bootstrapTestAdmin(): Promise<void> {
   // Verificar flag de habilitación (type-safe)
+  // IMPORTANTE: NO se verifica NODE_ENV. Solo ENABLE_TEST_ADMIN controla la ejecución.
   const enableTestAdmin = (env as any).ENABLE_TEST_ADMIN ?? false;
   
   if (!enableTestAdmin) {
     logger.debug('[BOOTSTRAP] Admin de pruebas deshabilitado (ENABLE_TEST_ADMIN=false)');
     return;
   }
+
+  // SIEMPRE loggear cuando el flag está activo (incluso en producción)
+  logger.info(`[BOOTSTRAP] ========================================`);
+  logger.info(`[BOOTSTRAP] Iniciando bootstrap de ADMIN de pruebas`);
+  logger.info(`[BOOTSTRAP] Email objetivo: ${TEST_ADMIN_EMAIL}`);
+  logger.info(`[BOOTSTRAP] ========================================`);
 
   try {
     // Log explícito del email que se busca

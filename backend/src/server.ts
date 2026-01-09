@@ -159,6 +159,10 @@ import doctorVerificationRoutes, { doctorVerificationAdminRoutes } from './modul
 app.use('/api/medicos', doctorVerificationRoutes);
 app.use('/api/admin', doctorVerificationAdminRoutes);
 
+// Importar rutas de WhatsApp (registradas pero inactivas hasta que feature flag esté habilitado)
+import whatsappRoutes from './modules/whatsapp/whatsapp.routes';
+app.use('/api/whatsapp', whatsappRoutes);
+
 // Importar job de liquidaciones mensuales
 import { startPayoutJob } from './jobs/payout.job';
 
@@ -261,6 +265,20 @@ async function startServer() {
         // Vamos a permitir que inicie para ver logs.
         logger.error('⚠️ Iniciando servidor sin base de datos para diagnóstico');
       }
+    }
+
+    // Bootstrap: Crear admin de pruebas si está habilitado
+    // IMPORTANTE: Se ejecuta SIEMPRE si ENABLE_TEST_ADMIN=true, incluso en producción
+    // NO se verifica NODE_ENV. El único control es ENABLE_TEST_ADMIN.
+    try {
+      logger.info('🔧 Ejecutando bootstrap de admin de pruebas...');
+      const { bootstrapTestAdmin } = await import('@/bootstrap/admin');
+      await bootstrapTestAdmin();
+      logger.info('✅ Bootstrap de admin completado');
+    } catch (bootstrapError: any) {
+      logger.error('❌ Error en bootstrap de admin:', bootstrapError?.message || bootstrapError);
+      logger.warn('⚠️ El servidor continuará iniciando sin admin de pruebas');
+      // No bloquear el inicio del servidor si falla el bootstrap
     }
 
     // Iniciar job de liquidaciones mensuales
