@@ -350,7 +350,7 @@ model ConsultationAttempt {
   
   // Relaciones
   doctor            Doctor   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
-  consultation      Consultation? @relation(fields: [consultationId], references: [id])
+  consultation      Consultation?
   
   @@index([doctorId])
   @@index([patientPhone])
