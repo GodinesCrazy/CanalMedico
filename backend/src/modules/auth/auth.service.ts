@@ -72,9 +72,14 @@ export class AuthService {
 
   async register(data: RegisterDto) {
     try {
-      // Verificar si el usuario ya existe
+      // Verificar si el usuario ya existe (solo email, sin phoneNumber)
       const existingUser = await prisma.user.findUnique({
         where: { email: data.email },
+        select: {
+          id: true,
+          email: true,
+          // NO incluir phoneNumber - solo se usa en OTP (módulo separado)
+        },
       });
 
       if (existingUser) {
