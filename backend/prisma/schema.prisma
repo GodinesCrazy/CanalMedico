@@ -128,7 +128,7 @@ model Consultation {
   payment  Payment?
   messages Message[]
   prescriptions Prescription[] // Recetas SNRE asociadas
-  consultationAttempt ConsultationAttempt?
+  consultationAttempt ConsultationAttempt? @relation(fields: [consultationAttemptId], references: [id])
 
   @@index([doctorId])
   @@index([patientId])
@@ -350,7 +350,7 @@ model ConsultationAttempt {
   
   // Relaciones
   doctor            Doctor   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
-  consultation      Consultation?
+  consultation      Consultation? @relation(fields: [consultationId], references: [id])
   
   @@index([doctorId])
   @@index([patientPhone])
