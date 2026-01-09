@@ -247,7 +247,7 @@ async function startServer() {
     logger.info('✅ Proceso de migraciones completado');
 
     // Verificar variables temporales y mostrar advertencias
-    if (env.STRIPE_SECRET_KEY.includes('temporal_placeholder')) {
+    if (env.STRIPE_SECRET_KEY && env.STRIPE_SECRET_KEY.includes('temporal_placeholder')) {
       logger.warn('⚠️ STRIPE_SECRET_KEY está usando un valor temporal.');
     }
 
