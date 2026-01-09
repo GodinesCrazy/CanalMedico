@@ -159,8 +159,8 @@ import doctorVerificationRoutes, { doctorVerificationAdminRoutes } from './modul
 app.use('/api/medicos', doctorVerificationRoutes);
 app.use('/api/admin', doctorVerificationAdminRoutes);
 
-// WhatsApp routes se cargan dinámicamente (ver función loadWhatsAppRoutes)
-// Esto permite que el backend compile y arranque incluso si WhatsApp no está configurado
+// Módulos opcionales se cargan dinámicamente (ver loadOptionalModules)
+// Esto permite que el backend compile y arranque incluso si módulos opcionales no están disponibles
 
 // Importar job de liquidaciones mensuales
 import { startPayoutJob } from './jobs/payout.job';
@@ -280,22 +280,15 @@ async function startServer() {
       // No bloquear el inicio del servidor si falla el bootstrap
     }
 
-    // Cargar módulo WhatsApp dinámicamente (opcional, no bloquea el arranque)
-    // IMPORTANTE: Si el módulo tiene errores de compilación o no está disponible,
-    // el servidor arrancará normalmente sin funcionalidad WhatsApp
+    // Cargar módulos opcionales (WhatsApp, etc.)
+    // IMPORTANTE: Usa require() dinámico, TypeScript NO analiza estos módulos durante la compilación
     try {
-      logger.info('[BOOT] Cargando módulo WhatsApp...');
-      const whatsappModule = await import('@/modules/whatsapp/whatsapp.routes');
-      if (whatsappModule && whatsappModule.default) {
-        app.use('/api/whatsapp', whatsappModule.default);
-        logger.info('[BOOT] ✅ Módulo WhatsApp cargado correctamente');
-      } else {
-        throw new Error('Módulo WhatsApp no exporta default');
-      }
-    } catch (whatsappError: any) {
-      logger.warn('[BOOT] WhatsApp no disponible, continuando sin él');
-      logger.warn(`[BOOT] Razón: ${whatsappError?.message || 'Error desconocido'}`);
-      // No bloquear el inicio del servidor si WhatsApp no está disponible
+      const { loadOptionalModules } = await import('@/bootstrap/loadOptionalModules');
+      await loadOptionalModules(app);
+    } catch (modulesError: any) {
+      logger.warn('⚠️ Error al cargar módulos opcionales:', modulesError?.message || modulesError);
+      logger.warn('⚠️ El servidor continuará iniciando sin módulos opcionales');
+      // No bloquear el inicio del servidor si falla la carga de módulos opcionales
     }
 
     // Iniciar job de liquidaciones mensuales
