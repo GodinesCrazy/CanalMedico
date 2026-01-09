@@ -25,16 +25,33 @@ export interface RefreshTokenDto {
   refreshToken: string;
 }
 
-// Importar servicio OTP
-import otpService from './otp.service';
+// OTP Service se carga dinámicamente (ver loadOtpService)
+// NO importar estáticamente para evitar errores de build
 
 export class AuthService {
+  /**
+   * Obtener instancia del servicio OTP (carga dinámica)
+   * 
+   * @private
+   */
+  private getOtpService() {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { loadOtpService } = require('./loadOtpService');
+    return loadOtpService();
+  }
+
   /**
    * Enviar OTP por WhatsApp o SMS
    * 
    * FASE 3: Login invisible
+   * 
+   * Solo funciona si ENABLE_PHONE_LOGIN=true y el servicio está disponible
    */
   async sendOTP(data: { phoneNumber: string; attemptId?: string; method?: 'WHATSAPP' | 'SMS' }) {
+    const otpService = this.getOtpService();
+    if (!otpService) {
+      throw createError('Servicio OTP no disponible. Feature no habilitado o módulo no cargado.', 503);
+    }
     return otpService.sendOTP(data);
   }
 
@@ -42,8 +59,14 @@ export class AuthService {
    * Verificar OTP y crear/iniciar sesión automáticamente
    * 
    * FASE 3: Login invisible
+   * 
+   * Solo funciona si ENABLE_PHONE_LOGIN=true y el servicio está disponible
    */
   async verifyOTP(data: { phoneNumber: string; otp: string; attemptId?: string }) {
+    const otpService = this.getOtpService();
+    if (!otpService) {
+      throw createError('Servicio OTP no disponible. Feature no habilitado o módulo no cargado.', 503);
+    }
     return otpService.verifyOTP(data);
   }
 
