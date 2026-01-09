@@ -10,7 +10,6 @@
 
 import { Application } from 'express';
 import logger from '@/config/logger';
-import env from '@/config/env';
 
 /**
  * Carga módulos opcionales del sistema
@@ -24,7 +23,10 @@ export async function loadOptionalModules(app: Application): Promise<void> {
   logger.info('[BOOT] Inicializando módulos opcionales');
 
   // Cargar módulo WhatsApp si está habilitado
-  if (env.ENABLE_WHATSAPP_AUTO_RESPONSE) {
+  // Usar process.env directamente para evitar problemas de tipos en TypeScript
+  const enableWhatsApp = process.env.ENABLE_WHATSAPP_AUTO_RESPONSE === 'true';
+  
+  if (enableWhatsApp) {
     try {
       // Usar require() dinámico con string literal
       // TypeScript NO analiza require() con strings literales durante la compilación
