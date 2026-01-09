@@ -77,7 +77,8 @@ const swaggerSpec = swaggerJsdoc(swaggerOptions);
 
 // Middlewares globales
 // Configurar trust proxy para Railway (necesario para rate limiting y proxies reversos)
-app.set('trust proxy', true);
+// Usar 1 en lugar de true para evitar ERR_ERL_PERMISSIVE_TRUST_PROXY
+app.set('trust proxy', 1);
 
 app.use(helmet());
 app.use(

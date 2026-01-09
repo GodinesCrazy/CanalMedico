@@ -25,7 +25,28 @@ export interface RefreshTokenDto {
   refreshToken: string;
 }
 
+// Importar servicio OTP
+import otpService from './otp.service';
+
 export class AuthService {
+  /**
+   * Enviar OTP por WhatsApp o SMS
+   * 
+   * FASE 3: Login invisible
+   */
+  async sendOTP(data: { phoneNumber: string; attemptId?: string; method?: 'WHATSAPP' | 'SMS' }) {
+    return otpService.sendOTP(data);
+  }
+
+  /**
+   * Verificar OTP y crear/iniciar sesión automáticamente
+   * 
+   * FASE 3: Login invisible
+   */
+  async verifyOTP(data: { phoneNumber: string; otp: string; attemptId?: string }) {
+    return otpService.verifyOTP(data);
+  }
+
   async register(data: RegisterDto) {
     try {
       // Verificar si el usuario ya existe
@@ -122,13 +143,11 @@ export class AuthService {
 
   async login(data: LoginDto) {
     try {
-      // Buscar usuario
+      // Buscar usuario SIN relaciones primero para determinar el rol
+      // Esto evita errores Prisma si la tabla doctors está incompleta
       const user = await prisma.user.findUnique({
         where: { email: data.email },
-        include: {
-          doctor: true,
-          patient: true,
-        },
+        // NO incluir relaciones todavía para evitar errores Prisma
       });
 
       if (!user) {
@@ -142,6 +161,32 @@ export class AuthService {
         throw createError('Email o contraseña incorrectos', 401);
       }
 
+      // Cargar relaciones SOLO si es necesario (ADMIN no necesita doctor)
+      let profile = null;
+      if (user.role === 'DOCTOR') {
+        // Solo cargar doctor si el usuario es DOCTOR
+        try {
+          const doctor = await prisma.doctor.findUnique({
+            where: { userId: user.id },
+          });
+          profile = doctor;
+        } catch (error) {
+          // Si falla al cargar doctor, continuar sin profile (evita errores Prisma)
+          logger.warn(`No se pudo cargar doctor para usuario ${user.id}:`, error);
+        }
+      } else if (user.role === 'PATIENT') {
+        // Cargar patient si es necesario
+        try {
+          const patient = await prisma.patient.findUnique({
+            where: { userId: user.id },
+          });
+          profile = patient;
+        } catch (error) {
+          logger.warn(`No se pudo cargar patient para usuario ${user.id}:`, error);
+        }
+      }
+      // ADMIN no tiene profile (no necesita cargar relaciones)
+
       // Generar tokens
       const tokens = generateTokenPair(user.id, user.email, user.role as any);
 
@@ -152,7 +197,7 @@ export class AuthService {
           id: user.id,
           email: user.email,
           role: user.role,
-          profile: user.doctor || user.patient,
+          profile: profile,
         },
         ...tokens,
       };

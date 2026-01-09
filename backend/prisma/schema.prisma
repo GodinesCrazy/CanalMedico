@@ -16,6 +16,7 @@ model User {
   email     String   @unique
   password  String
   role      String   @default("PATIENT") // UserRole
+  phoneNumber String? @unique // Número de teléfono (para login alternativo con OTP)
   createdAt DateTime @default(now())
 
   // Relaciones
@@ -24,6 +25,7 @@ model User {
   notificationToken NotificationToken[]
 
   @@index([email])
+  @@index([phoneNumber])
   @@map("users")
 }
 
@@ -39,7 +41,6 @@ model Doctor {
   estadoOnline   Boolean @default(false)
 
   // Configuración de disponibilidad automática
-  modoDisponibilidad  String  @default("MANUAL") // "MANUAL" | "AUTOMATICO"
   horariosAutomaticos String? // JSON con configuración de horarios
 
   // Configuración de pagos
@@ -60,6 +61,10 @@ model Doctor {
   lastVerificationAt        DateTime? // Última verificación completa
   verificationErrors        String?  // JSON con errores de validación
 
+  // Configuración WhatsApp Business (para auto-respuesta)
+  whatsappBusinessNumber String? // Número de WhatsApp Business verificado
+  whatsappBusinessId      String? // ID de WhatsApp Business en Meta
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -67,12 +72,14 @@ model Doctor {
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   consultations Consultation[]
   payoutBatches PayoutBatch[]
+  consultationAttempts ConsultationAttempt[]
 
   @@index([userId])
   @@index([rut])
   @@index([verificacionEstadoFinal])
   @@index([identidadValidada])
   @@index([profesionValidada])
+  @@index([whatsappBusinessNumber])
   @@map("doctors")
 }
 
@@ -89,12 +96,16 @@ model Patient {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
+  // Número de teléfono (identificador alternativo para login con OTP)
+  phoneNumber String? @unique
+
   // Relaciones
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   consultations Consultation[]
 
   @@index([userId])
   @@index([rut])
+  @@index([phoneNumber])
   @@map("patients")
 }
 
@@ -105,6 +116,8 @@ model Consultation {
   type      String    @default("NORMAL") // ConsultationType
   status    String    @default("PENDING") // ConsultationStatus
   paymentId String?   @unique
+  source    String    @default("APP") // "WHATSAPP" | "APP" | "WEB" - Origen de la consulta
+  consultationAttemptId String? // ID del intento de WhatsApp que originó esta consulta
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   closedAt  DateTime?
@@ -115,11 +128,14 @@ model Consultation {
   payment  Payment?
   messages Message[]
   prescriptions Prescription[] // Recetas SNRE asociadas
+  consultationAttempt ConsultationAttempt?
 
   @@index([doctorId])
   @@index([patientId])
   @@index([status])
   @@index([createdAt])
+  @@index([source])
+  @@index([consultationAttemptId])
   @@map("consultations")
 }
 
@@ -315,4 +331,45 @@ model PrescriptionItem {
   @@index([prescriptionId])
   @@index([tfcCode])
   @@map("prescription_items")
+}
+
+// Modelo para intentos de consulta desde WhatsApp (antes de convertirse en consulta pagada)
+model ConsultationAttempt {
+  id                String   @id @default(cuid())
+  doctorId          String
+  patientPhone      String   // Número de teléfono del paciente
+  source            String   @default("WHATSAPP") // "WHATSAPP" | "SMS" | "EMAIL"
+  status            String   @default("PENDING") // "PENDING" | "CONVERTED" | "ABANDONED"
+  messageText       String?  // Texto original del mensaje de WhatsApp
+  consultationId    String?  @unique // Si se convierte, ID de la consulta creada
+  deepLinkSent      Boolean  @default(false) // Si se envió el deep link
+  deepLinkClicked   Boolean  @default(false) // Si el paciente hizo clic en el link
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  convertedAt       DateTime? // Fecha en que se convirtió en consulta pagada
+  
+  // Relaciones
+  doctor            Doctor   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  consultation      Consultation?
+  
+  @@index([doctorId])
+  @@index([patientPhone])
+  @@index([status])
+  @@index([createdAt])
+  @@map("consultation_attempts")
+}
+
+// Modelo para verificación OTP (One-Time Password) por WhatsApp/SMS
+model OTPVerification {
+  id          String   @id @default(cuid())
+  phoneNumber String   // Número de teléfono al que se envió el OTP
+  otp         String   // Hash del OTP (no texto plano, usar bcrypt)
+  method      String   @default("WHATSAPP") // "WHATSAPP" | "SMS"
+  verified    Boolean  @default(false) // Si el OTP fue verificado
+  expiresAt   DateTime // Fecha de expiración del OTP (típicamente 5 minutos)
+  createdAt   DateTime @default(now())
+  
+  @@index([phoneNumber])
+  @@index([expiresAt])
+  @@map("otp_verifications")
 }

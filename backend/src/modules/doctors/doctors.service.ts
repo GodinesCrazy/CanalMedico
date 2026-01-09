@@ -55,9 +55,9 @@ export class DoctorsService {
         throw createError('Doctor no encontrado', 404);
       }
 
-      // Calcular disponibilidad real según modo
+      // Calcular disponibilidad real (siempre modo MANUAL ya que modoDisponibilidad fue eliminado)
       const isAvailable = calculateAvailability(
-        (doctor as any).modoDisponibilidad || 'MANUAL',
+        'MANUAL', // Siempre modo manual (campo modoDisponibilidad eliminado)
         doctor.estadoOnline,
         (doctor as any).horariosAutomaticos
       );
@@ -91,10 +91,10 @@ export class DoctorsService {
         },
       });
 
-      // Filtrar solo los que están disponibles (manual o automático)
+      // Filtrar solo los que están disponibles (siempre modo MANUAL)
       const onlineDoctors = allDoctors.filter((doctor) => {
         const isAvailable = calculateAvailability(
-          (doctor as any).modoDisponibilidad || 'MANUAL',
+          'MANUAL', // Siempre modo manual (campo modoDisponibilidad eliminado)
           doctor.estadoOnline,
           (doctor as any).horariosAutomaticos
         );
@@ -125,22 +125,19 @@ export class DoctorsService {
   async updateAvailabilitySettings(
     doctorId: string,
     settings: {
-      modoDisponibilidad: string;
       horariosAutomaticos?: string;
       estadoOnline?: boolean;
     }
   ) {
     try {
-      const updateData: any = {
-        modoDisponibilidad: settings.modoDisponibilidad,
-      };
+      const updateData: any = {};
 
       if (settings.horariosAutomaticos !== undefined) {
         updateData.horariosAutomaticos = settings.horariosAutomaticos;
       }
 
-      // Si cambia a modo manual, permitir actualizar estadoOnline directamente
-      if (settings.modoDisponibilidad === 'MANUAL' && settings.estadoOnline !== undefined) {
+      // Permitir actualizar estadoOnline directamente
+      if (settings.estadoOnline !== undefined) {
         updateData.estadoOnline = settings.estadoOnline;
       }
 
@@ -167,14 +164,14 @@ export class DoctorsService {
       }
 
       const isAvailable = calculateAvailability(
-        (doctor as any).modoDisponibilidad || 'MANUAL',
+        'MANUAL', // Siempre modo manual (campo modoDisponibilidad eliminado)
         doctor.estadoOnline,
         (doctor as any).horariosAutomaticos
       );
 
       return {
         isAvailable,
-        modoDisponibilidad: (doctor as any).modoDisponibilidad || 'MANUAL',
+        modoDisponibilidad: 'MANUAL', // Siempre manual (campo eliminado del schema)
         estadoOnlineManual: doctor.estadoOnline,
         horariosAutomaticos: (doctor as any).horariosAutomaticos,
       };

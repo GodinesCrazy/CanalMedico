@@ -135,9 +135,8 @@ export class DoctorsController {
         return;
       }
 
-      const { modoDisponibilidad, horariosAutomaticos, estadoOnline } = req.body;
+      const { horariosAutomaticos, estadoOnline } = req.body;
       const updatedDoctor = await doctorsService.updateAvailabilitySettings(req.params.id, {
-        modoDisponibilidad,
         horariosAutomaticos,
         estadoOnline,
       });

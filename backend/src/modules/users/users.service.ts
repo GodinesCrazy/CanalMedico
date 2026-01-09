@@ -22,7 +22,7 @@ export class UsersService {
       let profile: any = user.doctor || user.patient;
       if (user.doctor) {
         const isAvailable = calculateAvailability(
-          (user.doctor as any).modoDisponibilidad || 'MANUAL',
+          'MANUAL', // Siempre modo manual (campo modoDisponibilidad eliminado)
           user.doctor.estadoOnline,
           (user.doctor as any).horariosAutomaticos
         );
