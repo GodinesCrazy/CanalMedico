@@ -293,9 +293,8 @@ async function startServer() {
         throw new Error('Módulo WhatsApp no exporta default');
       }
     } catch (whatsappError: any) {
-      logger.warn('[BOOT] ⚠️ Módulo WhatsApp no disponible (opcional)');
+      logger.warn('[BOOT] WhatsApp no disponible, continuando sin él');
       logger.warn(`[BOOT] Razón: ${whatsappError?.message || 'Error desconocido'}`);
-      logger.info('[BOOT] El servidor continuará sin funcionalidad WhatsApp');
       // No bloquear el inicio del servidor si WhatsApp no está disponible
     }
 
