@@ -135,12 +135,16 @@ export class AuthService {
         });
       }
 
-      // Obtener usuario con perfil completo
+      // Obtener usuario con perfil completo (sin phoneNumber)
       const userWithProfile = await prisma.user.findUnique({
         where: { id: user.id },
-        include: {
+        select: {
+          id: true,
+          email: true,
+          role: true,
           doctor: true,
           patient: true,
+          // NO incluir phoneNumber - solo se usa en OTP (módulo separado)
         },
       });
 
