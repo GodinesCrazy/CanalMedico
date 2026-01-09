@@ -159,9 +159,8 @@ import doctorVerificationRoutes, { doctorVerificationAdminRoutes } from './modul
 app.use('/api/medicos', doctorVerificationRoutes);
 app.use('/api/admin', doctorVerificationAdminRoutes);
 
-// Importar rutas de WhatsApp (registradas pero inactivas hasta que feature flag esté habilitado)
-import whatsappRoutes from './modules/whatsapp/whatsapp.routes';
-app.use('/api/whatsapp', whatsappRoutes);
+// WhatsApp routes se cargan dinámicamente (ver función loadWhatsAppRoutes)
+// Esto permite que el backend compile y arranque incluso si WhatsApp no está configurado
 
 // Importar job de liquidaciones mensuales
 import { startPayoutJob } from './jobs/payout.job';
@@ -279,6 +278,25 @@ async function startServer() {
       logger.error('❌ Error en bootstrap de admin:', bootstrapError?.message || bootstrapError);
       logger.warn('⚠️ El servidor continuará iniciando sin admin de pruebas');
       // No bloquear el inicio del servidor si falla el bootstrap
+    }
+
+    // Cargar módulo WhatsApp dinámicamente (opcional, no bloquea el arranque)
+    // IMPORTANTE: Si el módulo tiene errores de compilación o no está disponible,
+    // el servidor arrancará normalmente sin funcionalidad WhatsApp
+    try {
+      logger.info('[BOOT] Cargando módulo WhatsApp...');
+      const whatsappModule = await import('@/modules/whatsapp/whatsapp.routes');
+      if (whatsappModule && whatsappModule.default) {
+        app.use('/api/whatsapp', whatsappModule.default);
+        logger.info('[BOOT] ✅ Módulo WhatsApp cargado correctamente');
+      } else {
+        throw new Error('Módulo WhatsApp no exporta default');
+      }
+    } catch (whatsappError: any) {
+      logger.warn('[BOOT] ⚠️ Módulo WhatsApp no disponible (opcional)');
+      logger.warn(`[BOOT] Razón: ${whatsappError?.message || 'Error desconocido'}`);
+      logger.info('[BOOT] El servidor continuará sin funcionalidad WhatsApp');
+      // No bloquear el inicio del servidor si WhatsApp no está disponible
     }
 
     // Iniciar job de liquidaciones mensuales
