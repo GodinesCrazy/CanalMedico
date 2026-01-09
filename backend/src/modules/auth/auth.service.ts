@@ -245,9 +245,16 @@ export class AuthService {
       // Verificar refresh token
       const decoded = verifyRefreshToken(data.refreshToken);
 
-      // Buscar usuario
+      // Buscar usuario con SELECT explícito para evitar errores Prisma P2022
+      // NO incluir phoneNumber ni otros campos opcionales
       const user = await prisma.user.findUnique({
         where: { id: decoded.id },
+        select: {
+          id: true,
+          email: true,
+          role: true,
+          // NO incluir phoneNumber - solo se usa en OTP (módulo separado)
+        },
       });
 
       if (!user) {
