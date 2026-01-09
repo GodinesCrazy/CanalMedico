@@ -6,13 +6,19 @@ import logger from '@/config/logger';
 import { FileUpload, S3UploadResult } from '@/types';
 import crypto from 'crypto';
 
-const s3Client = new S3Client({
-  region: env.AWS_REGION,
-  credentials: {
+// Crear cliente S3 solo si las credenciales están configuradas
+const s3ClientConfig: any = {
+  region: env.AWS_REGION || 'us-east-1',
+};
+
+if (env.AWS_ACCESS_KEY_ID && env.AWS_SECRET_ACCESS_KEY) {
+  s3ClientConfig.credentials = {
     accessKeyId: env.AWS_ACCESS_KEY_ID,
     secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
-  },
-});
+  };
+}
+
+const s3Client = new S3Client(s3ClientConfig);
 
 export class FilesService {
   private generateFileName(originalName: string): string {
@@ -42,6 +48,10 @@ export class FilesService {
 
   async uploadFile(file: FileUpload, folder: string = 'uploads'): Promise<S3UploadResult> {
     try {
+      if (!env.AWS_S3_BUCKET) {
+        throw createError('AWS S3 no configurado', 500);
+      }
+
       const fileName = this.generateFileName(file.originalname);
       const key = `${folder}/${fileName}`;
 
@@ -72,6 +82,10 @@ export class FilesService {
 
   async getSignedUrl(key: string, expiresIn: number = 3600): Promise<string> {
     try {
+      if (!env.AWS_S3_BUCKET) {
+        throw createError('AWS S3 no configurado', 500);
+      }
+
       const command = new GetObjectCommand({
         Bucket: env.AWS_S3_BUCKET,
         Key: key,
@@ -87,6 +101,10 @@ export class FilesService {
 
   async deleteFile(key: string): Promise<void> {
     try {
+      if (!env.AWS_S3_BUCKET) {
+        throw createError('AWS S3 no configurado', 500);
+      }
+
       const command = new DeleteObjectCommand({
         Bucket: env.AWS_S3_BUCKET,
         Key: key,

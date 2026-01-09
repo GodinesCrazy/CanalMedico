@@ -82,32 +82,55 @@ export class PaymentsService {
     }
   }
 
-  async handleWebhook(_signature: string, body: any) {
+  async handleWebhook(_signature: string, body: any, _reqHeaders?: Record<string, string>) {
     try {
       const { type, data } = body;
 
       if (!type || !data || !data.id) {
-        logger.warn('Webhook recibido con formato invalido:', body);
+        logger.warn('Webhook recibido con formato invalido:', { type, hasData: !!data });
         return { received: true, error: 'Invalid webhook format' };
       }
 
       if (type === 'payment') {
         const paymentId = data.id;
         
+        // VALIDACIÓN CRÍTICA: Verificar que el pago existe en MercadoPago antes de procesar
+        // Esto es la validación principal de MercadoPago (no usan firmas como Stripe)
         let paymentInfo;
         try {
           paymentInfo = await mercadopagoService.getPaymentInfo(paymentId);
-        } catch (error) {
-          logger.error(`Error al obtener informacion del pago ${paymentId} desde MercadoPago:`, error);
-          return { received: true, error: 'Payment not found in MercadoPago' };
+        } catch (error: any) {
+          logger.error(`Error al obtener informacion del pago ${paymentId} desde MercadoPago:`, {
+            error: error.message,
+            paymentId,
+          });
+          // Si no se puede verificar en MercadoPago, rechazar webhook
+          return { received: true, error: 'Payment not found in MercadoPago - webhook rechazado' };
         }
 
+        // VALIDACIÓN ADICIONAL: Verificar que el pago tiene external_reference válido
         if (!paymentInfo || !paymentInfo.external_reference) {
-          logger.warn(`Webhook de pago ${paymentId} sin external_reference valido`);
-          return { received: true, error: 'Invalid payment reference' };
+          logger.warn(`Webhook de pago ${paymentId} sin external_reference valido`, {
+            paymentId,
+            hasPaymentInfo: !!paymentInfo,
+          });
+          return { received: true, error: 'Invalid payment reference - webhook rechazado' };
+        }
+        
+        // VALIDACIÓN ADICIONAL: Verificar que el external_reference corresponde a una consulta válida
+        const consultationId = paymentInfo.external_reference;
+        const consultation = await prisma.consultation.findUnique({
+          where: { id: consultationId },
+        });
+        
+        if (!consultation) {
+          logger.warn(`Webhook de pago ${paymentId} con external_reference invalido: consulta ${consultationId} no existe`, {
+            paymentId,
+            consultationId,
+          });
+          return { received: true, error: 'Invalid consultation reference - webhook rechazado' };
         }
 
-        const consultationId = paymentInfo.external_reference;
         const status = paymentInfo.status;
 
         logger.info(`Procesando webhook pago ${paymentId} para consulta ${consultationId}. Estado: ${status}`);

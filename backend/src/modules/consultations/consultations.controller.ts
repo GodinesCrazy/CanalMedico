@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
 import { z } from 'zod';
 import consultationsService from './consultations.service';
 import doctorsService from '../doctors/doctors.service';
@@ -47,8 +47,9 @@ export class ConsultationsController {
     }
   }
 
-  async getById(req: Request, res: Response, next: NextFunction) {
+  async getById(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
+      // La validación de propiedad ya se realizó en el middleware requireConsultationOwnership
       const consultation = await consultationsService.getById(req.params.id);
       res.json({
         success: true,
@@ -129,8 +130,10 @@ export class ConsultationsController {
     }
   }
 
-  async activate(req: Request, res: Response, next: NextFunction) {
+  async activate(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
+      // La validación de propiedad ya se realizó en el middleware requireConsultationOwnership
+      // Solo el paciente de la consulta puede activarla después del pago
       const { paymentId } = req.body;
       const consultation = await consultationsService.activate(req.params.id, paymentId);
       res.json({
@@ -144,21 +147,8 @@ export class ConsultationsController {
 
   async close(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
-      if (!req.user) {
-        res.status(401).json({ error: 'No autenticado' });
-        return;
-      }
-
-      // Validar que el usuario es el doctor de la consulta
-      const consultation = await consultationsService.getById(req.params.id);
-      const doctorsService = require('../doctors/doctors.service').default;
-      const doctor = await doctorsService.getById(consultation.doctorId);
-      
-      if (doctor.userId !== req.user.id) {
-        res.status(403).json({ error: 'Solo el doctor de la consulta puede cerrarla' });
-        return;
-      }
-
+      // La validación de propiedad ya se realizó en el middleware requireConsultationOwnership
+      // Solo el doctor de la consulta puede cerrarla (validado por requireRole('DOCTOR') + requireConsultationOwnership)
       const closedConsultation = await consultationsService.close(req.params.id);
       res.json({
         success: true,
