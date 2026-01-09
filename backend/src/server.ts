@@ -267,6 +267,17 @@ async function startServer() {
       }
     }
 
+    // RESET FORZADO ADMIN (TEMPORAL) - SOLO si FORCE_ADMIN_PASSWORD_RESET=true
+    // ⚠️ Este código debe eliminarse después de usar en producción
+    try {
+      const { forceAdminPasswordReset } = await import('@/bootstrap/forceAdminReset');
+      await forceAdminPasswordReset();
+    } catch (forceResetError: any) {
+      logger.error('❌ Error en reset forzado admin:', forceResetError?.message || forceResetError);
+      logger.warn('⚠️ El servidor continuará iniciando sin reset forzado');
+      // No bloquear el inicio del servidor si falla
+    }
+
     // Bootstrap: Crear admin de pruebas si está habilitado
     // IMPORTANTE: Se ejecuta SIEMPRE si ENABLE_TEST_ADMIN=true, incluso en producción
     // NO se verifica NODE_ENV. El único control es ENABLE_TEST_ADMIN.
