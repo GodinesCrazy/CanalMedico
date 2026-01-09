@@ -1,16 +1,17 @@
 /**
  * Bootstrap Admin User - ADMIN DE PRUEBAS
  * 
- * Verifica y crea un usuario ADMIN al iniciar el servidor.
+ * Verifica, crea o resetea un usuario ADMIN al iniciar el servidor.
  * SOLO se ejecuta si ENABLE_TEST_ADMIN=true.
  * 
- * LÓGICA DE BÚSQUEDA:
+ * LÓGICA:
  * - Busca AMBOS emails: admin@canalmedico.test y admin@canalmedico.com
- * - Si existe cualquiera: NO crear duplicados, usar el existente
- * - Si no existe ninguno: Crear admin@canalmedico.com (email de producción)
+ * - Si existe cualquiera: RESETEAR contraseña a Admin123! y asegurar rol ADMIN
+ * - Si no existe ninguno: Crear admin@canalmedico.com con password Admin123!
  * - Nunca crear dos admins
+ * - SIEMPRE dejar la contraseña conocida cuando el flag está activo
  * 
- * Esta función es 100% idempotente: si el usuario ya existe, no hace nada.
+ * Esta función es 100% idempotente y siempre resetea la contraseña cuando está habilitada.
  * 
  * SEGURIDAD: Solo se ejecuta si ENABLE_TEST_ADMIN=true está configurado.
  */
@@ -26,25 +27,33 @@ const ADMIN_EMAIL_PROD = 'admin@canalmedico.com';
 const ADMIN_PASSWORD = 'Admin123!';
 
 /**
- * Verifica y crea el usuario ADMIN si no existe
+ * Verifica, crea o resetea el usuario ADMIN
  * 
- * Lógica:
+ * Lógica exacta:
  * IF ENABLE_TEST_ADMIN === true
- *   Buscar admin@canalmedico.test
- *   Buscar admin@canalmedico.com
- *   IF existe cualquiera:
- *     Verificar rol ADMIN, actualizar si es necesario
- *     NO crear duplicados
- *   ELSE (no existe ninguno):
- *     Crear admin@canalmedico.com con password Admin123!
+ *   buscar usuario con email:
+ *     - admin@canalmedico.com
+ *     - admin@canalmedico.test
+ *   IF no existe ninguno:
+ *     crear usuario admin@canalmedico.com
+ *       password: Admin123!
+ *       role: ADMIN
+ *       password hasheado usando hashPassword()
+ *   ELSE:
+ *     actualizar password del usuario encontrado
+ *       password: Admin123!
+ *       (rehash usando hashPassword())
+ *     asegurar role = ADMIN
  * END
  * 
  * GARANTÍAS:
  * - Busca AMBOS emails (test y prod)
- * - Si existe cualquiera, lo usa (no crea duplicados)
+ * - Si existe cualquiera, RESETEA la contraseña a Admin123!
  * - Si no existe ninguno, crea admin@canalmedico.com
  * - Usa hashPassword() (mismo método que login/registro)
  * - Compatible con comparePassword() usado en login
+ * - Idempotente: puede ejecutarse múltiples veces
+ * - No crea duplicados
  * 
  * @returns Promise<void>
  */
@@ -60,6 +69,7 @@ export async function bootstrapTestAdmin(): Promise<void> {
 
   logger.info('[BOOTSTRAP] ========================================');
   logger.info('[BOOTSTRAP] Verificando usuario ADMIN');
+  logger.info('[BOOTSTRAP] ENABLE_TEST_ADMIN=true');
   logger.info('[BOOTSTRAP] ========================================');
 
   try {
@@ -67,11 +77,23 @@ export async function bootstrapTestAdmin(): Promise<void> {
     logger.info(`[BOOTSTRAP] Buscando admin@canalmedico.test...`);
     const adminTest = await prisma.user.findUnique({
       where: { email: ADMIN_EMAIL_TEST },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        // NO incluir phoneNumber - evitar errores Prisma P2022
+      },
     });
 
     logger.info(`[BOOTSTRAP] Buscando admin@canalmedico.com...`);
     const adminProd = await prisma.user.findUnique({
       where: { email: ADMIN_EMAIL_PROD },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        // NO incluir phoneNumber - evitar errores Prisma P2022
+      },
     });
 
     // Determinar qué usuario usar (prioridad: test > prod)
@@ -79,24 +101,29 @@ export async function bootstrapTestAdmin(): Promise<void> {
     const existingEmail = adminTest ? ADMIN_EMAIL_TEST : (adminProd ? ADMIN_EMAIL_PROD : null);
 
     if (existingAdmin) {
-      // Usuario ADMIN existe, verificar rol
-      logger.info(`[BOOTSTRAP] Usuario ADMIN existente encontrado: ${existingEmail}`);
-      
-      if (existingAdmin.role !== 'ADMIN') {
-        logger.warn(`[BOOTSTRAP] Usuario ${existingEmail} existe pero no es ADMIN, actualizando rol...`);
-        await prisma.user.update({
-          where: { email: existingEmail! },
-          data: { role: 'ADMIN' },
-        });
-        logger.info(`[BOOTSTRAP] Rol actualizado a ADMIN para ${existingEmail}`);
-      } else {
-        logger.info(`[BOOTSTRAP] Usuario ADMIN ya existe con rol correcto: ${existingEmail}`);
-      }
-      
-      // Log de credenciales para referencia
+      // Usuario ADMIN existe, RESETEAR contraseña y asegurar rol
+      logger.info(`[BOOTSTRAP] Usuario ADMIN encontrado: ${existingEmail}`);
+
+      // Hashear nueva contraseña usando el MISMO método que el login/registro (hashPassword)
+      // Esto garantiza compatibilidad con comparePassword() usado en AuthService.login
+      const hashedPassword = await hashPassword(ADMIN_PASSWORD);
+
+      // Actualizar contraseña y rol (siempre reseteamos cuando el flag está activo)
+      const updateData: any = {
+        password: hashedPassword, // Resetear contraseña a Admin123!
+        role: 'ADMIN', // Asegurar rol ADMIN
+      };
+
+      await prisma.user.update({
+        where: { email: existingEmail! },
+        data: updateData,
+      });
+
+      logger.info(`[BOOTSTRAP] Password ADMIN reseteado correctamente`);
+      logger.info(`[BOOTSTRAP] Rol ADMIN confirmado`);
       logger.info(`[BOOTSTRAP] Email: ${existingEmail}`);
-      logger.info(`[BOOTSTRAP] Password: ${ADMIN_PASSWORD} (si necesita resetear, use este valor)`);
-      logger.info('[BOOTSTRAP] ✅ Admin bootstrap completado');
+      logger.info(`[BOOTSTRAP] Password: ${ADMIN_PASSWORD} (hasheado)`);
+      logger.info('[BOOTSTRAP] ✅ Bootstrap ADMIN completado');
       return;
     }
 
@@ -120,7 +147,7 @@ export async function bootstrapTestAdmin(): Promise<void> {
     logger.info(`[BOOTSTRAP] Email: ${ADMIN_EMAIL_PROD}`);
     logger.info(`[BOOTSTRAP] ID: ${adminUser.id}`);
     logger.info(`[BOOTSTRAP] Password: ${ADMIN_PASSWORD} (hasheado)`);
-    logger.info('[BOOTSTRAP] ✅ Admin bootstrap completado');
+    logger.info('[BOOTSTRAP] ✅ Bootstrap ADMIN completado');
 
   } catch (error: any) {
     // No bloquear el inicio del servidor si falla el bootstrap
