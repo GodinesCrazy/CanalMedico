@@ -166,11 +166,19 @@ export class AuthService {
 
   async login(data: LoginDto) {
     try {
-      // Buscar usuario SIN relaciones primero para determinar el rol
-      // Esto evita errores Prisma si la tabla doctors está incompleta
+      // Buscar usuario con SELECT explícito para evitar errores Prisma P2022
+      // NO incluir phoneNumber ni otros campos opcionales que pueden no existir en la BD
+      // Solo campos esenciales: id, email, password, role
       const user = await prisma.user.findUnique({
         where: { email: data.email },
-        // NO incluir relaciones todavía para evitar errores Prisma
+        select: {
+          id: true,
+          email: true,
+          password: true,
+          role: true,
+          // NO incluir phoneNumber - solo se usa en OTP (módulo separado)
+          // NO incluir createdAt ni otras relaciones aquí
+        },
       });
 
       if (!user) {
@@ -184,13 +192,14 @@ export class AuthService {
         throw createError('Email o contraseña incorrectos', 401);
       }
 
-      // Cargar relaciones SOLO si es necesario (ADMIN no necesita doctor)
+      // Cargar relaciones SOLO si es necesario (ADMIN no necesita doctor ni patient)
       let profile = null;
       if (user.role === 'DOCTOR') {
         // Solo cargar doctor si el usuario es DOCTOR
         try {
           const doctor = await prisma.doctor.findUnique({
             where: { userId: user.id },
+            // NO usar select aquí para evitar problemas, pero capturar errores
           });
           profile = doctor;
         } catch (error) {
@@ -202,13 +211,14 @@ export class AuthService {
         try {
           const patient = await prisma.patient.findUnique({
             where: { userId: user.id },
+            // NO usar select aquí para evitar problemas, pero capturar errores
           });
           profile = patient;
         } catch (error) {
           logger.warn(`No se pudo cargar patient para usuario ${user.id}:`, error);
         }
       }
-      // ADMIN no tiene profile (no necesita cargar relaciones)
+      // ADMIN no tiene profile (no necesita cargar relaciones ni phoneNumber)
 
       // Generar tokens
       const tokens = generateTokenPair(user.id, user.email, user.role as any);
