@@ -106,21 +106,43 @@ export async function bootstrapTestAdmin(): Promise<void> {
 
       // Hashear nueva contraseña usando el MISMO método que el login/registro (hashPassword)
       // Esto garantiza compatibilidad con comparePassword() usado en AuthService.login
+      logger.info(`[BOOTSTRAP] Hasheando nueva contraseña...`);
       const hashedPassword = await hashPassword(ADMIN_PASSWORD);
+      logger.info(`[BOOTSTRAP] Contraseña hasheada correctamente`);
 
       // Actualizar contraseña y rol (siempre reseteamos cuando el flag está activo)
-      const updateData: any = {
-        password: hashedPassword, // Resetear contraseña a Admin123!
-        role: 'ADMIN', // Asegurar rol ADMIN
-      };
+      // IMPORTANTE: Solo usar campos que EXISTEN en la tabla users
+      // NO incluir phoneNumber ni ningún otro campo que no existe
+      logger.info(`[BOOTSTRAP] Ejecutando prisma.user.update()...`);
+      try {
+        const updatedUser = await prisma.user.update({
+          where: { email: existingEmail! },
+          data: {
+            password: hashedPassword, // Resetear contraseña a Admin123!
+            role: 'ADMIN', // Asegurar rol ADMIN
+            // NO incluir phoneNumber ni ningún otro campo opcional
+          },
+          select: {
+            id: true,
+            email: true,
+            role: true,
+            // Solo campos esenciales para confirmar
+          },
+        });
 
-      await prisma.user.update({
-        where: { email: existingEmail! },
-        data: updateData,
-      });
-
-      logger.info(`[BOOTSTRAP] Password ADMIN reseteado correctamente`);
-      logger.info(`[BOOTSTRAP] Rol ADMIN confirmado`);
+        logger.info(`[BOOTSTRAP] ✅ prisma.user.update() completado exitosamente`);
+        logger.info(`[BOOTSTRAP] Usuario actualizado - ID: ${updatedUser.id}, Email: ${updatedUser.email}, Rol: ${updatedUser.role}`);
+        logger.info(`[BOOTSTRAP] Password ADMIN reseteado correctamente`);
+        logger.info(`[BOOTSTRAP] Rol ADMIN confirmado`);
+      } catch (updateError: any) {
+        logger.error(`[BOOTSTRAP] ❌ ERROR en prisma.user.update():`, updateError.message || updateError);
+        logger.error(`[BOOTSTRAP] Código de error:`, updateError.code || 'DESCONOCIDO');
+        if (updateError.code === 'P2022') {
+          logger.error(`[BOOTSTRAP] ERROR PRISMA P2022: Columna no existe en la base de datos`);
+        }
+        logger.error(`[BOOTSTRAP] Stack completo:`, updateError.stack || 'No disponible');
+        throw updateError; // Re-lanzar para que se capture en el catch externo
+      }
       logger.info(`[BOOTSTRAP] Email: ${existingEmail}`);
       logger.info(`[BOOTSTRAP] Password: ${ADMIN_PASSWORD} (hasheado)`);
       logger.info('[BOOTSTRAP] ✅ Bootstrap ADMIN completado');
