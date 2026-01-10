@@ -205,7 +205,9 @@ async function runMigrations() {
       }
 
       try {
-        const pushOutput = execSync('npx prisma db push --accept-data-loss --skip-generate', {
+        // Usar db push SIN --skip-generate para que Prisma regenere el cliente automáticamente
+        // Esto asegura que los nuevos campos (price, startedAt, endedAt) estén disponibles
+        const pushOutput = execSync('npx prisma db push --accept-data-loss', {
           stdio: 'pipe',
           env: process.env,
           encoding: 'utf-8',
@@ -214,6 +216,16 @@ async function runMigrations() {
         if (pushOutput && pushOutput.trim()) {
           logger.info('Output:', pushOutput.trim());
         }
+        
+        // Regenerar Prisma Client explícitamente para asegurar que incluye los nuevos campos
+        // (aunque db push sin --skip-generate ya lo hace, es bueno ser explícito)
+        logger.info('🔄 Regenerando Prisma Client...');
+        execSync('npx prisma generate', {
+          stdio: 'pipe',
+          env: process.env,
+          encoding: 'utf-8',
+        });
+        logger.info('✅ Prisma Client regenerado correctamente');
       } catch (pushError: any) {
         logger.error('❌ Error al sincronizar el schema:');
         if (pushError.stdout) {
