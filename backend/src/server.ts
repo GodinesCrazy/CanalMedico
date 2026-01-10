@@ -5,10 +5,10 @@ import compression from 'compression';
 import morgan from 'morgan';
 import { createServer } from 'http';
 import path from 'path';
+import fs from 'fs';
+import { execSync } from 'child_process';
 import swaggerUi from 'swagger-ui-express';
 import swaggerJsdoc from 'swagger-jsdoc';
-
-import { execSync } from 'child_process';
 
 import env from '@/config/env';
 import logger from '@/config/logger';
@@ -37,17 +37,82 @@ const app: Application = express();
 const httpServer = createServer(app);
 
 // ============================================================================
+// ESTADO GLOBAL DE SALUD DEL SISTEMA (para /health endpoint)
+// ============================================================================
+const systemHealth = {
+  status: 'initializing' as 'ok' | 'degraded' | 'initializing',
+  uptime: 0,
+  initialized: false,
+  dbConnected: false,
+  migrationsRun: false,
+  startTime: Date.now(),
+};
+
+// Función para obtener información de deploy (síncrona, sin dependencias pesadas)
+function getDeployInfoSync() {
+  try {
+    let commitHash = process.env.RAILWAY_GIT_COMMIT_SHA || 
+                     process.env.RAILWAY_GIT_COMMIT ||
+                     process.env.GIT_COMMIT_SHA ||
+                     process.env.VERCEL_GIT_COMMIT_SHA ||
+                     process.env.CI_COMMIT_SHA ||
+                     'unknown';
+    
+    // Si no está en ENV, intentar leer de git
+    if (commitHash === 'unknown') {
+      try {
+        commitHash = execSync('git rev-parse HEAD', { encoding: 'utf-8', stdio: 'pipe' }).trim().substring(0, 7);
+      } catch {
+        // Ignorar error
+      }
+    }
+    
+    let version = '1.0.1';
+    try {
+      const packagePath = path.join(__dirname, '../../package.json');
+      if (fs.existsSync(packagePath)) {
+        const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf-8'));
+        version = packageJson.version || '1.0.1';
+      }
+    } catch {
+      // Ignorar error
+    }
+    
+    return { version, commitHash: commitHash.length > 7 ? commitHash.substring(0, 7) : commitHash };
+  } catch {
+    return { version: '1.0.1', commitHash: 'unknown' };
+  }
+}
+
+// ============================================================================
 // CRÍTICO RAILWAY: /health debe estar ANTES de middlewares pesados
 // ============================================================================
 // Health check - DEBE responder instantáneamente incluso si DB está caída
 // Railway hace healthcheck ANTES de que el servidor termine de iniciar
 app.get('/health', (_req, res) => {
+  const deployInfo = getDeployInfoSync();
+  const uptime = Math.floor((Date.now() - systemHealth.startTime) / 1000);
+  
+  systemHealth.uptime = uptime;
+  
+  // Siempre responder 200, pero indicar si está degraded
   res.status(200).json({
-    status: 'ok',
+    ok: true,
+    status: systemHealth.status === 'initializing' ? 'ok' : systemHealth.status,
     timestamp: new Date().toISOString(),
+    uptime: `${uptime}s`,
     environment: env.NODE_ENV,
+    version: deployInfo.version,
+    commit: deployInfo.commitHash,
+    services: {
+      database: systemHealth.dbConnected ? 'connected' : 'disconnected',
+      migrations: systemHealth.migrationsRun ? 'completed' : 'pending',
+    },
   });
 });
+
+// Log inmediato para Railway logs (usar console.log además de logger)
+console.log('[BOOT] Health route mounted at /health');
 logger.info('[BOOT] Health route mounted at /health');
 
 // Swagger configuration
@@ -265,6 +330,10 @@ async function runMigrations() {
 // CRÍTICO RAILWAY: listen() DEBE ejecutarse ANTES de lógica pesada para que /health responda
 async function startServer() {
   try {
+    // Logs inmediatos en console.log para Railway logs
+    console.log('='.repeat(60));
+    console.log('[BOOT] Starting CanalMedico backend...');
+    console.log(`[BOOT] NODE_ENV: ${env.NODE_ENV}`);
     logger.info('='.repeat(60));
     logger.info('[BOOT] Starting CanalMedico backend...');
     logger.info(`[BOOT] NODE_ENV: ${env.NODE_ENV}`);
@@ -274,13 +343,24 @@ async function startServer() {
     const port = process.env.PORT ? parseInt(process.env.PORT, 10) : (env.PORT || 3000);
     
     if (!port || isNaN(port) || port <= 0) {
+      const errorMsg = `Invalid PORT: ${port}. PORT must be a positive number.`;
+      console.error(`[BOOT] ${errorMsg}`);
       logger.error(`[BOOT] Invalid PORT: ${port}`);
-      throw new Error(`Invalid PORT: ${port}. PORT must be a positive number.`);
+      throw new Error(errorMsg);
     }
     
+    const deployInfo = getDeployInfoSync();
+    console.log(`[BOOT] PORT env detected: ${process.env.PORT || 'not set'}`);
+    console.log(`[BOOT] Using port: ${port}`);
+    console.log(`[BOOT] Version: ${deployInfo.version}`);
+    console.log(`[BOOT] Commit: ${deployInfo.commitHash}`);
+    console.log(`[BOOT] Health route mounted at /health`);
     logger.info(`[BOOT] PORT env detected: ${process.env.PORT || 'not set'}`);
     logger.info(`[BOOT] Using port: ${port}`);
+    logger.info(`[BOOT] Version: ${deployInfo.version}`);
+    logger.info(`[BOOT] Commit: ${deployInfo.commitHash}`);
     logger.info(`[BOOT] Health route mounted at /health`);
+    console.log('='.repeat(60));
     logger.info('='.repeat(60));
 
     // ============================================================================
@@ -290,35 +370,52 @@ async function startServer() {
     
     return new Promise<void>((resolve, reject) => {
       httpServer.listen(port, '0.0.0.0', () => {
+        // CRÍTICO: Estos logs DEBEN aparecer inmediatamente para Railway
+        console.log('='.repeat(60));
+        console.log(`[BOOT] Server listening on 0.0.0.0:${port}`);
+        console.log(`[BOOT] Health check available at http://0.0.0.0:${port}/health`);
+        console.log(`[BOOT] Uptime: 0s`);
+        console.log('='.repeat(60));
         logger.info('='.repeat(60));
         logger.info(`[BOOT] Server listening on 0.0.0.0:${port}`);
         logger.info(`[BOOT] Health check available at http://0.0.0.0:${port}/health`);
         logger.info('='.repeat(60));
         
+        // Marcar sistema como "ok" (aunque no esté completamente inicializado)
+        systemHealth.status = 'ok';
+        systemHealth.initialized = true;
+        
         // Ahora que el servidor está escuchando, ejecutar lógica pesada en background
         // NO bloquea el healthcheck - Railway ya puede hacer healthcheck
         initializeBackend()
           .then(() => {
+            console.log('[BOOT] Backend initialization completed');
             logger.info('[BOOT] Backend initialization completed');
             resolve();
           })
-          .catch((error) => {
+          .catch((error: any) => {
+            systemHealth.status = 'degraded';
+            console.error('[BOOT] Backend initialization failed (running in degraded mode):', error?.message || error);
             logger.error('[BOOT] Backend initialization failed (running in degraded mode):', error?.message || error);
             // No rechazamos la promesa - servidor sigue arriba en modo degraded
+            console.warn('[BOOT] Server is running in DEGRADED mode - /health still works');
             logger.warn('[BOOT] Server is running in DEGRADED mode - /health still works');
             resolve();
           });
       });
       
       httpServer.on('error', (error: any) => {
+        console.error('[BOOT] Server listen error:', error);
         logger.error('[BOOT] Server listen error:', error);
         if (error.code === 'EADDRINUSE') {
+          console.error(`[BOOT] Port ${port} is already in use`);
           logger.error(`[BOOT] Port ${port} is already in use`);
         }
         reject(error);
       });
     });
   } catch (error: any) {
+    console.error('[BOOT] Fatal error starting server:', error?.message || error);
     logger.error('[BOOT] Fatal error starting server:', error?.message || error);
     // No salimos inmediatamente para permitir logs
     setTimeout(() => process.exit(1), 1000);
@@ -348,11 +445,18 @@ async function initializeBackend() {
     logger.info('='.repeat(60));
 
     // Ejecutar migraciones (NO bloqueante para /health)
+    console.log('[BOOT] Starting database migrations...');
     logger.info('[BOOT] Starting database migrations...');
     try {
       await runMigrations();
+      systemHealth.migrationsRun = true;
+      console.log('[BOOT] Database migrations completed');
       logger.info('[BOOT] Database migrations completed');
     } catch (migrateError: any) {
+      systemHealth.migrationsRun = false;
+      systemHealth.status = 'degraded';
+      console.error('[BOOT] Database migrations failed (degraded mode):', migrateError?.message || migrateError);
+      console.warn('[BOOT] Server continues without migrations - /health still works');
       logger.error('[BOOT] Database migrations failed (degraded mode):', migrateError?.message || migrateError);
       logger.warn('[BOOT] Server continues without migrations - /health still works');
       // No throw - continuar en modo degraded
@@ -364,11 +468,18 @@ async function initializeBackend() {
     }
 
     // Conectar a la base de datos (NO bloqueante para /health)
+    console.log('[BOOT] Connecting to database...');
     logger.info('[BOOT] Connecting to database...');
     try {
       await prisma.$connect();
+      systemHealth.dbConnected = true;
+      console.log('[BOOT] Database connection established');
       logger.info('[BOOT] Database connection established');
     } catch (dbError: any) {
+      systemHealth.dbConnected = false;
+      systemHealth.status = 'degraded';
+      console.error('[BOOT] Database connection failed (degraded mode):', dbError?.message || dbError);
+      console.warn('[BOOT] Server continues without database - /health still works');
       logger.error('[BOOT] Database connection failed (degraded mode):', dbError?.message || dbError);
       logger.warn('[BOOT] Server continues without database - /health still works');
       logger.warn('[BOOT] API endpoints may not work correctly without database');
