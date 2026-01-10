@@ -21,6 +21,9 @@ COPY . .
 # Compilar TypeScript
 RUN npm run build
 
+# Guardar build timestamp
+RUN echo "Build completed at $(date -Iseconds)" > .build-timestamp || echo "Build completed at $(date)" > .build-timestamp
+
 # Crear directorio para logs
 RUN mkdir -p logs
 

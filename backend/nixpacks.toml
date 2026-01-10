@@ -10,7 +10,8 @@ cmds = ["npm ci"]
 [phases.build]
 cmds = [
   "npx prisma generate",
-  "npm run build"
+  "npm run build",
+  "echo 'Build completed at' $(date -Iseconds) > .build-timestamp || echo 'Build completed at' $(date) > .build-timestamp"
 ]
 
 [start]

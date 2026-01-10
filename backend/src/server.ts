@@ -162,6 +162,11 @@ app.use('/api/prescriptions', snreRoutes);
 import adminRoutes from './modules/admin/admin.routes';
 app.use('/api/admin', adminRoutes);
 
+// Importar rutas de deploy (información de deploy)
+import deployRoutes from './modules/deploy/deploy.routes';
+app.use('/api/deploy', deployRoutes);
+logger.info('[DEPLOY] Deploy routes mounted at /api/deploy');
+
 // Importar rutas de verificación de médicos
 import doctorVerificationRoutes, { doctorVerificationAdminRoutes } from './modules/doctor-verification/doctor-verification.routes';
 app.use('/api/medicos', doctorVerificationRoutes);
@@ -332,27 +337,17 @@ async function startServer() {
     }
 
     // Log de versión y commit hash para validar deploy
-    const commitHash = process.env.RAILWAY_GIT_COMMIT_SHA || process.env.GIT_COMMIT_SHA || process.env.VERCEL_GIT_COMMIT_SHA || process.env.RAILWAY_GIT_COMMIT || 'unknown';
-    let packageVersion = '1.0.1';
-    try {
-      // Intentar leer package.json desde dist/../package.json (relativo a dist/server.js)
-      const fs = require('fs');
-      const path = require('path');
-      const packagePath = path.join(__dirname, '../../package.json');
-      if (fs.existsSync(packagePath)) {
-        const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf-8'));
-        packageVersion = packageJson.version || '1.0.1';
-      }
-    } catch (error) {
-      // Si falla, usar versión por defecto
-      logger.warn('⚠️ No se pudo leer versión de package.json, usando por defecto');
-    }
+    const { getDeployInfo } = await import('./modules/deploy/deploy.service');
+    const deployInfo = getDeployInfo();
     
     logger.info('='.repeat(60));
     logger.info('[DEPLOY] CanalMedico Backend');
-    logger.info(`[DEPLOY] Version: ${packageVersion}`);
-    logger.info(`[DEPLOY] Commit: ${commitHash}`);
-    logger.info(`[DEPLOY] Environment: ${env.NODE_ENV}`);
+    logger.info(`[DEPLOY] Version: ${deployInfo.version}`);
+    logger.info(`[DEPLOY] Commit: ${deployInfo.commitHash}`);
+    logger.info(`[DEPLOY] Environment: ${deployInfo.environment}`);
+    logger.info(`[DEPLOY] Node Version: ${deployInfo.nodeVersion}`);
+    logger.info(`[DEPLOY] Build Timestamp: ${deployInfo.buildTimestamp}`);
+    logger.info(`[DEPLOY] Deploy Timestamp: ${deployInfo.deployTimestamp}`);
     logger.info(`[DEPLOY] API URL: ${env.API_URL}`);
     logger.info('='.repeat(60));
 
@@ -361,7 +356,7 @@ async function startServer() {
       logger.info(`🚀 Servidor corriendo en puerto ${port}`);
       logger.info(`📚 Documentación API disponible en ${env.API_URL}/api-docs`);
       logger.info(`🌍 Ambiente: ${env.NODE_ENV}`);
-      logger.info(`[DEPLOY] Backend running - commit=${commitHash} version=${packageVersion}`);
+      logger.info(`[DEPLOY] Backend running - commit=${deployInfo.commitHash} version=${deployInfo.version}`);
     });
   } catch (error) {
     logger.error('❌ Error fatal al iniciar el servidor:', error);
