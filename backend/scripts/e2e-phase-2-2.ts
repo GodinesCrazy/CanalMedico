@@ -92,6 +92,20 @@ function log(step: string, message: string, type: 'info' | 'success' | 'error' |
   console.log(`[${step}] ${prefix} ${message}`);
 }
 
+// Inicializar directorio docs (CRÍTICO para evitar ENOENT)
+function ensureDocsDir(): void {
+  try {
+    if (!fs.existsSync(DOCS_DIR)) {
+      fs.mkdirSync(DOCS_DIR, { recursive: true });
+      log('INIT', `Directorio docs creado: ${DOCS_DIR}`, 'success');
+    }
+  } catch (error: any) {
+    console.error(`❌ Error crítico al crear directorio docs: ${error.message}`);
+    console.error(`❌ No se pueden generar reportes. Abortando.`);
+    process.exit(1);
+  }
+}
+
 function redactPassword(password: string): string {
   if (!password || password.length < 4) return '***';
   return `${password.substring(0, 2)}${'*'.repeat(password.length - 4)}${password.substring(password.length - 2)}`;
@@ -164,7 +178,8 @@ async function seedTestData(): Promise<boolean> {
 
     if (!DOCTOR_EMAIL || !DOCTOR_PASSWORD || !PATIENT_EMAIL || !PATIENT_PASSWORD) {
       log('PASO 2', 'Faltan credenciales: DOCTOR_EMAIL, DOCTOR_PASSWORD, PATIENT_EMAIL, PATIENT_PASSWORD', 'error');
-      results.blockers.push('Faltan credenciales de prueba en variables de entorno');
+      results.blockers.push('Faltan credenciales de prueba en variables de entorno. Configure ENV o ENABLE_TEST_DATA=true');
+      // NO retornar false aquí - continuar para generar reportes
       return false;
     }
 
@@ -188,9 +203,34 @@ async function seedTestData(): Promise<boolean> {
     method: 'POST',
   });
 
+  // FALLBACK: Si seed falla (404, 500, etc.), intentar modo manual
   if (seedResponse.status !== 200 || !seedResponse.data.success) {
-    log('2.1', `Seed test data falló: ${seedResponse.status}`, 'error');
-    results.blockers.push(`Seed test data falló con status ${seedResponse.status}`);
+    log('2.1', `Seed test data falló: ${seedResponse.status}`, 'warn');
+    log('2.1', `Respuesta: ${JSON.stringify(seedResponse.data)}`, 'warn');
+    log('2.2', 'Intentando fallback a modo manual (ENV)...', 'warn');
+    console.log('');
+
+    // Fallback: Intentar usar credenciales de ENV
+    if (DOCTOR_EMAIL && DOCTOR_PASSWORD && PATIENT_EMAIL && PATIENT_PASSWORD) {
+      log('2.2', 'Credenciales de ENV encontradas, usando fallback', 'info');
+      credentials.doctorEmail = DOCTOR_EMAIL;
+      credentials.doctorPassword = DOCTOR_PASSWORD;
+      credentials.doctorId = DOCTOR_ID;
+      credentials.patientEmail = PATIENT_EMAIL;
+      credentials.patientPassword = PATIENT_PASSWORD;
+      credentials.patientId = PATIENT_ID;
+
+      results.blockers.push(`Seed test data falló (${seedResponse.status}), usando credenciales de ENV como fallback`);
+      log('2.2', 'Fallback exitoso: Credenciales cargadas desde ENV', 'success');
+      console.log('');
+      return true;
+    }
+
+    // Si no hay credenciales de ENV, marcar como bloqueante pero NO abortar
+    log('2.2', 'No hay credenciales de ENV disponibles', 'error');
+    results.blockers.push(`Seed test data falló (${seedResponse.status}) y no hay credenciales de ENV como fallback. Configure ENABLE_TEST_DATA=true y verifique que /api/seed/test-data esté disponible, o proporcione DOCTOR_EMAIL, DOCTOR_PASSWORD, PATIENT_EMAIL, PATIENT_PASSWORD`);
+    // NO retornar false aquí - continuar para generar reportes con bloqueante
+    results.seedData = false;
     return false;
   }
 
@@ -210,7 +250,13 @@ async function seedTestData(): Promise<boolean> {
   console.log('');
 
   // Guardar credenciales (redactadas) en docs
-  const credsContent = `# Credenciales de Prueba - FASE 2.2 E2E (AUTOGENERADO)
+  try {
+    // Asegurar que el directorio existe (por si acaso)
+    if (!fs.existsSync(DOCS_DIR)) {
+      fs.mkdirSync(DOCS_DIR, { recursive: true });
+    }
+
+    const credsContent = `# Credenciales de Prueba - FASE 2.2 E2E (AUTOGENERADO)
 
 **Fecha:** ${new Date().toISOString()}
 **Generado por:** Script E2E automatizado
@@ -239,11 +285,12 @@ async function seedTestData(): Promise<boolean> {
 **⚠️ Este archivo fue generado automáticamente. No editar manualmente.**
 `;
 
-  if (!fs.existsSync(DOCS_DIR)) {
-    fs.mkdirSync(DOCS_DIR, { recursive: true });
+    fs.writeFileSync(CREDENTIALS_FILE, credsContent, 'utf-8');
+    log('2.2', `Credenciales guardadas en ${CREDENTIALS_FILE}`, 'success');
+  } catch (error: any) {
+    log('2.2', `Error al guardar credenciales: ${error.message}`, 'warn');
+    // No abortar - continuar
   }
-  fs.writeFileSync(CREDENTIALS_FILE, credsContent, 'utf-8');
-  log('2.2', `Credenciales guardadas en ${CREDENTIALS_FILE}`, 'success');
   console.log('');
 
   results.seedData = true;
@@ -852,8 +899,12 @@ ${results.scenarios
 **⚠️ Este reporte fue generado automáticamente. No editar manualmente.**
 `;
 
-  fs.writeFileSync(REPORT_E2E_FILE, e2eReport, 'utf-8');
-  log('5.1', `Reporte E2E guardado en ${REPORT_E2E_FILE}`, 'success');
+  try {
+    fs.writeFileSync(REPORT_E2E_FILE, e2eReport, 'utf-8');
+    log('5.1', `Reporte E2E guardado en ${REPORT_E2E_FILE}`, 'success');
+  } catch (error: any) {
+    log('5.1', `Error al guardar reporte E2E: ${error.message}`, 'error');
+  }
 
   // Reporte Tests Negativos
   const negativeReport = `# FASE 2.2 - Tests Negativos (AUTOGENERADO)
@@ -900,8 +951,12 @@ ${results.negativeTests
 **⚠️ Este reporte fue generado automáticamente. No editar manualmente.**
 `;
 
-  fs.writeFileSync(REPORT_NEGATIVE_FILE, negativeReport, 'utf-8');
-  log('5.2', `Reporte Tests Negativos guardado en ${REPORT_NEGATIVE_FILE}`, 'success');
+  try {
+    fs.writeFileSync(REPORT_NEGATIVE_FILE, negativeReport, 'utf-8');
+    log('5.2', `Reporte Tests Negativos guardado en ${REPORT_NEGATIVE_FILE}`, 'success');
+  } catch (error: any) {
+    log('5.2', `Error al guardar reporte tests negativos: ${error.message}`, 'error');
+  }
 
   // Hallazgos y Plan
   const hallazgosContent = `# FASE 2.2 - Hallazgos y Plan de Fijos (AUTOGENERADO)
@@ -949,8 +1004,12 @@ ${results.scenarios
 **⚠️ Este reporte fue generado automáticamente. No editar manualmente.**
 `;
 
-  fs.writeFileSync(HALLAZGOS_FILE, hallazgosContent, 'utf-8');
-  log('5.3', `Hallazgos y Plan guardado en ${HALLAZGOS_FILE}`, 'success');
+  try {
+    fs.writeFileSync(HALLAZGOS_FILE, hallazgosContent, 'utf-8');
+    log('5.3', `Hallazgos y Plan guardado en ${HALLAZGOS_FILE}`, 'success');
+  } catch (error: any) {
+    log('5.3', `Error al guardar hallazgos: ${error.message}`, 'error');
+  }
 
   // GO/NO-GO - Calcular veredicto antes de generar reporte GO/NO-GO
   const allScenariosPassed = results.scenarios.length > 0 && results.scenarios.every((s) => s.passed);
@@ -1019,8 +1078,12 @@ ${results.verdict === 'GO'
 **⚠️ Este reporte fue generado automáticamente. No editar manualmente.**
 `;
 
-  fs.writeFileSync(GO_NO_GO_FILE, goNoGoContent, 'utf-8');
-  log('5.4', `Veredicto GO/NO-GO guardado en ${GO_NO_GO_FILE}`, 'success');
+  try {
+    fs.writeFileSync(GO_NO_GO_FILE, goNoGoContent, 'utf-8');
+    log('5.4', `Veredicto GO/NO-GO guardado en ${GO_NO_GO_FILE}`, 'success');
+  } catch (error: any) {
+    log('5.4', `Error al guardar veredicto GO/NO-GO: ${error.message}`, 'error');
+  }
   console.log('');
 }
 
@@ -1057,6 +1120,9 @@ async function main() {
   console.log('========================================');
   console.log('');
 
+  // INICIALIZACIÓN: Crear directorio docs antes de cualquier operación (CRÍTICO)
+  ensureDocsDir();
+
   try {
     // PASO 1: Validación Inicial
     if (!(await validateInitial())) {
@@ -1070,16 +1136,28 @@ async function main() {
       process.exit(1);
     }
 
-    // PASO 2: Seed Test Data
-    if (!(await seedTestData())) {
-      results.verdict = 'NO-GO';
-      generateReports();
-      commitAndPush();
-      console.log('');
-      console.log('========================================');
-      console.log('❌ NO-GO - Seed Test Data Falló');
-      console.log('========================================');
-      process.exit(1);
+    // PASO 2: Seed Test Data (con fallback robusto)
+    const seedSuccess = await seedTestData();
+    if (!seedSuccess) {
+      // Seed falló, verificar si tenemos credenciales de fallback
+      if (!credentials.doctorEmail || !credentials.doctorPassword || !credentials.patientEmail || !credentials.patientPassword) {
+        log('PASO 2', 'Seed falló y no hay credenciales de fallback disponibles', 'error');
+        results.verdict = 'NO-GO';
+        generateReports(); // Generar reportes con bloqueante
+        commitAndPush();
+        console.log('');
+        console.log('========================================');
+        console.log('❌ NO-GO - Seed Test Data Falló y No Hay Credenciales');
+        console.log('========================================');
+        console.log('');
+        console.log('Solución: Configure ENABLE_TEST_DATA=true en Railway o proporcione:');
+        console.log('  DOCTOR_EMAIL, DOCTOR_PASSWORD, PATIENT_EMAIL, PATIENT_PASSWORD');
+        console.log('========================================');
+        process.exit(1);
+      } else {
+        log('PASO 2', 'Seed falló pero credenciales de fallback disponibles, continuando...', 'success');
+        console.log('');
+      }
     }
 
     // PASO 3: E2E Core
