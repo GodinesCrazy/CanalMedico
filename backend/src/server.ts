@@ -331,11 +331,37 @@ async function startServer() {
       // No bloqueamos el inicio del servidor si falla el job, pero lo registramos
     }
 
+    // Log de versión y commit hash para validar deploy
+    const commitHash = process.env.RAILWAY_GIT_COMMIT_SHA || process.env.GIT_COMMIT_SHA || process.env.VERCEL_GIT_COMMIT_SHA || process.env.RAILWAY_GIT_COMMIT || 'unknown';
+    let packageVersion = '1.0.1';
+    try {
+      // Intentar leer package.json desde dist/../package.json (relativo a dist/server.js)
+      const fs = require('fs');
+      const path = require('path');
+      const packagePath = path.join(__dirname, '../../package.json');
+      if (fs.existsSync(packagePath)) {
+        const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf-8'));
+        packageVersion = packageJson.version || '1.0.1';
+      }
+    } catch (error) {
+      // Si falla, usar versión por defecto
+      logger.warn('⚠️ No se pudo leer versión de package.json, usando por defecto');
+    }
+    
+    logger.info('='.repeat(60));
+    logger.info('[DEPLOY] CanalMedico Backend');
+    logger.info(`[DEPLOY] Version: ${packageVersion}`);
+    logger.info(`[DEPLOY] Commit: ${commitHash}`);
+    logger.info(`[DEPLOY] Environment: ${env.NODE_ENV}`);
+    logger.info(`[DEPLOY] API URL: ${env.API_URL}`);
+    logger.info('='.repeat(60));
+
     // Iniciar servidor HTTP
     httpServer.listen(port, '0.0.0.0', () => {
       logger.info(`🚀 Servidor corriendo en puerto ${port}`);
       logger.info(`📚 Documentación API disponible en ${env.API_URL}/api-docs`);
       logger.info(`🌍 Ambiente: ${env.NODE_ENV}`);
+      logger.info(`[DEPLOY] Backend running - commit=${commitHash} version=${packageVersion}`);
     });
   } catch (error) {
     logger.error('❌ Error fatal al iniciar el servidor:', error);
