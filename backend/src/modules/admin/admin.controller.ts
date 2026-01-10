@@ -28,6 +28,7 @@ export class AdminController {
   /**
    * GET /api/admin/consultations
    * Obtener todas las consultas (solo ADMIN)
+   * Read-only: ADMIN no modifica estado clínico
    */
   async getAllConsultations(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
@@ -37,8 +38,9 @@ export class AdminController {
 
       const page = req.query.page ? Number(req.query.page) : undefined;
       const limit = req.query.limit ? Number(req.query.limit) : undefined;
+      const status = req.query.status as string | undefined;
 
-      const result = await adminService.getAllConsultations(page, limit);
+      const result = await adminService.getAllConsultations(page, limit, status);
 
       res.json({
         success: true,

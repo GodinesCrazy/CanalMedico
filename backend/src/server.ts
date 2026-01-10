@@ -129,6 +129,8 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, { explorer: t
 app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/doctors', doctorsRoutes);
+import doctorRoutes from './modules/doctor/doctor.routes';
+app.use('/api/doctor', doctorRoutes);
 app.use('/api/patients', patientsRoutes);
 app.use('/api/consultations', consultationsRoutes);
 app.use('/api/messages', messagesRoutes);

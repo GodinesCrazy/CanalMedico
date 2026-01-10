@@ -113,16 +113,35 @@ export class AdminService {
   /**
    * Obtener todas las consultas (para ADMIN)
    */
-  async getAllConsultations(page?: number, limit?: number) {
+  async getAllConsultations(page?: number, limit?: number, status?: string) {
     try {
       const skip = page && limit ? (page - 1) * limit : undefined;
       const take = limit;
 
+      const where: any = {};
+      if (status && status !== 'ALL') {
+        where.status = status;
+      }
+
       const [consultations, total] = await Promise.all([
         prisma.consultation.findMany({
+          where,
           skip,
           take,
-          include: {
+          select: {
+            id: true,
+            doctorId: true,
+            patientId: true,
+            type: true,
+            status: true,
+            price: true,
+            paymentId: true,
+            source: true,
+            consultationAttemptId: true,
+            createdAt: true,
+            updatedAt: true,
+            startedAt: true,
+            endedAt: true,
             doctor: {
               select: {
                 id: true,
@@ -149,7 +168,7 @@ export class AdminService {
             createdAt: 'desc',
           },
         }),
-        prisma.consultation.count(),
+        prisma.consultation.count({ where }),
       ]);
 
       return {

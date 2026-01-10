@@ -52,8 +52,8 @@ export class SnreService {
       }
 
       // Validar que la consulta est� activa o cerrada
-      if (consultation.status !== 'ACTIVE' && consultation.status !== 'CLOSED') {
-        throw createError('Solo se pueden emitir recetas en consultas activas o cerradas', 400);
+      if (consultation.status !== 'ACTIVE' && consultation.status !== 'COMPLETED') {
+        throw createError('Solo se pueden emitir recetas en consultas activas o completadas', 400);
       }
 
       // 2. Validar que el m�dico tiene RUT (obligatorio para SNRE)

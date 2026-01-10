@@ -73,6 +73,32 @@ export class DoctorsService {
     }
   }
 
+  async getByUserId(userId: string) {
+    try {
+      const doctor = await prisma.doctor.findUnique({
+        where: { userId },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              role: true,
+            },
+          },
+        },
+      });
+
+      if (!doctor) {
+        throw createError('Doctor no encontrado para este usuario', 404);
+      }
+
+      return doctor;
+    } catch (error) {
+      logger.error('Error al obtener doctor por userId:', error);
+      throw error;
+    }
+  }
+
   async getOnlineDoctors() {
     try {
       // Obtener todos los doctores para calcular disponibilidad

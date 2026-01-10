@@ -23,8 +23,9 @@ export class MessagesService {
         throw createError('Consulta no encontrada', 404);
       }
 
-      if (consultation.status !== 'ACTIVE' && consultation.status !== 'PAID') {
-        throw createError('La consulta no está activa', 400);
+      // Solo permitir mensajes en consultas ACTIVAS
+      if (consultation.status !== 'ACTIVE') {
+        throw createError('Solo se pueden enviar mensajes en consultas activas. La consulta debe ser aceptada primero.', 400);
       }
 
       // Verificar que el sender es parte de la consulta

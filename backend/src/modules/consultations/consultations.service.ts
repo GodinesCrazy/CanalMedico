@@ -8,6 +8,7 @@ export interface CreateConsultationDto {
   doctorId: string;
   patientId: string;
   type: ConsultationType;
+  price: number; // Precio de la consulta en centavos/CLP
 }
 
 export class ConsultationsService {
@@ -31,13 +32,18 @@ export class ConsultationsService {
         throw createError('Paciente no encontrado', 404);
       }
 
+      // Validar precio
+      if (!data.price || data.price <= 0) {
+        throw createError('El precio de la consulta debe ser mayor a 0', 400);
+      }
+
       // Verificar si ya existe una consulta activa
       const existingConsultation = await prisma.consultation.findFirst({
         where: {
           doctorId: data.doctorId,
           patientId: data.patientId,
           status: {
-            in: ['PENDING', 'PAID', 'ACTIVE'],
+            in: ['PENDING', 'ACTIVE'],
           },
         },
       });
@@ -46,12 +52,13 @@ export class ConsultationsService {
         throw createError('Ya existe una consulta activa con este doctor', 409);
       }
 
-      // Crear consulta
+      // Crear consulta con precio
       const consultation = await prisma.consultation.create({
         data: {
           doctorId: data.doctorId,
           patientId: data.patientId,
           type: data.type,
+          price: data.price,
           status: ConsultationStatus.PENDING,
         },
         include: {
@@ -249,23 +256,170 @@ export class ConsultationsService {
     }
   }
 
-  async close(consultationId: string) {
+  /**
+   * DOCTOR acepta consulta (PENDING → ACTIVE)
+   * Solo si status === PENDING
+   * Establece startedAt = now()
+   */
+  async accept(consultationId: string, doctorId: string) {
     try {
-      const consultation = await prisma.consultation.update({
+      // Verificar que la consulta existe y pertenece al doctor
+      const consultation = await prisma.consultation.findUnique({
+        where: { id: consultationId },
+      });
+
+      if (!consultation) {
+        throw createError('Consulta no encontrada', 404);
+      }
+
+      if (consultation.doctorId !== doctorId) {
+        throw createError('No tienes permiso para aceptar esta consulta', 403);
+      }
+
+      if (consultation.status !== ConsultationStatus.PENDING) {
+        throw createError('Solo se pueden aceptar consultas con estado PENDING', 400);
+      }
+
+      const updatedConsultation = await prisma.consultation.update({
         where: { id: consultationId },
         data: {
-          status: ConsultationStatus.CLOSED,
-          closedAt: new Date(),
+          status: ConsultationStatus.ACTIVE,
+          startedAt: new Date(),
         },
         include: {
-          doctor: true,
-          patient: true,
+          doctor: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  email: true,
+                },
+              },
+            },
+          },
+          patient: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  email: true,
+                },
+              },
+            },
+          },
         },
       });
 
-      logger.info(`Consulta cerrada: ${consultationId}`);
+      logger.info(`Consulta aceptada: ${consultationId} por doctor: ${doctorId}`);
 
-      return consultation;
+      return updatedConsultation;
+    } catch (error) {
+      logger.error('Error al aceptar consulta:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * DOCTOR completa consulta (ACTIVE → COMPLETED)
+   * Solo si status === ACTIVE
+   * Establece endedAt = now()
+   */
+  async complete(consultationId: string, doctorId: string) {
+    try {
+      // Verificar que la consulta existe y pertenece al doctor
+      const consultation = await prisma.consultation.findUnique({
+        where: { id: consultationId },
+      });
+
+      if (!consultation) {
+        throw createError('Consulta no encontrada', 404);
+      }
+
+      if (consultation.doctorId !== doctorId) {
+        throw createError('No tienes permiso para completar esta consulta', 403);
+      }
+
+      if (consultation.status !== ConsultationStatus.ACTIVE) {
+        throw createError('Solo se pueden completar consultas con estado ACTIVE', 400);
+      }
+
+      const updatedConsultation = await prisma.consultation.update({
+        where: { id: consultationId },
+        data: {
+          status: ConsultationStatus.COMPLETED,
+          endedAt: new Date(),
+        },
+        include: {
+          doctor: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  email: true,
+                },
+              },
+            },
+          },
+          patient: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  email: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      logger.info(`Consulta completada: ${consultationId} por doctor: ${doctorId}`);
+
+      return updatedConsultation;
+    } catch (error) {
+      logger.error('Error al completar consulta:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Cerrar consulta (para compatibilidad con código existente)
+   * Deprecated: usar complete() en su lugar
+   */
+  async close(consultationId: string) {
+    try {
+      const consultation = await prisma.consultation.findUnique({
+        where: { id: consultationId },
+      });
+
+      if (!consultation) {
+        throw createError('Consulta no encontrada', 404);
+      }
+
+      // Si está ACTIVE, completarla
+      if (consultation.status === ConsultationStatus.ACTIVE) {
+        return this.complete(consultationId, consultation.doctorId);
+      }
+
+      // Si está PENDING, cancelarla
+      if (consultation.status === ConsultationStatus.PENDING) {
+        const updatedConsultation = await prisma.consultation.update({
+          where: { id: consultationId },
+          data: {
+            status: ConsultationStatus.CANCELLED,
+            endedAt: new Date(),
+          },
+          include: {
+            doctor: true,
+            patient: true,
+          },
+        });
+
+        logger.info(`Consulta cancelada: ${consultationId}`);
+        return updatedConsultation;
+      }
+
+      throw createError(`No se puede cerrar una consulta con estado ${consultation.status}`, 400);
     } catch (error) {
       logger.error('Error al cerrar consulta:', error);
       throw error;

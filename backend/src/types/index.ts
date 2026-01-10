@@ -19,9 +19,9 @@ export type ConsultationType = typeof ConsultationType[keyof typeof Consultation
 
 export const ConsultationStatus = {
   PENDING: 'PENDING',
-  PAID: 'PAID',
   ACTIVE: 'ACTIVE',
-  CLOSED: 'CLOSED',
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED',
 } as const;
 
 export type ConsultationStatus = typeof ConsultationStatus[keyof typeof ConsultationStatus];

@@ -12,12 +12,12 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  role      String   @default("PATIENT") // UserRole
-  phoneNumber String? @unique // Número de teléfono (para login alternativo con OTP)
-  createdAt DateTime @default(now())
+  id          String   @id @default(cuid())
+  email       String   @unique
+  password    String
+  role        String   @default("PATIENT") // UserRole
+  phoneNumber String?  @unique // Número de teléfono (para login alternativo con OTP)
+  createdAt   DateTime @default(now())
 
   // Relaciones
   doctor            Doctor?
@@ -51,27 +51,27 @@ model Doctor {
   // Validación de identidad y profesión
   identidadValidada        Boolean   @default(false)
   profesionValidada        Boolean   @default(false)
-  rnpiEstado               String?   // Estado en RNPI: "HABILITADO" | "SUSPENDIDO" | "NO_EXISTE"
-  rnpiProfesion            String?   // Profesión según RNPI
+  rnpiEstado               String? // Estado en RNPI: "HABILITADO" | "SUSPENDIDO" | "NO_EXISTE"
+  rnpiProfesion            String? // Profesión según RNPI
   rnpiFechaVerificacion    DateTime? // Última fecha de verificación RNPI
   verificacionEstadoFinal  String    @default("PENDIENTE") // "PENDIENTE" | "VERIFICADO" | "RECHAZADO" | "REVISION_MANUAL"
-  logsValidacion           String?   // JSON con logs detallados de validaciones
-  identityVerificationData  String?  // JSON encriptado con datos de Registro Civil
-  rnpiVerificationData      String?  // JSON encriptado con datos de RNPI
-  lastVerificationAt        DateTime? // Última verificación completa
-  verificationErrors        String?  // JSON con errores de validación
+  logsValidacion           String? // JSON con logs detallados de validaciones
+  identityVerificationData String? // JSON encriptado con datos de Registro Civil
+  rnpiVerificationData     String? // JSON encriptado con datos de RNPI
+  lastVerificationAt       DateTime? // Última verificación completa
+  verificationErrors       String? // JSON con errores de validación
 
   // Configuración WhatsApp Business (para auto-respuesta)
   whatsappBusinessNumber String? // Número de WhatsApp Business verificado
-  whatsappBusinessId      String? // ID de WhatsApp Business en Meta
+  whatsappBusinessId     String? // ID de WhatsApp Business en Meta
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relaciones
-  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  consultations Consultation[]
-  payoutBatches PayoutBatch[]
+  user                 User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  consultations        Consultation[]
+  payoutBatches        PayoutBatch[]
   consultationAttempts ConsultationAttempt[]
 
   @@index([userId])
@@ -84,17 +84,17 @@ model Doctor {
 }
 
 model Patient {
-  id             String   @id @default(cuid())
-  userId         String   @unique
+  id             String    @id @default(cuid())
+  userId         String    @unique
   name           String
-  rut            String?  // RUT del paciente (necesario para recetas SNRE)
+  rut            String? // RUT del paciente (necesario para recetas SNRE)
   age            Int?
   birthDate      DateTime? // Fecha de nacimiento (necesaria para SNRE)
-  gender         String?  // "male" | "female" | "other" | "unknown"
+  gender         String? // "male" | "female" | "other" | "unknown"
   medicalHistory String?
-  address        String?  // Dirección completa o JSON
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  address        String? // Dirección completa o JSON
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   // Número de teléfono (identificador alternativo para login con OTP)
   phoneNumber String? @unique
@@ -110,24 +110,26 @@ model Patient {
 }
 
 model Consultation {
-  id        String    @id @default(cuid())
-  doctorId  String
-  patientId String
-  type      String    @default("NORMAL") // ConsultationType
-  status    String    @default("PENDING") // ConsultationStatus
-  paymentId String?   @unique
-  source    String    @default("APP") // "WHATSAPP" | "APP" | "WEB" - Origen de la consulta
-  consultationAttemptId String? @unique // ID del intento de WhatsApp que originó esta consulta
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  closedAt  DateTime?
+  id                    String    @id @default(cuid())
+  doctorId              String
+  patientId             String
+  type                  String    @default("NORMAL") // ConsultationType
+  status                String    @default("PENDING") // ConsultationStatus: PENDING | ACTIVE | COMPLETED | CANCELLED
+  price                 Int       @default(0) // Precio de la consulta en centavos/CLP
+  paymentId             String?   @unique
+  source                String    @default("APP") // "WHATSAPP" | "APP" | "WEB" - Origen de la consulta
+  consultationAttemptId String?   @unique // ID del intento de WhatsApp que originó esta consulta
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  startedAt             DateTime? // Cuando DOCTOR acepta (PENDING → ACTIVE)
+  endedAt               DateTime? // Cuando DOCTOR completa (ACTIVE → COMPLETED)
 
   // Relaciones
-  doctor   Doctor    @relation(fields: [doctorId], references: [id], onDelete: Cascade)
-  patient  Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  payment  Payment?
-  messages Message[]
-  prescriptions Prescription[] // Recetas SNRE asociadas
+  doctor              Doctor               @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  patient             Patient              @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  payment             Payment?
+  messages            Message[]
+  prescriptions       Prescription[] // Recetas SNRE asociadas
   consultationAttempt ConsultationAttempt? @relation(fields: [consultationAttemptId], references: [id])
 
   @@index([doctorId])
@@ -242,12 +244,12 @@ model DoctorSignupRequest {
   identityVerificationStatus String? // "IDENTIDAD_VERIFICADA" | "IDENTIDAD_NO_COINCIDE" | "RUN_INVALIDO" | "PENDING"
   identityVerificationResult String? // JSON con detalles de validación de identidad
   identityVerifiedAt         DateTime?
-  
-  rnpiVerificationStatus     String? // "MEDICO_VERIFICADO" | "NO_MEDICO" | "SUSPENDIDO" | "INCONSISTENCIA" | "PENDING"
-  rnpiVerificationResult     String? // JSON con datos oficiales de RNPI
-  rnpiVerifiedAt             DateTime?
-  
-  autoVerificationErrors     String? // JSON con errores de validación automática
+
+  rnpiVerificationStatus String? // "MEDICO_VERIFICADO" | "NO_MEDICO" | "SUSPENDIDO" | "INCONSISTENCIA" | "PENDING"
+  rnpiVerificationResult String? // JSON con datos oficiales de RNPI
+  rnpiVerifiedAt         DateTime?
+
+  autoVerificationErrors String? // JSON con errores de validación automática
 
   @@index([status])
   @@index([email])
@@ -260,33 +262,33 @@ model DoctorSignupRequest {
 
 // Modelo para recetas electrónicas SNRE
 model Prescription {
-  id                String   @id @default(cuid())
-  consultationId    String
-  doctorId          String
-  patientId         String
-  
+  id             String @id @default(cuid())
+  consultationId String
+  doctorId       String
+  patientId      String
+
   // Estado de la receta en SNRE
-  status            String   @default("PENDIENTE_ENVIO_SNRE") // "PENDIENTE_ENVIO_SNRE" | "ENVIADA_SNRE" | "ERROR_SNRE" | "ANULADA_SNRE"
-  
+  status String @default("PENDIENTE_ENVIO_SNRE") // "PENDIENTE_ENVIO_SNRE" | "ENVIADA_SNRE" | "ERROR_SNRE" | "ANULADA_SNRE"
+
   // Identificadores SNRE
-  snreId            String?  @unique // ID de la receta en el SNRE
-  snreCode          String?  // Código único de la receta para el paciente (si lo provee SNRE)
-  snreBundleId      String?  // ID del Bundle FHIR en SNRE
-  
+  snreId       String? @unique // ID de la receta en el SNRE
+  snreCode     String? // Código único de la receta para el paciente (si lo provee SNRE)
+  snreBundleId String? // ID del Bundle FHIR en SNRE
+
   // Datos FHIR enviados (para auditoría)
-  fhirBundle        String?  // JSON del Bundle FHIR enviado
-  
+  fhirBundle String? // JSON del Bundle FHIR enviado
+
   // Errores
-  errorMessage      String?  // Mensaje de error si falla
-  errorDetails      String?  // Detalles técnicos del error (JSON)
-  
+  errorMessage String? // Mensaje de error si falla
+  errorDetails String? // Detalles técnicos del error (JSON)
+
   // Metadata
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  sentToSnreAt      DateTime? // Fecha de envío exitoso a SNRE
-  
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  sentToSnreAt DateTime? // Fecha de envío exitoso a SNRE
+
   // Relaciones
-  consultation      Consultation @relation(fields: [consultationId], references: [id], onDelete: Cascade)
+  consultation      Consultation       @relation(fields: [consultationId], references: [id], onDelete: Cascade)
   prescriptionItems PrescriptionItem[] // Medicamentos de la receta
 
   @@index([consultationId])
@@ -300,33 +302,33 @@ model Prescription {
 
 // Modelo para items de medicamentos en una receta
 model PrescriptionItem {
-  id             String   @id @default(cuid())
+  id             String @id @default(cuid())
   prescriptionId String
-  
+
   // Datos del medicamento
-  medicationName String   // Nombre del medicamento
-  tfcCode        String?  // Código TFC (Terminología Farmacéutica Chilena)
-  snomedCode     String?  // Código SNOMED-CT si aplica
-  presentation   String?  // Presentación (ej: "Tabletas 500mg")
+  medicationName     String // Nombre del medicamento
+  tfcCode            String? // Código TFC (Terminología Farmacéutica Chilena)
+  snomedCode         String? // Código SNOMED-CT si aplica
+  presentation       String? // Presentación (ej: "Tabletas 500mg")
   pharmaceuticalForm String? // Forma farmacéutica
-  
+
   // Posología
-  dosage         String   // Dosis (ej: "1 tableta")
-  frequency      String   // Frecuencia (ej: "cada 8 horas")
-  duration       String?  // Duración (ej: "7 días")
-  quantity       String?  // Cantidad total a dispensar
-  
+  dosage    String // Dosis (ej: "1 tableta")
+  frequency String // Frecuencia (ej: "cada 8 horas")
+  duration  String? // Duración (ej: "7 días")
+  quantity  String? // Cantidad total a dispensar
+
   // Indicaciones
-  instructions   String?  // Instrucciones adicionales al paciente
-  
+  instructions String? // Instrucciones adicionales al paciente
+
   // Orden en la receta
-  order          Int      @default(0) // Orden del medicamento en la receta
-  
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  
+  order Int @default(0) // Orden del medicamento en la receta
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relaciones
-  prescription   Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  prescription Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
 
   @@index([prescriptionId])
   @@index([tfcCode])
@@ -335,23 +337,23 @@ model PrescriptionItem {
 
 // Modelo para intentos de consulta desde WhatsApp (antes de convertirse en consulta pagada)
 model ConsultationAttempt {
-  id                String   @id @default(cuid())
-  doctorId          String
-  patientPhone      String   // Número de teléfono del paciente
-  source            String   @default("WHATSAPP") // "WHATSAPP" | "SMS" | "EMAIL"
-  status            String   @default("PENDING") // "PENDING" | "CONVERTED" | "ABANDONED"
-  messageText       String?  // Texto original del mensaje de WhatsApp
-  consultationId    String?  @unique // Si se convierte, ID de la consulta creada
-  deepLinkSent      Boolean  @default(false) // Si se envió el deep link
-  deepLinkClicked   Boolean  @default(false) // Si el paciente hizo clic en el link
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  convertedAt       DateTime? // Fecha en que se convirtió en consulta pagada
-  
+  id              String    @id @default(cuid())
+  doctorId        String
+  patientPhone    String // Número de teléfono del paciente
+  source          String    @default("WHATSAPP") // "WHATSAPP" | "SMS" | "EMAIL"
+  status          String    @default("PENDING") // "PENDING" | "CONVERTED" | "ABANDONED"
+  messageText     String? // Texto original del mensaje de WhatsApp
+  consultationId  String?   @unique // Si se convierte, ID de la consulta creada
+  deepLinkSent    Boolean   @default(false) // Si se envió el deep link
+  deepLinkClicked Boolean   @default(false) // Si el paciente hizo clic en el link
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  convertedAt     DateTime? // Fecha en que se convirtió en consulta pagada
+
   // Relaciones
-  doctor            Doctor   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
-  consultation      Consultation?
-  
+  doctor       Doctor        @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  consultation Consultation?
+
   @@index([doctorId])
   @@index([patientPhone])
   @@index([status])
@@ -362,13 +364,13 @@ model ConsultationAttempt {
 // Modelo para verificación OTP (One-Time Password) por WhatsApp/SMS
 model OTPVerification {
   id          String   @id @default(cuid())
-  phoneNumber String   // Número de teléfono al que se envió el OTP
-  otp         String   // Hash del OTP (no texto plano, usar bcrypt)
+  phoneNumber String // Número de teléfono al que se envió el OTP
+  otp         String // Hash del OTP (no texto plano, usar bcrypt)
   method      String   @default("WHATSAPP") // "WHATSAPP" | "SMS"
   verified    Boolean  @default(false) // Si el OTP fue verificado
   expiresAt   DateTime // Fecha de expiración del OTP (típicamente 5 minutos)
   createdAt   DateTime @default(now())
-  
+
   @@index([phoneNumber])
   @@index([expiresAt])
   @@map("otp_verifications")
