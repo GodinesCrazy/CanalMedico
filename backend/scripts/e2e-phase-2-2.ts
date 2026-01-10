@@ -198,6 +198,24 @@ async function seedTestData(): Promise<boolean> {
   log('PASO 2', 'Creando usuarios de prueba (ENABLE_TEST_DATA=true)', 'info');
   console.log('');
 
+  // Primero validar que el módulo seed está montado
+  log('2.0', `GET ${API_URL}/api/seed/health (validación de módulo)`, 'info');
+  const healthCheckResponse = await fetchJson(`${API_URL}/api/seed/health`, {
+    method: 'GET',
+  });
+
+  if (healthCheckResponse.status === 404) {
+    log('2.0', `⚠️ Módulo seed NO está montado en Railway (404)`, 'error');
+    results.blockers.push('Módulo seed no está montado en Railway. Verificar que el código desplegado incluya seed.routes.ts y que server.ts monte el router.');
+  } else if (healthCheckResponse.status === 200) {
+    log('2.0', `✅ Módulo seed está montado correctamente`, 'success');
+    const healthData = healthCheckResponse.data;
+    log('2.0', `   ENABLE_TEST_DATA en Railway: ${healthData.enableTestData}`, 'info');
+  } else {
+    log('2.0', `⚠️ Health check devolvió status ${healthCheckResponse.status}`, 'warn');
+  }
+  console.log('');
+
   log('2.1', `POST ${API_URL}/api/seed/test-data`, 'info');
   const seedResponse = await fetchJson(`${API_URL}/api/seed/test-data`, {
     method: 'POST',

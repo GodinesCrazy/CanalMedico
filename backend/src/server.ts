@@ -149,6 +149,7 @@ app.use('/api/commissions', commissionsRoutes);
 // Importar rutas de seed (solo para desarrollo/pruebas)
 import seedRoutes from './modules/seed/seed.routes';
 app.use('/api/seed', seedRoutes);
+logger.info('[SEED] Seed routes mounted at /api/seed');
 
 // Importar rutas de solicitudes de registro
 import signupRequestsRoutes from './modules/signup-requests/signup-requests.routes';

@@ -8,19 +8,38 @@ import { createTestUsers, TEST_CREDENTIALS } from './test-data.seed';
 const router = Router();
 
 /**
+ * Endpoint de health check para validar que el módulo seed está montado
+ */
+router.get('/health', (_req: Request, res: Response): void => {
+    logger.info('[SEED] GET /health called - Seed module is mounted');
+    res.status(200).json({
+        success: true,
+        message: 'Seed module is mounted and available',
+        endpoint: '/api/seed',
+        routes: ['/health', '/test-data'],
+        enableTestData: process.env.ENABLE_TEST_DATA === 'true',
+    });
+});
+
+/**
  * Endpoint para crear usuarios de prueba E2E
  * SOLO funciona si ENABLE_TEST_DATA === 'true'
  */
 router.post('/test-data', async (_req: Request, res: Response): Promise<void> => {
+    const enableTestData = process.env.ENABLE_TEST_DATA === 'true';
+    logger.info(`[SEED] POST /test-data called, ENABLE_TEST_DATA=${process.env.ENABLE_TEST_DATA} (${enableTestData})`);
+    
     try {
         const result = await createTestUsers();
         if (!result) {
+            logger.warn('[SEED] Test data seed deshabilitado - ENABLE_TEST_DATA !== true');
             res.status(403).json({
                 success: false,
                 error: 'Test data seed deshabilitado. Configure ENABLE_TEST_DATA=true para habilitarlo.',
             });
             return;
         }
+        logger.info('[SEED] Test users created/updated successfully');
         res.json({
             success: true,
             message: 'Usuarios de prueba creados/actualizados exitosamente',
@@ -28,7 +47,7 @@ router.post('/test-data', async (_req: Request, res: Response): Promise<void> =>
             ids: result,
         });
     } catch (error: any) {
-        logger.error('Error al crear usuarios de prueba:', error);
+        logger.error('[SEED] Error al crear usuarios de prueba:', error);
         res.status(500).json({
             success: false,
             error: 'Error al crear usuarios de prueba',
