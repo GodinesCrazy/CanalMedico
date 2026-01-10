@@ -8,7 +8,11 @@ export class UsersService {
     try {
       const user = await prisma.user.findUnique({
         where: { id: userId },
-        include: {
+        select: {
+          id: true,
+          email: true,
+          role: true,
+          createdAt: true,
           doctor: true,
           patient: true,
         },
@@ -16,6 +20,17 @@ export class UsersService {
 
       if (!user) {
         throw createError('Usuario no encontrado', 404);
+      }
+
+      // ADMIN no tiene profile médico ni paciente
+      if (user.role === 'ADMIN') {
+        return {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          profile: null, // ADMIN no tiene profile
+          createdAt: user.createdAt,
+        };
       }
 
       // Si es doctor, calcular disponibilidad automática
@@ -49,7 +64,10 @@ export class UsersService {
     try {
       const user = await prisma.user.findUnique({
         where: { id: userId },
-        include: {
+        select: {
+          id: true,
+          email: true,
+          role: true,
           doctor: true,
           patient: true,
         },
@@ -57,6 +75,56 @@ export class UsersService {
 
       if (!user) {
         throw createError('Usuario no encontrado', 404);
+      }
+
+      // ADMIN solo puede actualizar email (y password a través de endpoint específico)
+      if (user.role === 'ADMIN') {
+        // Validar que ADMIN no intente actualizar campos médicos
+        if (data.tarifaConsulta !== undefined || data.tarifaUrgencia !== undefined || 
+            data.speciality !== undefined || data.horarios !== undefined || 
+            data.medicalHistory !== undefined || data.age !== undefined) {
+          throw createError('ADMIN no puede actualizar campos médicos o de paciente', 403);
+        }
+
+        // ADMIN puede actualizar solo email (y password en endpoint separado)
+        const updateData: any = {};
+        if (data.email && data.email !== user.email) {
+          // Verificar que el email no esté en uso
+          const existingUser = await prisma.user.findUnique({
+            where: { email: data.email },
+          });
+          if (existingUser && existingUser.id !== userId) {
+            throw createError('El email ya está en uso', 409);
+          }
+          updateData.email = data.email;
+        }
+
+        if (Object.keys(updateData).length === 0) {
+          // No hay cambios, devolver usuario actual
+          return {
+            id: user.id,
+            email: user.email,
+            role: user.role,
+            profile: null,
+          };
+        }
+
+        const updated = await prisma.user.update({
+          where: { id: userId },
+          data: updateData,
+          select: {
+            id: true,
+            email: true,
+            role: true,
+          },
+        });
+
+        return {
+          id: updated.id,
+          email: updated.email,
+          role: updated.role,
+          profile: null,
+        };
       }
 
       if (user.doctor) {

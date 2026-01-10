@@ -7,6 +7,7 @@ import { AuthenticatedRequest } from '@/types';
 const updateProfileSchema = z.object({
   body: z.object({
     name: z.string().min(2).optional(),
+    email: z.string().email().optional(),
     speciality: z.string().optional(),
     age: z.number().int().positive().optional(),
     horarios: z.any().optional(),

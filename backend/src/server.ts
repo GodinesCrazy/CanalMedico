@@ -155,10 +155,14 @@ app.use('/api/signup-requests', signupRequestsRoutes);
 // Importar rutas de recetas SNRE
 app.use('/api/prescriptions', snreRoutes);
 
+// Importar rutas administrativas
+import adminRoutes from './modules/admin/admin.routes';
+app.use('/api/admin', adminRoutes);
+
 // Importar rutas de verificación de médicos
 import doctorVerificationRoutes, { doctorVerificationAdminRoutes } from './modules/doctor-verification/doctor-verification.routes';
 app.use('/api/medicos', doctorVerificationRoutes);
-app.use('/api/admin', doctorVerificationAdminRoutes);
+app.use('/api/admin/doctor-verification', doctorVerificationAdminRoutes);
 
 // Módulos opcionales se cargan dinámicamente (ver loadOptionalModules)
 // Esto permite que el backend compile y arranque incluso si módulos opcionales no están disponibles
