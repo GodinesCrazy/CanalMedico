@@ -4,6 +4,8 @@ import paymentsService from './payments.service';
 import { validate } from '@/middlewares/validation.middleware';
 import { raw } from 'express';
 import { AuthenticatedRequest } from '@/types';
+import env from '@/config/env';
+import logger from '@/config/logger';
 
 const createPaymentSessionSchema = z.object({
   body: z.object({
@@ -28,17 +30,48 @@ export class PaymentsController {
 
   async handleWebhook(req: Request, res: Response, next: NextFunction) {
     try {
-      // NOTA: MercadoPago no usa firma de webhook como Stripe.
-      // La validación se hace verificando que el payment existe en MercadoPago
-      // usando el access token. Esto ya se hace en paymentsService.handleWebhook().
-      // 
-      // Para mayor seguridad, se recomienda:
-      // 1. Configurar IP whitelist en MercadoPago (si está disponible)
-      // 2. Validar que el payment ID existe en MercadoPago antes de procesar (ya implementado)
-      // 3. Usar HTTPS en producción
+      // VALIDACIÓN DE WEBHOOK MERCADOPAGO
+      // MercadoPago no usa firmas criptográficas como Stripe.
+      // La validación se realiza mediante:
+      // 1. Verificar que el payment existe en MercadoPago usando el access token (IMPLEMENTADO)
+      // 2. Validar que external_reference corresponde a una consulta válida (IMPLEMENTADO)
+      // 3. Validar headers opcionales de MercadoPago si están presentes
+      // 4. HTTPS obligatorio en producción (manejado por Railway)
+      //
+      // NOTA: Para mayor seguridad adicional:
+      // - Configurar IP whitelist en MercadoPago Dashboard si está disponible
+      // - Usar MERCADOPAGO_WEBHOOK_SECRET para validaciones adicionales (si MercadoPago lo implementa)
       
-      const signature = req.headers['x-signature'] || req.headers['x-request-id'] || '';
-      const result = await paymentsService.handleWebhook(signature as string, req.body);
+      // Obtener headers de MercadoPago (si están presentes)
+      const requestId = req.headers['x-request-id'] as string | undefined;
+      const signature = req.headers['x-signature'] as string | undefined;
+      
+      // Headers de MercadoPago típicos:
+      // - x-request-id: ID único del webhook
+      // - x-signature: Firma (si MercadoPago la implementa en el futuro)
+      // - user-agent: Debe contener "MercadoPago" o similar
+      
+      // Validación básica de User-Agent (opcional pero recomendado)
+      const userAgent = req.headers['user-agent'] || '';
+      const isMercadoPagoAgent = userAgent.toLowerCase().includes('mercadopago') || 
+                                  userAgent.toLowerCase().includes('mercadolibre');
+      
+      if (!isMercadoPagoAgent && env.NODE_ENV === 'production') {
+        logger.warn('Webhook recibido con User-Agent sospechoso', {
+          userAgent,
+          requestId,
+          ip: req.ip,
+        });
+        // No rechazamos inmediatamente, pero logueamos para monitoreo
+      }
+      
+      // Pasar headers al servicio para logging/validación
+      const result = await paymentsService.handleWebhook(
+        signature || requestId || '', 
+        req.body,
+        req.headers as Record<string, string>
+      );
+      
       res.json(result);
     } catch (error) {
       next(error);

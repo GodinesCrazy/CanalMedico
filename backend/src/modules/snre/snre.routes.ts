@@ -5,6 +5,7 @@
 import { Router } from 'express';
 import snreController, { validateCreatePrescription } from './snre.controller';
 import { authenticate } from '@/middlewares/auth.middleware';
+import { requirePrescriptionOwnership, requireConsultationOwnership } from '@/middlewares/ownership.middleware';
 
 const router = Router();
 
@@ -70,7 +71,7 @@ const router = Router();
  *       403:
  *         description: No autorizado
  */
-router.post('/', authenticate, validateCreatePrescription, snreController.create.bind(snreController));
+router.post('/', authenticate, validateCreatePrescription, requireConsultationOwnership, snreController.create.bind(snreController));
 
 /**
  * @swagger
@@ -92,7 +93,7 @@ router.post('/', authenticate, validateCreatePrescription, snreController.create
  *       404:
  *         description: Receta no encontrada
  */
-router.get('/:id', authenticate, snreController.getById.bind(snreController));
+router.get('/:id', authenticate, requirePrescriptionOwnership, snreController.getById.bind(snreController));
 
 /**
  * @swagger
@@ -114,7 +115,7 @@ router.get('/:id', authenticate, snreController.getById.bind(snreController));
  */
 // Ruta alternativa para obtener recetas de una consulta
 const consultationsRouter = Router();
-consultationsRouter.get('/:consultationId/prescriptions', authenticate, snreController.getByConsultation.bind(snreController));
+consultationsRouter.get('/:consultationId/prescriptions', authenticate, requireConsultationOwnership, snreController.getByConsultation.bind(snreController));
 export { consultationsRouter as consultationsPrescriptionsRoutes };
 
 export default router;

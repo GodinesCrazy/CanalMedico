@@ -173,6 +173,8 @@ export interface ApiResponse<T> {
 export type RootStackParamList = {
   Login: undefined;
   Register: undefined;
+  OTPVerification: { phoneNumber: string; attemptId?: string };
+  QuickConsultation: { doctorId: string; phone: string; attemptId: string };
   Home: undefined;
   Consultations: undefined;
   ConsultationDetail: { consultationId: string };

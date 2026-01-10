@@ -5,10 +5,31 @@ const algorithm = 'aes-256-cbc';
 const keyLength = 32;
 const ivLength = 16;
 
-// Generar o usar una clave fija (en producción, guardarla en variables de entorno)
+// Obtener clave de encriptación de forma segura
 const getEncryptionKey = (): Buffer => {
-  const key = process.env.ENCRYPTION_KEY || env.JWT_SECRET.substring(0, keyLength);
-  return crypto.scryptSync(key, 'salt', keyLength);
+  // En producción, ENCRYPTION_KEY es obligatoria (validada en env.ts)
+  // En desarrollo, si no está configurada, falla con error claro
+  const key = env.ENCRYPTION_KEY;
+  
+  if (!key || key.length < 32) {
+    if (env.NODE_ENV === 'production') {
+      throw new Error('ENCRYPTION_KEY debe estar configurada en producción (mínimo 32 caracteres)');
+    }
+    // En desarrollo, generar una clave temporal pero avisar
+    console.warn('⚠️ ENCRYPTION_KEY no configurada. Usando clave temporal de desarrollo. NO usar en producción.');
+    const tempKey = crypto.randomBytes(keyLength).toString('hex');
+    const salt = env.ENCRYPTION_SALT || 'canalmedico-dev-salt';
+    return crypto.scryptSync(tempKey, salt, keyLength);
+  }
+  
+  // Salt configurable o default seguro
+  const salt = env.ENCRYPTION_SALT || 'canalmedico-production-salt-v1';
+  
+  if (env.NODE_ENV === 'production' && salt === 'canalmedico-production-salt-v1') {
+    console.warn('⚠️ Usando salt por defecto. Se recomienda configurar ENCRYPTION_SALT único.');
+  }
+  
+  return crypto.scryptSync(key, salt, keyLength);
 };
 
 export const encrypt = (text: string): string => {

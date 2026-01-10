@@ -3,8 +3,39 @@ import prisma from '@/database/prisma';
 import * as bcrypt from 'bcryptjs';
 import logger from '@/config/logger';
 import { execSync } from 'child_process';
+import { createTestUsers, TEST_CREDENTIALS } from './test-data.seed';
 
 const router = Router();
+
+/**
+ * Endpoint para crear usuarios de prueba E2E
+ * SOLO funciona si ENABLE_TEST_DATA === 'true'
+ */
+router.post('/test-data', async (_req: Request, res: Response): Promise<void> => {
+    try {
+        const result = await createTestUsers();
+        if (!result) {
+            res.status(403).json({
+                success: false,
+                error: 'Test data seed deshabilitado. Configure ENABLE_TEST_DATA=true para habilitarlo.',
+            });
+            return;
+        }
+        res.json({
+            success: true,
+            message: 'Usuarios de prueba creados/actualizados exitosamente',
+            credentials: TEST_CREDENTIALS,
+            ids: result,
+        });
+    } catch (error: any) {
+        logger.error('Error al crear usuarios de prueba:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Error al crear usuarios de prueba',
+            details: error?.message || 'Error desconocido',
+        });
+    }
+});
 
 router.post('/', async (_req: Request, res: Response) => {
     try {

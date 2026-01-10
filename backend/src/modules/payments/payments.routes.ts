@@ -2,6 +2,7 @@ import { Router } from 'express';
 import paymentsController, { validateCreatePaymentSession, webhookMiddleware } from './payments.controller';
 import { authenticate, requireRole } from '@/middlewares/auth.middleware';
 import { paymentRateLimiter } from '@/middlewares/rateLimit.middleware';
+import { requirePaymentOwnership } from '@/middlewares/ownership.middleware';
 
 const router = Router();
 
@@ -33,7 +34,7 @@ const router = Router();
  *       401:
  *         description: No autenticado
  */
-router.post('/session', authenticate, paymentRateLimiter, validateCreatePaymentSession, paymentsController.createPaymentSession.bind(paymentsController));
+router.post('/session', authenticate, paymentRateLimiter, validateCreatePaymentSession, requirePaymentOwnership, paymentsController.createPaymentSession.bind(paymentsController));
 
 /**
  * @swagger
@@ -69,7 +70,7 @@ router.post('/webhook', webhookMiddleware, paymentsController.handleWebhook.bind
  *       404:
  *         description: Pago no encontrado
  */
-router.get('/consultation/:consultationId', authenticate, paymentsController.getPaymentByConsultation.bind(paymentsController));
+router.get('/consultation/:consultationId', authenticate, requirePaymentOwnership, paymentsController.getPaymentByConsultation.bind(paymentsController));
 
 /**
  * @swagger

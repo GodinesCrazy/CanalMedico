@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import payoutController from './payout.controller';
 import { authenticate, requireRole } from '@/middlewares/auth.middleware';
+import { requirePayoutOwnership } from '@/middlewares/ownership.middleware';
 
 const router = Router();
 
@@ -59,7 +60,7 @@ router.get('/my-stats', authenticate, requireRole('DOCTOR'), payoutController.ge
  *       200:
  *         description: Detalle de la liquidación
  */
-router.get('/:batchId', authenticate, payoutController.getPayoutDetail.bind(payoutController));
+router.get('/:batchId', authenticate, requirePayoutOwnership, payoutController.getPayoutDetail.bind(payoutController));
 
 /**
  * @swagger

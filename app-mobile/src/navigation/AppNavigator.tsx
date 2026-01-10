@@ -9,6 +9,8 @@ import { linking } from '@/utils/linking';
 // Screens
 import LoginScreen from '@/screens/LoginScreen';
 import RegisterScreen from '@/screens/RegisterScreen';
+import OTPVerificationScreen from '@/screens/OTPVerificationScreen';
+import QuickConsultationScreen from '@/screens/QuickConsultationScreen';
 import HomeScreen from '@/screens/HomeScreen';
 import ConsultationsScreen from '@/screens/ConsultationsScreen';
 import ConsultationDetailScreen from '@/screens/ConsultationDetailScreen';
@@ -79,6 +81,16 @@ export default function AppNavigator() {
           <>
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="Register" component={RegisterScreen} />
+            <Stack.Screen
+              name="OTPVerification"
+              component={OTPVerificationScreen}
+              options={{ headerShown: true, title: 'Verificación' }}
+            />
+            <Stack.Screen
+              name="QuickConsultation"
+              component={QuickConsultationScreen}
+              options={{ headerShown: false }}
+            />
           </>
         ) : (
           <>

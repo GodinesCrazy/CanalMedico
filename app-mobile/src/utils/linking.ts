@@ -14,6 +14,9 @@ export const linking = {
       PaymentSuccess: 'payment/success',
       PaymentFailure: 'payment/failure',
       PaymentPending: 'payment/pending',
+      // Deep links para WhatsApp (Fase 3)
+      QuickConsultation: 'consultation/create',
+      OTPVerification: 'otp-verification',
     },
   },
 };
@@ -41,6 +44,20 @@ export function handleDeepLink(url: string) {
       type: 'payment',
       status,
       consultationId,
+    };
+  }
+
+  // Manejar deep links de WhatsApp (Fase 3)
+  if (scheme === 'canalmedico' && path === 'consultation/create') {
+    const doctorId = queryParams?.doctorId as string;
+    const attemptId = queryParams?.attemptId as string;
+    const phone = queryParams?.phone as string;
+
+    return {
+      type: 'quickConsultation',
+      doctorId,
+      attemptId,
+      phone,
     };
   }
 

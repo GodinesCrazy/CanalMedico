@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import messagesController, { validateCreateMessage } from './messages.controller';
 import { authenticate } from '@/middlewares/auth.middleware';
+import { requireConsultationOwnership, requireMessageOwnership, requireSenderOwnership } from '@/middlewares/ownership.middleware';
 
 const router = Router();
 
@@ -40,7 +41,7 @@ const router = Router();
  *       401:
  *         description: No autenticado
  */
-router.post('/', authenticate, validateCreateMessage, messagesController.create.bind(messagesController));
+router.post('/', authenticate, validateCreateMessage, requireConsultationOwnership, requireSenderOwnership, messagesController.create.bind(messagesController));
 
 /**
  * @swagger
@@ -62,7 +63,7 @@ router.post('/', authenticate, validateCreateMessage, messagesController.create.
  *       401:
  *         description: No autenticado
  */
-router.get('/consultation/:consultationId', authenticate, messagesController.getByConsultation.bind(messagesController));
+router.get('/consultation/:consultationId', authenticate, requireConsultationOwnership, messagesController.getByConsultation.bind(messagesController));
 
 /**
  * @swagger
@@ -86,7 +87,7 @@ router.get('/consultation/:consultationId', authenticate, messagesController.get
  *       404:
  *         description: Mensaje no encontrado
  */
-router.get('/:id', authenticate, messagesController.getById.bind(messagesController));
+router.get('/:id', authenticate, requireMessageOwnership, messagesController.getById.bind(messagesController));
 
 export default router;
 

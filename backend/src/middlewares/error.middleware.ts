@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
 import logger from '@/config/logger';
+import env from '@/config/env';
 
 export interface ApiError extends Error {
   statusCode?: number;
@@ -34,17 +35,22 @@ export const errorHandler = (
   }
 
   // Error desconocido
+  // Log completo en servidor (siempre)
   logger.error('Error no manejado:', {
-    error: err,
+    error: err.message,
     stack: err.stack,
     url: req.url,
     method: req.method,
+    body: req.body,
+    query: req.query,
   });
 
+  // Respuesta al cliente según ambiente
+  const isProduction = env.NODE_ENV === 'production';
+  
   res.status(500).json({
-    error: err.message,
-    stack: err.stack,
-    // details: err, // Circular structure might cause issues, better to just send message and stack
+    error: isProduction ? 'Error interno del servidor' : err.message,
+    ...(isProduction ? {} : { stack: err.stack }),
   });
 };
 

@@ -83,7 +83,11 @@ export const useAuthStore = create<AuthState>()(
       },
 
       setTokens: (accessToken: string, refreshToken: string) => {
-        set({ accessToken, refreshToken });
+        set({
+          accessToken,
+          refreshToken,
+          isAuthenticated: !!accessToken,
+        });
         if (accessToken) {
           socketService.connect(accessToken);
         }

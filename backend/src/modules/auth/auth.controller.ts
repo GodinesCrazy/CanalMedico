@@ -30,7 +30,60 @@ const refreshTokenSchema = z.object({
   }),
 });
 
+const sendOTPSchema = z.object({
+  body: z.object({
+    phoneNumber: z.string().min(8, 'Número de teléfono inválido'),
+    attemptId: z.string().optional(),
+    method: z.enum(['WHATSAPP', 'SMS']).optional().default('WHATSAPP'),
+  }),
+});
+
+const verifyOTPSchema = z.object({
+  body: z.object({
+    phoneNumber: z.string().min(8, 'Número de teléfono inválido'),
+    otp: z.string().length(6, 'El código OTP debe tener 6 dígitos'),
+    attemptId: z.string().optional(),
+  }),
+});
+
 export class AuthController {
+  /**
+   * Enviar OTP por WhatsApp o SMS
+   * 
+   * POST /api/auth/send-otp
+   * 
+   * FASE 3: Login invisible
+   */
+  async sendOTP(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await authService.sendOTP(req.body);
+      res.json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Verificar OTP y crear/iniciar sesión automáticamente
+   * 
+   * POST /api/auth/verify-otp
+   * 
+   * FASE 3: Login invisible
+   */
+  async verifyOTP(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await authService.verifyOTP(req.body);
+      res.json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
   async register(req: Request, res: Response, next: NextFunction) {
     try {
       const result = await authService.register(req.body);
@@ -74,4 +127,6 @@ export default new AuthController();
 export const validateRegister = validate(registerSchema);
 export const validateLogin = validate(loginSchema);
 export const validateRefreshToken = validate(refreshTokenSchema);
+export const validateSendOTP = validate(sendOTPSchema);
+export const validateVerifyOTP = validate(verifyOTPSchema);
 

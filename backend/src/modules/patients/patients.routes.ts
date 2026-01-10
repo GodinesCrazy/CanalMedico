@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import patientsController from './patients.controller';
 import { authenticate } from '@/middlewares/auth.middleware';
+import { requirePatientOwnership } from '@/middlewares/ownership.middleware';
 
 const router = Router();
 
@@ -26,7 +27,7 @@ const router = Router();
  *       404:
  *         description: Paciente no encontrado
  */
-router.get('/:id', authenticate, patientsController.getById.bind(patientsController));
+router.get('/:id', authenticate, requirePatientOwnership, patientsController.getById.bind(patientsController));
 
 /**
  * @swagger
@@ -50,7 +51,7 @@ router.get('/:id', authenticate, patientsController.getById.bind(patientsControl
  *       404:
  *         description: Paciente no encontrado
  */
-router.get('/user/:userId', authenticate, patientsController.getByUserId.bind(patientsController));
+router.get('/user/:userId', authenticate, requirePatientOwnership, patientsController.getByUserId.bind(patientsController));
 
 export default router;
 
