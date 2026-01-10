@@ -18,7 +18,8 @@
     "lint": "eslint src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\"",
     "e2e:phase2.2": "tsx scripts/e2e-phase-2-2.ts",
-    "verify:railway": "tsx scripts/verify-railway-deploy.ts"
+    "verify:railway": "tsx scripts/verify-railway-deploy.ts",
+    "verify:health": "tsx scripts/verify-health.ts"
   },
   "keywords": [
     "medical",

@@ -36,6 +36,20 @@ import socketService from '@/modules/chats/socket.service';
 const app: Application = express();
 const httpServer = createServer(app);
 
+// ============================================================================
+// CRÍTICO RAILWAY: /health debe estar ANTES de middlewares pesados
+// ============================================================================
+// Health check - DEBE responder instantáneamente incluso si DB está caída
+// Railway hace healthcheck ANTES de que el servidor termine de iniciar
+app.get('/health', (_req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    environment: env.NODE_ENV,
+  });
+});
+logger.info('[BOOT] Health route mounted at /health');
+
 // Swagger configuration
 const swaggerOptions: swaggerJsdoc.Options = {
   definition: {
@@ -108,15 +122,6 @@ app.get('/', (_req, res) => {
     message: 'CanalMedico API',
     version: '1.0.0',
     status: 'running',
-    timestamp: new Date().toISOString(),
-    environment: env.NODE_ENV,
-  });
-});
-
-// Health check
-app.get('/health', (_req, res) => {
-  res.json({
-    status: 'ok',
     timestamp: new Date().toISOString(),
     environment: env.NODE_ENV,
   });
@@ -257,84 +262,75 @@ async function runMigrations() {
 }
 
 // Función para iniciar el servidor
+// CRÍTICO RAILWAY: listen() DEBE ejecutarse ANTES de lógica pesada para que /health responda
 async function startServer() {
   try {
-    logger.info('🚀 Iniciando servidor CanalMedico...');
-    logger.info(`📝 NODE_ENV: ${env.NODE_ENV}`);
-
-    // Usar PORT de Railway si está disponible, sino usar env.PORT
-    const port = process.env.PORT ? parseInt(process.env.PORT, 10) : env.PORT;
-    logger.info(`🔌 Puerto configurado: ${port}`);
-
-    // Ejecutar migraciones antes de iniciar el servidor
-    logger.info('🔄 Iniciando proceso de migraciones...');
-    await runMigrations();
-    logger.info('✅ Proceso de migraciones completado');
-
-    // Verificar variables temporales y mostrar advertencias
-    if (env.STRIPE_SECRET_KEY && env.STRIPE_SECRET_KEY.includes('temporal_placeholder')) {
-      logger.warn('⚠️ STRIPE_SECRET_KEY está usando un valor temporal.');
+    logger.info('='.repeat(60));
+    logger.info('[BOOT] Starting CanalMedico backend...');
+    logger.info(`[BOOT] NODE_ENV: ${env.NODE_ENV}`);
+    
+    // CRÍTICO RAILWAY: PORT debe venir de process.env.PORT (Railway lo asigna dinámicamente)
+    // Si no está, usar env.PORT (default 3000 para desarrollo)
+    const port = process.env.PORT ? parseInt(process.env.PORT, 10) : (env.PORT || 3000);
+    
+    if (!port || isNaN(port) || port <= 0) {
+      logger.error(`[BOOT] Invalid PORT: ${port}`);
+      throw new Error(`Invalid PORT: ${port}. PORT must be a positive number.`);
     }
+    
+    logger.info(`[BOOT] PORT env detected: ${process.env.PORT || 'not set'}`);
+    logger.info(`[BOOT] Using port: ${port}`);
+    logger.info(`[BOOT] Health route mounted at /health`);
+    logger.info('='.repeat(60));
 
-    // Conectar a la base de datos antes de iniciar el servidor
-    try {
-      logger.info('🔌 Conectando a la base de datos...');
-      await prisma.$connect();
-      logger.info('✅ Conexión a la base de datos establecida');
-    } catch (dbError) {
-      logger.error('❌ Error al conectar a la base de datos:', dbError);
-      if (env.NODE_ENV === 'production') {
-        // En producción, intentamos seguir para que al menos el healthcheck responda (aunque la app falle)
-        // O mejor, salimos para que reinicie. Pero si reinicia en bucle, no vemos logs.
-        // Vamos a permitir que inicie para ver logs.
-        logger.error('⚠️ Iniciando servidor sin base de datos para diagnóstico');
-      }
-    }
+    // ============================================================================
+    // CRÍTICO: Hacer listen() INMEDIATAMENTE para que /health responda instantáneamente
+    // Railway hace healthcheck inmediatamente, NO puede esperar migraciones/DB
+    // ============================================================================
+    
+    return new Promise<void>((resolve, reject) => {
+      httpServer.listen(port, '0.0.0.0', () => {
+        logger.info('='.repeat(60));
+        logger.info(`[BOOT] Server listening on 0.0.0.0:${port}`);
+        logger.info(`[BOOT] Health check available at http://0.0.0.0:${port}/health`);
+        logger.info('='.repeat(60));
+        
+        // Ahora que el servidor está escuchando, ejecutar lógica pesada en background
+        // NO bloquea el healthcheck - Railway ya puede hacer healthcheck
+        initializeBackend()
+          .then(() => {
+            logger.info('[BOOT] Backend initialization completed');
+            resolve();
+          })
+          .catch((error) => {
+            logger.error('[BOOT] Backend initialization failed (running in degraded mode):', error?.message || error);
+            // No rechazamos la promesa - servidor sigue arriba en modo degraded
+            logger.warn('[BOOT] Server is running in DEGRADED mode - /health still works');
+            resolve();
+          });
+      });
+      
+      httpServer.on('error', (error: any) => {
+        logger.error('[BOOT] Server listen error:', error);
+        if (error.code === 'EADDRINUSE') {
+          logger.error(`[BOOT] Port ${port} is already in use`);
+        }
+        reject(error);
+      });
+    });
+  } catch (error: any) {
+    logger.error('[BOOT] Fatal error starting server:', error?.message || error);
+    // No salimos inmediatamente para permitir logs
+    setTimeout(() => process.exit(1), 1000);
+    throw error;
+  }
+}
 
-    // RESET FORZADO ADMIN (TEMPORAL) - SOLO si FORCE_ADMIN_PASSWORD_RESET=true
-    // ⚠️ Este código debe eliminarse después de usar en producción
-    try {
-      const { forceAdminPasswordReset } = await import('@/bootstrap/forceAdminReset');
-      await forceAdminPasswordReset();
-    } catch (forceResetError: any) {
-      logger.error('❌ Error en reset forzado admin:', forceResetError?.message || forceResetError);
-      logger.warn('⚠️ El servidor continuará iniciando sin reset forzado');
-      // No bloquear el inicio del servidor si falla
-    }
-
-    // Bootstrap: Crear admin de pruebas si está habilitado
-    // IMPORTANTE: Se ejecuta SIEMPRE si ENABLE_TEST_ADMIN=true, incluso en producción
-    // NO se verifica NODE_ENV. El único control es ENABLE_TEST_ADMIN.
-    try {
-      logger.info('🔧 Ejecutando bootstrap de admin de pruebas...');
-      const { bootstrapTestAdmin } = await import('@/bootstrap/admin');
-      await bootstrapTestAdmin();
-      logger.info('✅ Bootstrap de admin completado');
-    } catch (bootstrapError: any) {
-      logger.error('❌ Error en bootstrap de admin:', bootstrapError?.message || bootstrapError);
-      logger.warn('⚠️ El servidor continuará iniciando sin admin de pruebas');
-      // No bloquear el inicio del servidor si falla el bootstrap
-    }
-
-    // Cargar módulos opcionales (WhatsApp, etc.)
-    // IMPORTANTE: Usa require() dinámico, TypeScript NO analiza estos módulos durante la compilación
-    try {
-      const { loadOptionalModules } = await import('@/bootstrap/loadOptionalModules');
-      await loadOptionalModules(app);
-    } catch (modulesError: any) {
-      logger.warn('⚠️ Error al cargar módulos opcionales:', modulesError?.message || modulesError);
-      logger.warn('⚠️ El servidor continuará iniciando sin módulos opcionales');
-      // No bloquear el inicio del servidor si falla la carga de módulos opcionales
-    }
-
-    // Iniciar job de liquidaciones mensuales
-    try {
-      startPayoutJob();
-      logger.info('✅ Job de liquidaciones mensuales iniciado (ejecuta diariamente a las 00:00)');
-    } catch (jobError) {
-      logger.error('❌ Error al iniciar job de liquidaciones:', jobError);
-      // No bloqueamos el inicio del servidor si falla el job, pero lo registramos
-    }
+// Función para inicializar backend (migraciones, DB, bootstrap)
+// Se ejecuta DESPUÉS de que el servidor ya está escuchando (NO bloquea /health)
+async function initializeBackend() {
+  try {
+    logger.info('[BOOT] Initializing backend services...');
 
     // Log de versión y commit hash para validar deploy
     const { getDeployInfo } = await import('./modules/deploy/deploy.service');
@@ -351,17 +347,96 @@ async function startServer() {
     logger.info(`[DEPLOY] API URL: ${env.API_URL}`);
     logger.info('='.repeat(60));
 
-    // Iniciar servidor HTTP
-    httpServer.listen(port, '0.0.0.0', () => {
-      logger.info(`🚀 Servidor corriendo en puerto ${port}`);
-      logger.info(`📚 Documentación API disponible en ${env.API_URL}/api-docs`);
-      logger.info(`🌍 Ambiente: ${env.NODE_ENV}`);
-      logger.info(`[DEPLOY] Backend running - commit=${deployInfo.commitHash} version=${deployInfo.version}`);
-    });
-  } catch (error) {
-    logger.error('❌ Error fatal al iniciar el servidor:', error);
-    // No salimos del proceso inmediatamente para permitir que los logs se envíen
-    setTimeout(() => process.exit(1), 1000);
+    // Ejecutar migraciones (NO bloqueante para /health)
+    logger.info('[BOOT] Starting database migrations...');
+    try {
+      await runMigrations();
+      logger.info('[BOOT] Database migrations completed');
+    } catch (migrateError: any) {
+      logger.error('[BOOT] Database migrations failed (degraded mode):', migrateError?.message || migrateError);
+      logger.warn('[BOOT] Server continues without migrations - /health still works');
+      // No throw - continuar en modo degraded
+    }
+
+    // Verificar variables temporales y mostrar advertencias
+    if (env.STRIPE_SECRET_KEY && env.STRIPE_SECRET_KEY.includes('temporal_placeholder')) {
+      logger.warn('[BOOT] STRIPE_SECRET_KEY está usando un valor temporal.');
+    }
+
+    // Conectar a la base de datos (NO bloqueante para /health)
+    logger.info('[BOOT] Connecting to database...');
+    try {
+      await prisma.$connect();
+      logger.info('[BOOT] Database connection established');
+    } catch (dbError: any) {
+      logger.error('[BOOT] Database connection failed (degraded mode):', dbError?.message || dbError);
+      logger.warn('[BOOT] Server continues without database - /health still works');
+      logger.warn('[BOOT] API endpoints may not work correctly without database');
+      // No throw - continuar en modo degraded
+    }
+
+    // RESET FORZADO ADMIN (TEMPORAL) - SOLO si FORCE_ADMIN_PASSWORD_RESET=true
+    // ⚠️ Este código debe eliminarse después de usar en producción
+    if (process.env.FORCE_ADMIN_PASSWORD_RESET === 'true') {
+      try {
+        logger.info('[BOOT] Executing forced admin password reset...');
+        const { forceAdminPasswordReset } = await import('@/bootstrap/forceAdminReset');
+        await forceAdminPasswordReset();
+        logger.info('[BOOT] Forced admin password reset completed');
+      } catch (forceResetError: any) {
+        logger.error('[BOOT] Forced admin password reset failed:', forceResetError?.message || forceResetError);
+        logger.warn('[BOOT] Server continues without forced admin reset');
+        // No bloquear
+      }
+    }
+
+    // Bootstrap: Crear admin de pruebas si está habilitado
+    // IMPORTANTE: Se ejecuta SIEMPRE si ENABLE_TEST_ADMIN=true, incluso en producción
+    // NO se verifica NODE_ENV. El único control es ENABLE_TEST_ADMIN.
+    if (process.env.ENABLE_TEST_ADMIN === 'true') {
+      try {
+        logger.info('[BOOT] Executing test admin bootstrap...');
+        const { bootstrapTestAdmin } = await import('@/bootstrap/admin');
+        await bootstrapTestAdmin();
+        logger.info('[BOOT] Test admin bootstrap completed');
+      } catch (bootstrapError: any) {
+        logger.error('[BOOT] Test admin bootstrap failed:', bootstrapError?.message || bootstrapError);
+        logger.warn('[BOOT] Server continues without test admin');
+        // No bloquear
+      }
+    }
+
+    // Cargar módulos opcionales (WhatsApp, etc.)
+    // IMPORTANTE: Usa require() dinámico, TypeScript NO analiza estos módulos durante la compilación
+    if (process.env.ENABLE_WHATSAPP_AUTO_RESPONSE === 'true') {
+      try {
+        logger.info('[BOOT] Loading optional modules...');
+        const { loadOptionalModules } = await import('@/bootstrap/loadOptionalModules');
+        await loadOptionalModules(app);
+        logger.info('[BOOT] Optional modules loaded');
+      } catch (modulesError: any) {
+        logger.warn('[BOOT] Optional modules failed to load:', modulesError?.message || modulesError);
+        logger.warn('[BOOT] Server continues without optional modules');
+        // No bloquear
+      }
+    }
+
+    // Iniciar job de liquidaciones mensuales
+    try {
+      startPayoutJob();
+      logger.info('[BOOT] Payout job started (runs daily at 00:00)');
+    } catch (jobError: any) {
+      logger.error('[BOOT] Payout job failed to start:', jobError?.message || jobError);
+      logger.warn('[BOOT] Server continues without payout job');
+      // No bloquear
+    }
+
+    logger.info('[BOOT] Backend initialization completed successfully');
+  } catch (error: any) {
+    logger.error('[BOOT] Backend initialization error:', error?.message || error);
+    logger.warn('[BOOT] Server continues in DEGRADED mode - /health still works');
+    // NO throw - servidor sigue arriba en modo degraded
+    // El healthcheck debe funcionar incluso si la inicialización falla
   }
 }
 
