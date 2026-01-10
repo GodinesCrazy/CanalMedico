@@ -1,0 +1,6 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "$comment": "Root railway.json for monorepo. Each service (backend/frontend-web) should have its own railway.json in its directory.",
+  "$comment2": "IMPORTANT: In Railway Dashboard, set Root Directory to 'backend' for backend service and 'frontend-web' for frontend service."
+}
+
