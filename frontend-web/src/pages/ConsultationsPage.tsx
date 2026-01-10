@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '@/services/api';
-import { Consultation, Doctor, ConsultationStatus } from '@/types';
+import { Consultation, ConsultationStatus } from '@/types';
 import { useAuthStore } from '@/store/authStore';
-import { FiMessageSquare, FiCheck, FiX, FiFilter, FiUser } from 'react-icons/fi';
+import { FiMessageSquare, FiCheck, FiFilter, FiUser } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { formatCLP } from '@/utils/currency';
 

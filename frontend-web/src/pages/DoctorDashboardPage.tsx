@@ -270,12 +270,17 @@ export default function DoctorDashboardPage() {
                         className={`badge ${
                           consultation.status === 'ACTIVE'
                             ? 'badge-success'
-                            : consultation.status === 'CLOSED'
+                            : consultation.status === 'COMPLETED'
                             ? 'badge-secondary'
+                            : consultation.status === 'CANCELLED'
+                            ? 'badge-danger'
                             : 'badge-warning'
                         }`}
                       >
-                        {consultation.status}
+                        {consultation.status === 'PENDING' && 'Pendiente'}
+                        {consultation.status === 'ACTIVE' && 'Activa'}
+                        {consultation.status === 'COMPLETED' && 'Completada'}
+                        {consultation.status === 'CANCELLED' && 'Cancelada'}
                       </span>
                     </td>
                     <td className="py-3 px-4 text-sm text-gray-600">
