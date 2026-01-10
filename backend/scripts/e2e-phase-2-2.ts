@@ -622,7 +622,7 @@ async function executeE2EScenarios(): Promise<{ success: boolean; consultationId
   log('E.2', `Consultas COMPLETED encontradas: ${adminConsultations.length}`, 'success');
   console.log('');
 
-  return true;
+  return { success: true, consultationId: consultationId! };
 }
 
 // PASO 4: Tests Negativos RBAC
@@ -952,11 +952,14 @@ ${results.scenarios
   fs.writeFileSync(HALLAZGOS_FILE, hallazgosContent, 'utf-8');
   log('5.3', `Hallazgos y Plan guardado en ${HALLAZGOS_FILE}`, 'success');
 
-  // GO/NO-GO
-  const allScenariosPassed = results.scenarios.every((s) => s.passed);
-  const allNegativePassed = results.negativeTests.every((t) => t.passed || t.statusCode === 0); // Permitir skipped
+  // GO/NO-GO - Calcular veredicto antes de generar reporte GO/NO-GO
+  const allScenariosPassed = results.scenarios.length > 0 && results.scenarios.every((s) => s.passed);
+  const allNegativePassed = results.negativeTests.length > 0 && results.negativeTests.every((t) => t.passed || t.statusCode === 0); // Permitir skipped
 
-  results.verdict = allScenariosPassed && allNegativePassed && !results.has500Errors && results.blockers.length === 0 ? 'GO' : 'NO-GO';
+  // Si no hay escenarios o tests negativos, mantener veredicto actual (probablemente NO-GO por bloqueantes)
+  if (results.scenarios.length > 0 && results.negativeTests.length > 0) {
+    results.verdict = allScenariosPassed && allNegativePassed && !results.has500Errors && results.blockers.length === 0 ? 'GO' : 'NO-GO';
+  }
 
   const goNoGoContent = `# FASE 2.2 - Veredicto GO/NO-GO (AUTOGENERADO)
 
