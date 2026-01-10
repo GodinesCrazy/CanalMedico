@@ -11,9 +11,9 @@ export enum ConsultationType {
 
 export enum ConsultationStatus {
   PENDING = 'PENDING',
-  PAID = 'PAID',
   ACTIVE = 'ACTIVE',
-  CLOSED = 'CLOSED',
+  COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED',
 }
 
 export enum PaymentStatus {
@@ -65,10 +65,12 @@ export interface Consultation {
   patientId: string;
   type: ConsultationType;
   status: ConsultationStatus;
+  price: number; // Precio de la consulta en centavos/CLP
   paymentId?: string;
   createdAt: string;
   updatedAt: string;
-  closedAt?: string;
+  startedAt?: string; // Cuando DOCTOR acepta (PENDING → ACTIVE)
+  endedAt?: string; // Cuando DOCTOR completa (ACTIVE → COMPLETED)
   doctor?: Doctor;
   patient?: Patient;
   payment?: Payment;

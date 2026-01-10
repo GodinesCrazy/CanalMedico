@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import api from '@/services/api';
 import { Consultation, Doctor, ConsultationStatus } from '@/types';
 import { useAuthStore } from '@/store/authStore';
-import { FiMessageSquare, FiX, FiFilter } from 'react-icons/fi';
+import { FiMessageSquare, FiCheck, FiX, FiFilter, FiUser } from 'react-icons/fi';
 import toast from 'react-hot-toast';
+import { formatCLP } from '@/utils/currency';
 
 export default function ConsultationsPage() {
   const navigate = useNavigate();
@@ -22,24 +23,66 @@ export default function ConsultationsPage() {
   const loadConsultations = async () => {
     try {
       setIsLoading(true);
-      const doctorId = (user?.profile as Doctor)?.id;
-
-      if (!doctorId) return;
-
-      const statusParam = statusFilter !== 'ALL' ? `&status=${statusFilter}` : '';
-      const response = await api.get(
-        `/consultations/doctor/${doctorId}?page=${page}&limit=10${statusParam}`
-      );
-      if (response.success && response.data) {
-        setConsultations(Array.isArray(response.data) ? response.data : []);
-        if (response.pagination) {
-          setTotalPages(response.pagination.totalPages);
+      
+      // DOCTOR usa /api/doctor/consultations
+      if (user?.role === 'DOCTOR') {
+        const statusParam = statusFilter !== 'ALL' ? `&status=${statusFilter}` : '';
+        const response = await api.get(
+          `/doctor/consultations?page=${page}&limit=10${statusParam}`
+        );
+        if (response.success && response.data) {
+          setConsultations(Array.isArray(response.data) ? response.data : []);
+          if (response.pagination) {
+            setTotalPages(response.pagination.totalPages || 1);
+          }
         }
       }
-    } catch (error) {
+      // ADMIN usa /api/admin/consultations
+      else if (user?.role === 'ADMIN') {
+        const statusParam = statusFilter !== 'ALL' ? `&status=${statusFilter}` : '';
+        const response = await api.get(
+          `/admin/consultations?page=${page}&limit=10${statusParam}`
+        );
+        if (response.success && response.data) {
+          setConsultations(Array.isArray(response.data) ? response.data : []);
+          if (response.pagination) {
+            setTotalPages(response.pagination.totalPages || 1);
+          }
+        }
+      }
+    } catch (error: any) {
       console.error('Error al cargar consultas:', error);
+      toast.error(error.message || 'Error al cargar consultas');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const acceptConsultation = async (consultationId: string) => {
+    if (!confirm('¿Aceptar esta consulta? Una vez aceptada, estará activa.')) return;
+
+    try {
+      const response = await api.patch(`/consultations/${consultationId}/accept`);
+      if (response.success) {
+        toast.success('Consulta aceptada exitosamente');
+        loadConsultations(); // Recargar lista
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Error al aceptar consulta');
+    }
+  };
+
+  const completeConsultation = async (consultationId: string) => {
+    if (!confirm('¿Completar esta consulta? Esto marcará la consulta como finalizada.')) return;
+
+    try {
+      const response = await api.patch(`/consultations/${consultationId}/complete`);
+      if (response.success) {
+        toast.success('Consulta completada exitosamente');
+        loadConsultations(); // Recargar lista
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Error al completar consulta');
     }
   };
 
@@ -47,26 +90,16 @@ export default function ConsultationsPage() {
     navigate(`/chat/${consultationId}`);
   };
 
-  const closeConsultation = async (consultationId: string) => {
-    if (!confirm('¿Estás seguro de que deseas cerrar esta consulta?')) return;
-
-    try {
-      const response = await api.patch(`/consultations/${consultationId}/close`);
-      if (response.success) {
-        toast.success('Consulta cerrada exitosamente');
-        loadConsultations(); // Recargar lista
-      }
-    } catch (error: any) {
-      toast.error(error.message || 'Error al cerrar consulta');
-    }
-  };
-
   return (
     <div>
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Consultas</h1>
-          <p className="text-gray-600 mt-2">Gestiona tus consultas médicas</p>
+          <h1 className="text-3xl font-bold text-gray-900">
+            {user?.role === 'ADMIN' ? 'Todas las Consultas' : 'Mis Consultas'}
+          </h1>
+          <p className="text-gray-600 mt-2">
+            {user?.role === 'ADMIN' ? 'Gestiona todas las consultas de la plataforma' : 'Gestiona tus consultas médicas'}
+          </p>
         </div>
         <div className="flex items-center space-x-2">
           <FiFilter className="h-5 w-5 text-gray-400" />
@@ -80,9 +113,9 @@ export default function ConsultationsPage() {
           >
             <option value="ALL">Todas</option>
             <option value="PENDING">Pendientes</option>
-            <option value="PAID">Pagadas</option>
             <option value="ACTIVE">Activas</option>
-            <option value="CLOSED">Cerradas</option>
+            <option value="COMPLETED">Completadas</option>
+            <option value="CANCELLED">Canceladas</option>
           </select>
         </div>
       </div>
@@ -102,16 +135,30 @@ export default function ConsultationsPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-200">
+                    {user?.role === 'ADMIN' && (
+                      <th className="text-left py-3 px-4 font-medium text-gray-700">Doctor</th>
+                    )}
                     <th className="text-left py-3 px-4 font-medium text-gray-700">Paciente</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-700">Tipo</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-700">Precio</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-700">Estado</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-700">Fecha</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">Acciones</th>
+                    {user?.role === 'DOCTOR' && (
+                      <th className="text-left py-3 px-4 font-medium text-gray-700">Acciones</th>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
                   {consultations.map((consultation) => (
                     <tr key={consultation.id} className="border-b border-gray-100 hover:bg-gray-50">
+                      {user?.role === 'ADMIN' && (
+                        <td className="py-3 px-4">
+                          <div className="flex items-center">
+                            <FiUser className="mr-2 h-4 w-4 text-gray-400" />
+                            {consultation.doctor?.name || 'N/A'}
+                          </div>
+                        </td>
+                      )}
                       <td className="py-3 px-4">{consultation.patient?.name || 'N/A'}</td>
                       <td className="py-3 px-4">
                         <span className={`badge ${consultation.type === 'URGENCIA' ? 'badge-danger' : 'badge-info'}`}>
@@ -119,49 +166,70 @@ export default function ConsultationsPage() {
                         </span>
                       </td>
                       <td className="py-3 px-4">
+                        <span className="font-medium text-gray-900">
+                          {formatCLP(consultation.price || 0)}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
                         <span
                           className={`badge ${
                             consultation.status === 'ACTIVE'
                               ? 'badge-success'
-                              : consultation.status === 'CLOSED'
+                              : consultation.status === 'COMPLETED'
                               ? 'badge-secondary'
+                              : consultation.status === 'CANCELLED'
+                              ? 'badge-danger'
                               : 'badge-warning'
                           }`}
                         >
-                          {consultation.status}
+                          {consultation.status === 'PENDING' && 'Pendiente'}
+                          {consultation.status === 'ACTIVE' && 'Activa'}
+                          {consultation.status === 'COMPLETED' && 'Completada'}
+                          {consultation.status === 'CANCELLED' && 'Cancelada'}
                         </span>
                       </td>
                       <td className="py-3 px-4 text-sm text-gray-600">
                         {new Date(consultation.createdAt).toLocaleDateString()}
                       </td>
-                      <td className="py-3 px-4">
-                        <div className="flex items-center space-x-2">
-                          {consultation.status === 'ACTIVE' && (
-                            <>
+                      {user?.role === 'DOCTOR' && (
+                        <td className="py-3 px-4">
+                          <div className="flex items-center space-x-2">
+                            {consultation.status === 'PENDING' && (
                               <button
-                                onClick={() => openChat(consultation.id)}
-                                className="btn btn-primary text-sm flex items-center"
+                                onClick={() => acceptConsultation(consultation.id)}
+                                className="btn btn-success text-sm flex items-center"
                               >
-                                <FiMessageSquare className="mr-2 h-4 w-4" />
-                                Chat
+                                <FiCheck className="mr-2 h-4 w-4" />
+                                Aceptar
                               </button>
-                              <button
-                                onClick={() => closeConsultation(consultation.id)}
-                                className="btn btn-danger text-sm flex items-center"
-                              >
-                                <FiX className="mr-2 h-4 w-4" />
-                                Cerrar
-                              </button>
-                            </>
-                          )}
-                          {consultation.status === 'PENDING' && (
-                            <span className="text-xs text-gray-500">Esperando pago</span>
-                          )}
-                          {consultation.status === 'CLOSED' && (
-                            <span className="text-xs text-gray-500">Cerrada</span>
-                          )}
-                        </div>
-                      </td>
+                            )}
+                            {consultation.status === 'ACTIVE' && (
+                              <>
+                                <button
+                                  onClick={() => openChat(consultation.id)}
+                                  className="btn btn-primary text-sm flex items-center"
+                                >
+                                  <FiMessageSquare className="mr-2 h-4 w-4" />
+                                  Chat
+                                </button>
+                                <button
+                                  onClick={() => completeConsultation(consultation.id)}
+                                  className="btn btn-secondary text-sm flex items-center"
+                                >
+                                  <FiCheck className="mr-2 h-4 w-4" />
+                                  Finalizar
+                                </button>
+                              </>
+                            )}
+                            {consultation.status === 'COMPLETED' && (
+                              <span className="text-xs text-gray-500">Completada</span>
+                            )}
+                            {consultation.status === 'CANCELLED' && (
+                              <span className="text-xs text-gray-500">Cancelada</span>
+                            )}
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
