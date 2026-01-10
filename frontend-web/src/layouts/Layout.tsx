@@ -65,15 +65,18 @@ export default function Layout() {
               <div className="flex-shrink-0">
                 <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center">
                   <span className="text-primary-600 font-medium">
-                    {user?.profile?.name?.charAt(0).toUpperCase() || 'U'}
+                    {(user?.profile as any)?.name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || 'U'}
                   </span>
                 </div>
               </div>
               <div className="ml-3">
                 <p className="text-sm font-medium text-gray-900">
-                  {user?.profile?.name || 'Usuario'}
+                  {(user?.profile as any)?.name || user?.email || 'Usuario'}
                 </p>
                 <p className="text-xs text-gray-500">{user?.email}</p>
+                {user?.role && (
+                  <p className="text-xs text-gray-400 mt-0.5">{user.role}</p>
+                )}
               </div>
             </div>
             <button

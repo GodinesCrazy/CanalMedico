@@ -2,10 +2,12 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { useAuthStore } from './store/authStore';
 import LoginPage from './pages/LoginPage';
 import SignupRequestPage from './pages/SignupRequestPage';
-import DashboardPage from './pages/DashboardPage';
+import AdminDashboardPage from './pages/AdminDashboardPage';
+import DoctorDashboardPage from './pages/DoctorDashboardPage';
 import ConsultationsPage from './pages/ConsultationsPage';
 import ChatPage from './pages/ChatPage';
-import SettingsPage from './pages/SettingsPage';
+import AdminSettingsPage from './pages/AdminSettingsPage';
+import DoctorSettingsPage from './pages/DoctorSettingsPage';
 import EarningsPage from './pages/EarningsPage';
 import ProfilePage from './pages/ProfilePage';
 import CommissionsPage from './pages/CommissionsPage';
@@ -22,6 +24,26 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function DashboardRoute() {
+  const user = useAuthStore((state) => state.user);
+  
+  if (user?.role === 'ADMIN') {
+    return <AdminDashboardPage />;
+  }
+  
+  return <DoctorDashboardPage />;
+}
+
+function SettingsRoute() {
+  const user = useAuthStore((state) => state.user);
+  
+  if (user?.role === 'ADMIN') {
+    return <AdminSettingsPage />;
+  }
+  
+  return <DoctorSettingsPage />;
+}
+
 function App() {
   return (
     <Router>
@@ -36,10 +58,10 @@ function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<DashboardPage />} />
+          <Route index element={<DashboardRoute />} />
           <Route path="consultations" element={<ConsultationsPage />} />
           <Route path="chat/:consultationId" element={<ChatPage />} />
-          <Route path="settings" element={<SettingsPage />} />
+          <Route path="settings" element={<SettingsRoute />} />
           <Route path="earnings" element={<EarningsPage />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="commissions" element={<CommissionsPage />} />

@@ -20,14 +20,24 @@ export default function ProfilePage() {
 
   const loadProfile = async () => {
     try {
-      const response = await api.get<{ profile: { name?: string; speciality?: string; rut?: string } }>('/users/profile');
-      if (response.success && response.data && response.data.profile) {
-        const profile = response.data.profile;
-        setFormData({
-          name: profile.name || '',
-          speciality: profile.speciality || '',
-          rut: profile.rut || '',
-        });
+      const response = await api.get<{ profile: { name?: string; speciality?: string; rut?: string } | null }>('/users/profile');
+      if (response.success && response.data) {
+        // ADMIN tiene profile: null, DOCTOR tiene profile con datos
+        if (response.data.profile) {
+          const profile = response.data.profile;
+          setFormData({
+            name: profile.name || '',
+            speciality: profile.speciality || '',
+            rut: profile.rut || '',
+          });
+        } else {
+          // ADMIN - solo mostrar email y rol
+          setFormData({
+            name: user?.email || '',
+            speciality: '',
+            rut: '',
+          });
+        }
       }
     } catch (error) {
       toast.error('Error al cargar perfil');
@@ -39,6 +49,13 @@ export default function ProfilePage() {
     setIsLoading(true);
 
     try {
+      // ADMIN no puede actualizar profile médico
+      if (user?.role === 'ADMIN') {
+        toast.error('Los administradores deben usar la página de Configuración para actualizar su perfil');
+        setIsLoading(false);
+        return;
+      }
+
       const response = await api.put<{ profile: any }>('/users/profile', formData);
       if (response.success) {
         toast.success('Perfil actualizado');
@@ -65,78 +82,94 @@ export default function ProfilePage() {
           <div className="flex items-center space-x-4">
             <div className="h-20 w-20 rounded-full bg-primary-100 flex items-center justify-center">
               <span className="text-primary-600 text-2xl font-bold">
-                {(user?.profile as any)?.name?.charAt(0).toUpperCase() || 'U'}
+                {(user?.profile as any)?.name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || 'U'}
               </span>
             </div>
             <div>
               <h2 className="text-xl font-bold text-gray-900">
-                {(user?.profile as any)?.name || 'Usuario'}
+                {(user?.profile as any)?.name || user?.email || 'Usuario'}
               </h2>
               <p className="text-gray-600">{user?.email}</p>
-              <p className="text-sm text-gray-500">{(user?.profile as any)?.speciality || ''}</p>
+              {user?.role && (
+                <p className="text-sm text-gray-500">Rol: {user.role}</p>
+              )}
+              {(user?.profile as any)?.speciality && (
+                <p className="text-sm text-gray-500">{(user?.profile as any)?.speciality}</p>
+              )}
             </div>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-              Nombre
-            </label>
-            <input
-              id="name"
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="input"
-              required
-            />
+        {user?.role === 'ADMIN' ? (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <p className="text-blue-800 text-sm">
+              Los administradores deben usar la página de <strong>Configuración</strong> para actualizar su perfil.
+            </p>
+            <a href="/settings" className="text-blue-600 hover:text-blue-700 underline mt-2 inline-block">
+              Ir a Configuración
+            </a>
           </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                Nombre
+              </label>
+              <input
+                id="name"
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="input"
+                required
+              />
+            </div>
 
-          <div>
-            <label htmlFor="speciality" className="block text-sm font-medium text-gray-700 mb-2">
-              Especialidad
-            </label>
-            <input
-              id="speciality"
-              type="text"
-              value={formData.speciality}
-              onChange={(e) => setFormData({ ...formData, speciality: e.target.value })}
-              className="input"
-              required
-            />
-          </div>
+            <div>
+              <label htmlFor="speciality" className="block text-sm font-medium text-gray-700 mb-2">
+                Especialidad
+              </label>
+              <input
+                id="speciality"
+                type="text"
+                value={formData.speciality}
+                onChange={(e) => setFormData({ ...formData, speciality: e.target.value })}
+                className="input"
+                required
+              />
+            </div>
 
-          <div>
-            <label htmlFor="rut" className="block text-sm font-medium text-gray-700 mb-2">
-              RUT
-            </label>
-            <input
-              id="rut"
-              type="text"
-              value={formData.rut}
-              onChange={(e) => {
-                const formatted = formatRutInput(e.target.value);
-                setFormData({ ...formData, rut: formatted });
-              }}
-              onBlur={() => {
-                if (formData.rut && !validateRut(formData.rut)) {
-                  toast.error('El RUT ingresado no es válido');
-                }
-              }}
-              className="input"
-              placeholder="12.345.678-9"
-              required
-            />
-            <p className="text-xs text-gray-500 mt-1">Formato: 12.345.678-9</p>
-          </div>
+            <div>
+              <label htmlFor="rut" className="block text-sm font-medium text-gray-700 mb-2">
+                RUT
+              </label>
+              <input
+                id="rut"
+                type="text"
+                value={formData.rut}
+                onChange={(e) => {
+                  const formatted = formatRutInput(e.target.value);
+                  setFormData({ ...formData, rut: formatted });
+                }}
+                onBlur={() => {
+                  if (formData.rut && !validateRut(formData.rut)) {
+                    toast.error('El RUT ingresado no es válido');
+                  }
+                }}
+                className="input"
+                placeholder="12.345.678-9"
+                required
+              />
+              <p className="text-xs text-gray-500 mt-1">Formato: 12.345.678-9</p>
+            </div>
 
-          <div className="flex justify-end">
-            <button type="submit" disabled={isLoading} className="btn btn-primary">
-              {isLoading ? 'Guardando...' : 'Guardar Cambios'}
-            </button>
-          </div>
-        </form>
+            <div className="flex justify-end">
+              <button type="submit" disabled={isLoading} className="btn btn-primary">
+                {isLoading ? 'Guardando...' : 'Guardar Cambios'}
+              </button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );
