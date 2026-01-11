@@ -19,6 +19,14 @@ const app: Application = express();
 const httpServer = createServer(app);
 
 // ============================================================================
+// CONSTANTES GLOBALES DE CONFIGURACIÓN (Railway-safe)
+// ============================================================================
+// PORT: Railway asigna dinámicamente via process.env.PORT, fallback a 8080
+// HOST: 0.0.0.0 para escuchar en todas las interfaces (requerido para Railway)
+const PORT = Number(process.env.PORT) || 8080;
+const HOST = '0.0.0.0';
+
+// ============================================================================
 // /healthz ULTRA MÍNIMO (ANTES de cualquier import pesado que pueda fallar)
 // ============================================================================
 // Este endpoint DEBE estar disponible incluso si env.ts falla
