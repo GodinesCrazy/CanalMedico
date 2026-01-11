@@ -338,8 +338,9 @@ async function main() {
   
   if (allPassed) {
     console.log('✅ DEPLOY OK - Todos los endpoints funcionan correctamente');
-    if (deployInfoCommitHash && deployInfoCommitHash !== 'unknown') {
-      console.log(`✅ Commit desplegado: ${deployInfoCommitHash.substring(0, 7)}`);
+    const finalCommitHash = deployInfoCommitHash || healthCommitHash;
+    if (finalCommitHash && finalCommitHash !== 'unknown') {
+      console.log(`✅ Commit desplegado: ${finalCommitHash.substring(0, 7)}`);
     }
     console.log('✅ El backend está desplegado y actualizado');
     process.exit(0);
