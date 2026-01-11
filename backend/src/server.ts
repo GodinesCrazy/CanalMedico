@@ -388,24 +388,26 @@ async function startServer() {
     logger.info(`[BOOT] NODE_ENV: ${env.NODE_ENV}`);
     
     // CRÍTICO RAILWAY: PORT debe venir SIEMPRE de process.env.PORT (Railway lo asigna dinámicamente)
-    // NO usar env.PORT ni valores hardcodeados - Railway asigna el puerto automáticamente
-    const port = Number(process.env.PORT) || 3000;
+    // Fallback a 8080 para compatibilidad con Railway Public Networking
+    const primaryPort = Number(process.env.PORT) || 8080;
+    const fallbackPort = 8080;
     
-    if (!port || isNaN(port) || port <= 0) {
-      const errorMsg = `Invalid PORT: ${port}. PORT must be a positive number.`;
+    if (!primaryPort || isNaN(primaryPort) || primaryPort <= 0) {
+      const errorMsg = `Invalid PORT: ${primaryPort}. PORT must be a positive number.`;
       console.error(`[BOOT] ${errorMsg}`);
-      logger.error(`[BOOT] Invalid PORT: ${port}`);
+      logger.error(`[BOOT] Invalid PORT: ${primaryPort}`);
       throw new Error(errorMsg);
     }
     
     const deployInfo = getDeployInfoSync();
-    console.log(`[BOOT] PORT env = ${process.env.PORT || 'not set (using 3000)'}`);
-    console.log(`[BOOT] Listening on 0.0.0.0:${port}`);
+    console.log(`[BOOT] env PORT = ${process.env.PORT || 'not set'}`);
+    console.log(`[BOOT] primaryPort = ${primaryPort}`);
+    console.log(`[BOOT] fallbackPort = ${fallbackPort}`);
     console.log(`[BOOT] Version: ${deployInfo.version}`);
     console.log(`[BOOT] Commit: ${deployInfo.commitHash}`);
     console.log(`[BOOT] Health route mounted at /health`);
     logger.info(`[BOOT] PORT env detected: ${process.env.PORT || 'not set'}`);
-    logger.info(`[BOOT] Using port: ${port}`);
+    logger.info(`[BOOT] primaryPort = ${primaryPort}, fallbackPort = ${fallbackPort}`);
     logger.info(`[BOOT] Version: ${deployInfo.version}`);
     logger.info(`[BOOT] Commit: ${deployInfo.commitHash}`);
     logger.info(`[BOOT] Health route mounted at /health`);
@@ -418,7 +420,46 @@ async function startServer() {
     // ============================================================================
     
     return new Promise<void>((resolve, reject) => {
-      httpServer.listen(port, '0.0.0.0', () => {
+      let fallbackServer: any = null;
+      let primaryListening = false;
+      let fallbackListening = false;
+      
+      // Listen en primaryPort (Railway)
+      httpServer.listen(primaryPort, '0.0.0.0', () => {
+        primaryListening = true;
+        console.log(`[BOOT] Listening primary on 0.0.0.0:${primaryPort}`);
+        logger.info(`[BOOT] Listening primary on 0.0.0.0:${primaryPort}`);
+        
+        // Si primaryPort != 8080, también escuchar en 8080 (fallback para Railway Public Networking)
+        if (primaryPort !== fallbackPort) {
+          fallbackServer = createServer(app);
+          fallbackServer.listen(fallbackPort, '0.0.0.0', () => {
+            fallbackListening = true;
+            console.log(`[BOOT] Listening fallback on 0.0.0.0:${fallbackPort}`);
+            logger.info(`[BOOT] Listening fallback on 0.0.0.0:${fallbackPort}`);
+            onServersReady();
+          });
+          
+          fallbackServer.on('error', (error: any) => {
+            if (error.code === 'EADDRINUSE') {
+              console.warn(`[BOOT] Fallback port ${fallbackPort} already in use (primary port ${primaryPort} is active)`);
+              logger.warn(`[BOOT] Fallback port ${fallbackPort} already in use`);
+              // No rechazar si el puerto principal está activo
+              if (primaryListening) {
+                onServersReady();
+              }
+            } else {
+              console.error(`[BOOT] Fallback server error:`, error);
+              logger.error(`[BOOT] Fallback server error:`, error);
+            }
+          });
+        } else {
+          // Si primaryPort == 8080, solo un servidor
+          onServersReady();
+        }
+      });
+      
+      function onServersReady() {
         // CRÍTICO: Estos logs DEBEN aparecer inmediatamente para Railway
         const deployInfoFinal = getDeployInfoSync();
         console.log('='.repeat(60));
@@ -427,8 +468,8 @@ async function startServer() {
         console.log(`[DEPLOY] Version: ${deployInfoFinal.version}`);
         console.log(`[DEPLOY] Environment: ${env.NODE_ENV}`);
         console.log('='.repeat(60));
-        console.log(`[BOOT] Server listening on 0.0.0.0:${port}`);
-        console.log(`[BOOT] Health check available at http://0.0.0.0:${port}/health`);
+        console.log(`[BOOT] Server listening on 0.0.0.0:${primaryPort}${fallbackListening ? ` and 0.0.0.0:${fallbackPort}` : ''}`);
+        console.log(`[BOOT] Health endpoints ready: /healthz /health`);
         console.log(`[BOOT] Uptime: 0s`);
         console.log('='.repeat(60));
         logger.info('='.repeat(60));
@@ -437,7 +478,7 @@ async function startServer() {
         logger.info(`[DEPLOY] Version: ${deployInfoFinal.version}`);
         logger.info(`[DEPLOY] Environment: ${env.NODE_ENV}`);
         logger.info('='.repeat(60));
-        logger.info(`[BOOT] Server listening on 0.0.0.0:${port}`);
+        logger.info(`[BOOT] Server listening on 0.0.0.0:${primaryPort}${fallbackListening ? ` and 0.0.0.0:${fallbackPort}` : ''}`);
         logger.info(`[BOOT] Health endpoints ready: /healthz /health`);
         logger.info('='.repeat(60));
         
@@ -445,8 +486,9 @@ async function startServer() {
         systemHealth.status = 'ok';
         systemHealth.initialized = true;
         
-        // Ahora que el servidor está escuchando, ejecutar lógica pesada en background
+        // Ahora que el servidor está escuchando, ejecutar inicialización en background
         // NO bloquea el healthcheck - Railway ya puede hacer healthcheck
+        console.log('[INIT] Starting background initialization...');
         initializeBackend()
           .then(() => {
             console.log('[INIT] ✅ Background initialization completed');
@@ -462,14 +504,14 @@ async function startServer() {
             logger.warn('[INIT] Server is running in DEGRADED mode - /healthz and /health still work');
             resolve();
           });
-      });
+      }
       
       httpServer.on('error', (error: any) => {
-        console.error('[BOOT] Server listen error:', error);
-        logger.error('[BOOT] Server listen error:', error);
+        console.error('[BOOT] Primary server listen error:', error);
+        logger.error('[BOOT] Primary server listen error:', error);
         if (error.code === 'EADDRINUSE') {
-          console.error(`[BOOT] Port ${port} is already in use`);
-          logger.error(`[BOOT] Port ${port} is already in use`);
+          console.error(`[BOOT] Primary port ${primaryPort} is already in use`);
+          logger.error(`[BOOT] Primary port ${primaryPort} is already in use`);
         }
         reject(error);
       });
