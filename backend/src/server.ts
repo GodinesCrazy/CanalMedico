@@ -371,11 +371,22 @@ async function startServer() {
     return new Promise<void>((resolve, reject) => {
       httpServer.listen(port, '0.0.0.0', () => {
         // CRÍTICO: Estos logs DEBEN aparecer inmediatamente para Railway
+        const deployInfoFinal = getDeployInfoSync();
+        console.log('='.repeat(60));
+        console.log('[DEPLOY] CanalMedico Backend');
+        console.log(`[DEPLOY] Commit: ${deployInfoFinal.commitHash}`);
+        console.log(`[DEPLOY] Version: ${deployInfoFinal.version}`);
+        console.log(`[DEPLOY] Environment: ${env.NODE_ENV}`);
         console.log('='.repeat(60));
         console.log(`[BOOT] Server listening on 0.0.0.0:${port}`);
         console.log(`[BOOT] Health check available at http://0.0.0.0:${port}/health`);
         console.log(`[BOOT] Uptime: 0s`);
         console.log('='.repeat(60));
+        logger.info('='.repeat(60));
+        logger.info('[DEPLOY] CanalMedico Backend');
+        logger.info(`[DEPLOY] Commit: ${deployInfoFinal.commitHash}`);
+        logger.info(`[DEPLOY] Version: ${deployInfoFinal.version}`);
+        logger.info(`[DEPLOY] Environment: ${env.NODE_ENV}`);
         logger.info('='.repeat(60));
         logger.info(`[BOOT] Server listening on 0.0.0.0:${port}`);
         logger.info(`[BOOT] Health check available at http://0.0.0.0:${port}/health`);

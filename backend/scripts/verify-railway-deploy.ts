@@ -38,20 +38,44 @@ async function fetchJson(url: string, options: RequestInit = {}): Promise<{ stat
   }
 }
 
-async function verifyHealth(): Promise<boolean> {
+async function verifyHealth(): Promise<{ success: boolean; commitHash?: string; version?: string }> {
   console.log('🔍 Verificando GET /health...');
   const response = await fetchJson(`${API_URL}/health`);
   
   const success = response.status === 200;
+  let commitHash: string | undefined;
+  let version: string | undefined;
+  
+  if (success && response.data) {
+    commitHash = response.data.commit;
+    version = response.data.version;
+    console.log(`  ✅ Status: ${response.status}`);
+    console.log(`  📋 Version: ${response.data.version || 'N/A'}`);
+    console.log(`  📋 Commit: ${response.data.commit || 'N/A'}`);
+    console.log(`  📋 Status: ${response.data.status || 'N/A'}`);
+    console.log(`  📋 Uptime: ${response.data.uptime || 'N/A'}`);
+    if (response.data.services) {
+      console.log(`  📋 Services: DB=${response.data.services.database || 'N/A'}, Migrations=${response.data.services.migrations || 'N/A'}`);
+    }
+  }
+  
   results.push({
     endpoint: 'GET /health',
     status: response.status,
     success,
-    message: success ? '✅ Health check OK' : `❌ Health check failed: ${response.status}`,
+    message: success 
+      ? `✅ Health check OK - Version: ${version || 'N/A'}, Commit: ${commitHash?.substring(0, 7) || 'N/A'}` 
+      : `❌ Health check failed: ${response.status}`,
   });
   
-  console.log(`  ${success ? '✅' : '❌'} Status: ${response.status}`);
-  return success;
+  if (!success) {
+    console.log(`  ❌ Status: ${response.status}`);
+    if (response.data?.error) {
+      console.log(`  ❌ Error: ${response.data.error}`);
+    }
+  }
+  
+  return { success, commitHash, version };
 }
 
 async function verifySeedHealth(): Promise<boolean> {
