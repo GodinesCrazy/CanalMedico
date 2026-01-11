@@ -19,7 +19,8 @@
     "format": "prettier --write \"src/**/*.ts\"",
     "e2e:phase2.2": "tsx scripts/e2e-phase-2-2.ts",
     "verify:railway": "tsx scripts/verify-railway-deploy.ts",
-    "verify:health": "tsx scripts/verify-health.ts"
+    "verify:health": "tsx scripts/verify-health.ts",
+    "verify:remote-health": "tsx scripts/verify-remote-health.ts"
   },
   "keywords": [
     "medical",

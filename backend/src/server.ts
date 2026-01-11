@@ -438,7 +438,7 @@ async function startServer() {
         logger.info(`[DEPLOY] Environment: ${env.NODE_ENV}`);
         logger.info('='.repeat(60));
         logger.info(`[BOOT] Server listening on 0.0.0.0:${port}`);
-        logger.info(`[BOOT] Health check available at http://0.0.0.0:${port}/health`);
+        logger.info(`[BOOT] Health endpoints ready: /healthz /health`);
         logger.info('='.repeat(60));
         
         // Marcar sistema como "ok" (aunque no esté completamente inicializado)
@@ -449,17 +449,17 @@ async function startServer() {
         // NO bloquea el healthcheck - Railway ya puede hacer healthcheck
         initializeBackend()
           .then(() => {
-            console.log('[BOOT] Backend initialization completed');
-            logger.info('[BOOT] Backend initialization completed');
+            console.log('[INIT] ✅ Background initialization completed');
+            logger.info('[INIT] Background initialization completed');
             resolve();
           })
           .catch((error: any) => {
             systemHealth.status = 'degraded';
-            console.error('[BOOT] Backend initialization failed (running in degraded mode):', error?.message || error);
-            logger.error('[BOOT] Backend initialization failed (running in degraded mode):', error?.message || error);
+            console.error('[INIT] ❌ Background initialization failed (running in degraded mode):', error?.message || error);
+            logger.error('[INIT] Background initialization failed (running in degraded mode):', error?.message || error);
             // No rechazamos la promesa - servidor sigue arriba en modo degraded
-            console.warn('[BOOT] Server is running in DEGRADED mode - /health still works');
-            logger.warn('[BOOT] Server is running in DEGRADED mode - /health still works');
+            console.warn('[INIT] Server is running in DEGRADED mode - /healthz and /health still work');
+            logger.warn('[INIT] Server is running in DEGRADED mode - /healthz and /health still work');
             resolve();
           });
       });
