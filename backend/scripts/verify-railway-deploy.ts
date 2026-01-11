@@ -285,10 +285,12 @@ async function main() {
 
   let allPassed = true;
   let deployInfoCommitHash: string | undefined;
+  let healthCommitHash: string | undefined;
 
-  // Verificación 1: Health Check
-  const healthOk = await verifyHealth();
-  allPassed = allPassed && healthOk;
+  // Verificación 1: Health Check (incluye commit/version)
+  const healthResult = await verifyHealth();
+  allPassed = allPassed && healthResult.success;
+  healthCommitHash = healthResult.commitHash;
   console.log('');
 
   // Verificación 2: Deploy Info (CRÍTICO para validar commit hash)
@@ -297,9 +299,10 @@ async function main() {
   deployInfoCommitHash = deployInfo.commitHash;
   console.log('');
 
-  // Verificación 3: Validar Commit Hash
-  if (deployInfo.success && deployInfoCommitHash) {
-    const commitHashOk = await verifyCommitHash(deployInfoCommitHash);
+  // Verificación 3: Validar Commit Hash (usar /health si /api/deploy/info no está disponible)
+  const commitHashToValidate = deployInfoCommitHash || healthCommitHash;
+  if (commitHashToValidate) {
+    const commitHashOk = await verifyCommitHash(commitHashToValidate);
     // Commit hash validation no es bloqueante, solo warning
     if (!commitHashOk) {
       console.log('');
@@ -308,7 +311,7 @@ async function main() {
       console.log('');
     }
   } else {
-    console.log('⚠️ No se pudo validar commit hash (deploy info no disponible)');
+    console.log('⚠️ No se pudo validar commit hash (no disponible en /health ni /api/deploy/info)');
     console.log('');
   }
 
