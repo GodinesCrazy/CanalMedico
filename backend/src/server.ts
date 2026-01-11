@@ -387,9 +387,9 @@ async function startServer() {
     logger.info('[BOOT] Starting CanalMedico backend...');
     logger.info(`[BOOT] NODE_ENV: ${env.NODE_ENV}`);
     
-    // CRÍTICO RAILWAY: PORT debe venir de process.env.PORT (Railway lo asigna dinámicamente)
-    // Si no está, usar env.PORT (default 3000 para desarrollo)
-    const port = process.env.PORT ? parseInt(process.env.PORT, 10) : (env.PORT || 3000);
+    // CRÍTICO RAILWAY: PORT debe venir SIEMPRE de process.env.PORT (Railway lo asigna dinámicamente)
+    // NO usar env.PORT ni valores hardcodeados - Railway asigna el puerto automáticamente
+    const port = Number(process.env.PORT) || 3000;
     
     if (!port || isNaN(port) || port <= 0) {
       const errorMsg = `Invalid PORT: ${port}. PORT must be a positive number.`;
@@ -399,8 +399,8 @@ async function startServer() {
     }
     
     const deployInfo = getDeployInfoSync();
-    console.log(`[BOOT] PORT env detected: ${process.env.PORT || 'not set'}`);
-    console.log(`[BOOT] Using port: ${port}`);
+    console.log(`[BOOT] PORT env = ${process.env.PORT || 'not set (using 3000)'}`);
+    console.log(`[BOOT] Listening on 0.0.0.0:${port}`);
     console.log(`[BOOT] Version: ${deployInfo.version}`);
     console.log(`[BOOT] Commit: ${deployInfo.commitHash}`);
     console.log(`[BOOT] Health route mounted at /health`);
