@@ -1,15 +1,46 @@
+// ============================================================================
+// LOGS ULTRA TEMPRANOS (ANTES de imports pesados)
+// ============================================================================
+console.log('='.repeat(60));
+console.log('[BOOT] Starting CanalMedico backend...');
+console.log(`[BOOT] Node version: ${process.version}`);
+console.log(`[BOOT] Platform: ${process.platform}`);
+console.log(`[BOOT] PID: ${process.pid}`);
+console.log(`[BOOT] PORT env: ${process.env.PORT || 'not set'}`);
+console.log('='.repeat(60));
+
 import express, { Application } from 'express';
+import { createServer } from 'http';
+
+// ============================================================================
+// CRÍTICO: Crear app y server ANTES de importar env.ts (que puede hacer process.exit)
+// ============================================================================
+const app: Application = express();
+const httpServer = createServer(app);
+
+// ============================================================================
+// /healthz ULTRA MÍNIMO (ANTES de cualquier import pesado que pueda fallar)
+// ============================================================================
+// Este endpoint DEBE estar disponible incluso si env.ts falla
+app.get('/healthz', (_req, res) => {
+  res.status(200).json({ ok: true, status: 'ok' });
+});
+console.log('[BOOT] Healthz route mounted at /healthz (ultra minimal, before env load)');
+
+// Ahora importar el resto (env puede hacer process.exit, pero /healthz ya está montado)
+import path from 'path';
+import fs from 'fs';
+import { execSync } from 'child_process';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import morgan from 'morgan';
-import { createServer } from 'http';
-import path from 'path';
-import fs from 'fs';
-import { execSync } from 'child_process';
 import swaggerUi from 'swagger-ui-express';
 import swaggerJsdoc from 'swagger-jsdoc';
 
+// CRÍTICO: Importar env.ts - puede hacer process.exit(1) si falla
+// Si env.ts falla, el proceso muere ANTES de que el servidor pueda iniciar
+// Por eso /healthz está montado ANTES de este import
 import env from '@/config/env';
 import logger from '@/config/logger';
 import prisma from '@/database/prisma';
@@ -32,9 +63,6 @@ import snreRoutes from '@/modules/snre/snre.routes';
 
 // Socket service
 import socketService from '@/modules/chats/socket.service';
-
-const app: Application = express();
-const httpServer = createServer(app);
 
 // ============================================================================
 // ESTADO GLOBAL DE SALUD DEL SISTEMA (para /health endpoint)
