@@ -85,34 +85,55 @@ function getDeployInfoSync() {
 }
 
 // ============================================================================
+// CRÍTICO RAILWAY: /healthz debe estar PRIMERO (ultra mínimo, sin dependencias)
+// ============================================================================
+// Healthz check ULTRA MÍNIMO - DEBE responder instantáneamente sin ninguna lógica
+// Railway hace healthcheck inmediatamente, NO puede esperar nada
+app.get('/healthz', (_req, res) => {
+  res.status(200).json({ ok: true, status: 'ok' });
+});
+
+// ============================================================================
 // CRÍTICO RAILWAY: /health debe estar ANTES de middlewares pesados
 // ============================================================================
 // Health check - DEBE responder instantáneamente incluso si DB está caída
 // Railway hace healthcheck ANTES de que el servidor termine de iniciar
 app.get('/health', (_req, res) => {
-  const deployInfo = getDeployInfoSync();
-  const uptime = Math.floor((Date.now() - systemHealth.startTime) / 1000);
-  
-  systemHealth.uptime = uptime;
-  
-  // Siempre responder 200, pero indicar si está degraded
-  res.status(200).json({
-    ok: true,
-    status: systemHealth.status === 'initializing' ? 'ok' : systemHealth.status,
-    timestamp: new Date().toISOString(),
-    uptime: `${uptime}s`,
-    environment: env.NODE_ENV,
-    version: deployInfo.version,
-    commit: deployInfo.commitHash,
-    services: {
-      database: systemHealth.dbConnected ? 'connected' : 'disconnected',
-      migrations: systemHealth.migrationsRun ? 'completed' : 'pending',
-    },
-  });
+  try {
+    const deployInfo = getDeployInfoSync();
+    const uptime = Math.floor((Date.now() - systemHealth.startTime) / 1000);
+    
+    systemHealth.uptime = uptime;
+    
+    // Siempre responder 200, pero indicar si está degraded
+    res.status(200).json({
+      ok: true,
+      status: systemHealth.status === 'initializing' ? 'ok' : systemHealth.status,
+      timestamp: new Date().toISOString(),
+      uptime: `${uptime}s`,
+      environment: env.NODE_ENV || 'unknown',
+      version: deployInfo.version,
+      commit: deployInfo.commitHash,
+      services: {
+        database: systemHealth.dbConnected ? 'connected' : 'disconnected',
+        migrations: systemHealth.migrationsRun ? 'completed' : 'pending',
+      },
+    });
+  } catch (error: any) {
+    // Si /health falla, responder 200 de todas formas (degraded mode)
+    res.status(200).json({
+      ok: true,
+      status: 'degraded',
+      timestamp: new Date().toISOString(),
+      error: 'Health check error',
+    });
+  }
 });
 
 // Log inmediato para Railway logs (usar console.log además de logger)
+console.log('[BOOT] Healthz route mounted at /healthz');
 console.log('[BOOT] Health route mounted at /health');
+logger.info('[BOOT] Healthz route mounted at /healthz');
 logger.info('[BOOT] Health route mounted at /health');
 
 // Swagger configuration
