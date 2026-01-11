@@ -22,6 +22,8 @@ const httpServer = createServer(app);
 // /healthz ULTRA MÍNIMO (ANTES de cualquier import pesado que pueda fallar)
 // ============================================================================
 // Este endpoint DEBE estar disponible incluso si env.ts falla
+// Railway hace healthcheck a /healthz (NO /health)
+// Responde mínimo para evitar dependencias, pero responde 200 siempre
 app.get('/healthz', (_req, res) => {
   res.status(200).json({ ok: true, status: 'ok' });
 });
