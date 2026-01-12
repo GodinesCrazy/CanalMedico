@@ -397,27 +397,25 @@ async function startServer() {
     logger.info('[BOOT] Starting CanalMedico backend...');
     logger.info(`[BOOT] NODE_ENV: ${env.NODE_ENV}`);
     
-    // CRÍTICO RAILWAY: PORT debe venir SIEMPRE de process.env.PORT (Railway lo asigna dinámicamente)
-    // Fallback a 8080 para compatibilidad con Railway Public Networking
-    const primaryPort = Number(process.env.PORT) || 8080;
-    const fallbackPort = 8080;
-    
-    if (!primaryPort || isNaN(primaryPort) || primaryPort <= 0) {
-      const errorMsg = `Invalid PORT: ${primaryPort}. PORT must be a positive number.`;
+    // CRÍTICO RAILWAY: PORT y HOST son constantes globales definidas arriba
+    // PORT = Number(process.env.PORT) || 8080
+    // HOST = '0.0.0.0'
+    if (!PORT || isNaN(PORT) || PORT <= 0) {
+      const errorMsg = `Invalid PORT: ${PORT}. PORT must be a positive number.`;
       console.error(`[BOOT] ${errorMsg}`);
-      logger.error(`[BOOT] Invalid PORT: ${primaryPort}`);
+      logger.error(`[BOOT] Invalid PORT: ${PORT}`);
       throw new Error(errorMsg);
     }
     
     const deployInfo = getDeployInfoSync();
     console.log(`[BOOT] env PORT = ${process.env.PORT || 'not set'}`);
-    console.log(`[BOOT] primaryPort = ${primaryPort}`);
-    console.log(`[BOOT] fallbackPort = ${fallbackPort}`);
+    console.log(`[BOOT] Using PORT = ${PORT}`);
+    console.log(`[BOOT] Using HOST = ${HOST}`);
     console.log(`[BOOT] Version: ${deployInfo.version}`);
     console.log(`[BOOT] Commit: ${deployInfo.commitHash}`);
     console.log(`[BOOT] Health route mounted at /health`);
     logger.info(`[BOOT] PORT env detected: ${process.env.PORT || 'not set'}`);
-    logger.info(`[BOOT] primaryPort = ${primaryPort}, fallbackPort = ${fallbackPort}`);
+    logger.info(`[BOOT] Using PORT = ${PORT}, HOST = ${HOST}`);
     logger.info(`[BOOT] Version: ${deployInfo.version}`);
     logger.info(`[BOOT] Commit: ${deployInfo.commitHash}`);
     logger.info(`[BOOT] Health route mounted at /health`);
@@ -430,46 +428,8 @@ async function startServer() {
     // ============================================================================
     
     return new Promise<void>((resolve, reject) => {
-      let fallbackServer: any = null;
-      let primaryListening = false;
-      let fallbackListening = false;
-      
-      // Listen en primaryPort (Railway)
-      httpServer.listen(primaryPort, '0.0.0.0', () => {
-        primaryListening = true;
-        console.log(`[BOOT] Listening primary on 0.0.0.0:${primaryPort}`);
-        logger.info(`[BOOT] Listening primary on 0.0.0.0:${primaryPort}`);
-        
-        // Si primaryPort != 8080, también escuchar en 8080 (fallback para Railway Public Networking)
-        if (primaryPort !== fallbackPort) {
-          fallbackServer = createServer(app);
-          fallbackServer.listen(fallbackPort, '0.0.0.0', () => {
-            fallbackListening = true;
-            console.log(`[BOOT] Listening fallback on 0.0.0.0:${fallbackPort}`);
-            logger.info(`[BOOT] Listening fallback on 0.0.0.0:${fallbackPort}`);
-            onServersReady();
-          });
-          
-          fallbackServer.on('error', (error: any) => {
-            if (error.code === 'EADDRINUSE') {
-              console.warn(`[BOOT] Fallback port ${fallbackPort} already in use (primary port ${primaryPort} is active)`);
-              logger.warn(`[BOOT] Fallback port ${fallbackPort} already in use`);
-              // No rechazar si el puerto principal está activo
-              if (primaryListening) {
-                onServersReady();
-              }
-            } else {
-              console.error(`[BOOT] Fallback server error:`, error);
-              logger.error(`[BOOT] Fallback server error:`, error);
-            }
-          });
-        } else {
-          // Si primaryPort == 8080, solo un servidor
-          onServersReady();
-        }
-      });
-      
-      function onServersReady() {
+      // CRÍTICO: Listen INMEDIATAMENTE en PORT y HOST (constantes globales)
+      httpServer.listen(PORT, HOST, () => {
         // CRÍTICO: Estos logs DEBEN aparecer inmediatamente para Railway
         const deployInfoFinal = getDeployInfoSync();
         console.log('='.repeat(60));
@@ -478,7 +438,7 @@ async function startServer() {
         console.log(`[DEPLOY] Version: ${deployInfoFinal.version}`);
         console.log(`[DEPLOY] Environment: ${env.NODE_ENV}`);
         console.log('='.repeat(60));
-        console.log(`[BOOT] Server listening on 0.0.0.0:${primaryPort}${fallbackListening ? ` and 0.0.0.0:${fallbackPort}` : ''}`);
+        console.log(`[BOOT] Server listening on ${HOST}:${PORT}`);
         console.log(`[BOOT] Health endpoints ready: /healthz /health`);
         console.log(`[BOOT] Uptime: 0s`);
         console.log('='.repeat(60));
@@ -488,7 +448,7 @@ async function startServer() {
         logger.info(`[DEPLOY] Version: ${deployInfoFinal.version}`);
         logger.info(`[DEPLOY] Environment: ${env.NODE_ENV}`);
         logger.info('='.repeat(60));
-        logger.info(`[BOOT] Server listening on 0.0.0.0:${primaryPort}${fallbackListening ? ` and 0.0.0.0:${fallbackPort}` : ''}`);
+        logger.info(`[BOOT] Server listening on ${HOST}:${PORT}`);
         logger.info(`[BOOT] Health endpoints ready: /healthz /health`);
         logger.info('='.repeat(60));
         
@@ -514,14 +474,14 @@ async function startServer() {
             logger.warn('[INIT] Server is running in DEGRADED mode - /healthz and /health still work');
             resolve();
           });
-      }
+      });
       
       httpServer.on('error', (error: any) => {
-        console.error('[BOOT] Primary server listen error:', error);
-        logger.error('[BOOT] Primary server listen error:', error);
+        console.error('[BOOT] Server listen error:', error);
+        logger.error('[BOOT] Server listen error:', error);
         if (error.code === 'EADDRINUSE') {
-          console.error(`[BOOT] Primary port ${primaryPort} is already in use`);
-          logger.error(`[BOOT] Primary port ${primaryPort} is already in use`);
+          console.error(`[BOOT] Port ${PORT} is already in use`);
+          logger.error(`[BOOT] Port ${PORT} is already in use`);
         }
         reject(error);
       });
