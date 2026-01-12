@@ -123,15 +123,6 @@ function getDeployInfoSync() {
 }
 
 // ============================================================================
-// CRÍTICO RAILWAY: /healthz debe estar PRIMERO (ultra mínimo, sin dependencias)
-// ============================================================================
-// Healthz check ULTRA MÍNIMO - DEBE responder instantáneamente sin ninguna lógica
-// Railway hace healthcheck inmediatamente, NO puede esperar nada
-app.get('/healthz', (_req, res) => {
-  res.status(200).json({ ok: true, status: 'ok' });
-});
-
-// ============================================================================
 // CRÍTICO RAILWAY: /health debe estar ANTES de middlewares pesados
 // ============================================================================
 // Health check - DEBE responder instantáneamente incluso si DB está caída
