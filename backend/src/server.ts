@@ -168,11 +168,41 @@ app.get('/health', (_req, res) => {
   }
 });
 
+// ============================================================================
+// CRÍTICO RAILWAY: /deploy-info endpoint (evidencia de commit desplegado)
+// ============================================================================
+// Endpoint para verificar qué commit está desplegado en Railway
+app.get('/deploy-info', (_req, res) => {
+  try {
+    const deployInfo = getDeployInfoSync();
+    res.status(200).json({
+      ok: true,
+      version: deployInfo.version,
+      commit: deployInfo.commitHash,
+      timestamp: new Date().toISOString(),
+      port: process.env.PORT || 'not set',
+      node: process.version,
+    });
+  } catch (error: any) {
+    res.status(200).json({
+      ok: true,
+      version: '1.0.1',
+      commit: 'unknown',
+      timestamp: new Date().toISOString(),
+      port: process.env.PORT || 'not set',
+      node: process.version,
+      error: 'Error getting deploy info',
+    });
+  }
+});
+
 // Log inmediato para Railway logs (usar console.log además de logger)
 console.log('[BOOT] Healthz route mounted at /healthz');
 console.log('[BOOT] Health route mounted at /health');
+console.log('[BOOT] Deploy-info route mounted at /deploy-info');
 logger.info('[BOOT] Healthz route mounted at /healthz');
 logger.info('[BOOT] Health route mounted at /health');
+logger.info('[BOOT] Deploy-info route mounted at /deploy-info');
 
 // Swagger configuration
 const swaggerOptions: swaggerJsdoc.Options = {
@@ -411,13 +441,15 @@ async function startServer() {
     console.log(`[BOOT] env PORT = ${process.env.PORT || 'not set'}`);
     console.log(`[BOOT] Using PORT = ${PORT}`);
     console.log(`[BOOT] Using HOST = ${HOST}`);
-    console.log(`[BOOT] Version: ${deployInfo.version}`);
-    console.log(`[BOOT] Commit: ${deployInfo.commitHash}`);
+    console.log(`[DEPLOY] Version: ${deployInfo.version}`);
+    console.log(`[DEPLOY] Commit: ${deployInfo.commitHash}`);
+    console.log(`[DEPLOY] NODE_ENV: ${env.NODE_ENV || 'not set'}`);
     console.log(`[BOOT] Health route mounted at /health`);
     logger.info(`[BOOT] PORT env detected: ${process.env.PORT || 'not set'}`);
     logger.info(`[BOOT] Using PORT = ${PORT}, HOST = ${HOST}`);
-    logger.info(`[BOOT] Version: ${deployInfo.version}`);
-    logger.info(`[BOOT] Commit: ${deployInfo.commitHash}`);
+    logger.info(`[DEPLOY] Version: ${deployInfo.version}`);
+    logger.info(`[DEPLOY] Commit: ${deployInfo.commitHash}`);
+    logger.info(`[DEPLOY] NODE_ENV: ${env.NODE_ENV || 'not set'}`);
     logger.info(`[BOOT] Health route mounted at /health`);
     console.log('='.repeat(60));
     logger.info('='.repeat(60));
