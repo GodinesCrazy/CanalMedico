@@ -34,3 +34,7 @@ backend/prisma/migrations/
 app-mobile/.expo/
 app-mobile/dist/
 
+# Executables
+*.exe
+/Zoom_*.exe
+
