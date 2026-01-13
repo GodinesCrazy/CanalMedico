@@ -163,26 +163,24 @@ app.get('/health', (_req, res) => {
 // CRÍTICO RAILWAY: /deploy-info endpoint (evidencia de commit desplegado)
 // ============================================================================
 // Endpoint para verificar qué commit está desplegado en Railway
+// Formato requerido: { ok, version, commitHash, environment, timestamp }
 app.get('/deploy-info', (_req, res) => {
   try {
     const deployInfo = getDeployInfoSync();
     res.status(200).json({
       ok: true,
       version: deployInfo.version,
-      commit: deployInfo.commitHash,
+      commitHash: deployInfo.commitHash,
+      environment: env.NODE_ENV || 'unknown',
       timestamp: new Date().toISOString(),
-      port: process.env.PORT || 'not set',
-      node: process.version,
     });
   } catch (error: any) {
     res.status(200).json({
       ok: true,
       version: '1.0.1',
-      commit: 'unknown',
+      commitHash: 'unknown',
+      environment: process.env.NODE_ENV || 'unknown',
       timestamp: new Date().toISOString(),
-      port: process.env.PORT || 'not set',
-      node: process.version,
-      error: 'Error getting deploy info',
     });
   }
 });
@@ -191,9 +189,11 @@ app.get('/deploy-info', (_req, res) => {
 console.log('[BOOT] Healthz route mounted at /healthz');
 console.log('[BOOT] Health route mounted at /health');
 console.log('[BOOT] Deploy-info route mounted at /deploy-info');
+console.log('[BOOT] All health endpoints ready before heavy initialization');
 logger.info('[BOOT] Healthz route mounted at /healthz');
 logger.info('[BOOT] Health route mounted at /health');
 logger.info('[BOOT] Deploy-info route mounted at /deploy-info');
+logger.info('[BOOT] All health endpoints ready before heavy initialization');
 
 // Swagger configuration
 const swaggerOptions: swaggerJsdoc.Options = {
