@@ -128,7 +128,7 @@ function getDeployInfoSync() {
 // Health check - DEBE responder instantáneamente incluso si DB está caída
 // Railway hace healthcheck ANTES de que el servidor termine de iniciar
 // NO usar env.NODE_ENV para evitar dependencia de env.ts
-app.get('/health', (_req, res) => {
+const healthHandler = (_req: any, res: any) => {
   try {
     const deployInfo = getDeployInfoSync();
     const uptime = Math.floor((Date.now() - systemHealth.startTime) / 1000);
@@ -158,7 +158,11 @@ app.get('/health', (_req, res) => {
       error: 'Health check error',
     });
   }
-});
+};
+
+// Montar /health y /healthcheck (alias) para blindar healthcheck Railway
+app.get('/health', healthHandler);
+app.get('/healthcheck', healthHandler);
 
 // ============================================================================
 // CRÍTICO RAILWAY: /deploy-info endpoint (evidencia de commit desplegado)
@@ -189,10 +193,12 @@ app.get('/deploy-info', (_req, res) => {
 // Log inmediato para Railway logs (usar console.log además de logger)
 console.log('[BOOT] Healthz route mounted at /healthz');
 console.log('[BOOT] Health route mounted at /health');
+console.log('[BOOT] Healthcheck route mounted at /healthcheck (alias)');
 console.log('[BOOT] Deploy-info route mounted at /deploy-info');
 console.log('[BOOT] All health endpoints ready before heavy initialization');
 logger.info('[BOOT] Healthz route mounted at /healthz');
 logger.info('[BOOT] Health route mounted at /health');
+logger.info('[BOOT] Healthcheck route mounted at /healthcheck (alias)');
 logger.info('[BOOT] Deploy-info route mounted at /deploy-info');
 logger.info('[BOOT] All health endpoints ready before heavy initialization');
 
