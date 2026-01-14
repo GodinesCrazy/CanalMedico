@@ -59,16 +59,34 @@ let serverListening = false;
 if (process.env.PORT) {
   const earlyPort = Number(process.env.PORT);
   if (earlyPort && !isNaN(earlyPort) && earlyPort > 0) {
-    try {
-      httpServer.listen(earlyPort, HOST, () => {
-        serverListening = true;
-        console.log(`[BOOT] Early listen on 0.0.0.0:${earlyPort} (before env.ts load)`);
-        console.log('[BOOT] Healthz endpoint ready: /healthz');
-      });
-    } catch (error: any) {
-      console.error('[BOOT] Early listen failed (will retry in startServer):', error?.message || error);
-    }
+    // CRÍTICO: listen() es asíncrono pero inicia inmediatamente
+    // El servidor puede recibir requests incluso antes del callback
+    // Pero marcamos serverListening = true en el callback para confirmar que está listo
+    httpServer.listen(earlyPort, HOST, () => {
+      serverListening = true;
+      console.log(`[BOOT] Early listen on 0.0.0.0:${earlyPort} (before env.ts load)`);
+      console.log('[BOOT] Healthz endpoint ready: /healthz');
+      console.log('[BOOT] Server is now accepting connections');
+    });
+    
+    // Manejar errores de listen (ej: puerto en uso)
+    httpServer.on('error', (error: any) => {
+      if (error.code === 'EADDRINUSE') {
+        console.error(`[BOOT] Port ${earlyPort} is already in use (early listen)`);
+        console.error('[BOOT] Will retry in startServer()');
+      } else {
+        console.error('[BOOT] Early listen error:', error?.message || error);
+      }
+      // No hacer process.exit aquí - startServer() intentará de nuevo
+    });
+    
+    // Log inmediato para confirmar que listen() fue llamado
+    console.log(`[BOOT] Early listen() called on 0.0.0.0:${earlyPort} (callback pending)`);
+  } else {
+    console.error(`[BOOT] Invalid PORT for early listen: ${process.env.PORT}`);
   }
+} else {
+  console.error('[BOOT] PORT not set - early listen skipped (will fail in startServer)');
 }
 
 // Ahora importar el resto (env puede hacer process.exit, pero /healthz ya está montado)
