@@ -246,8 +246,8 @@ console.log(`[BOOT] PORT env: ${process.env.PORT || 'NOT SET (will fail)'}`);
 
 ### Commit del Fix
 
-**Commit hash:** `[PENDIENTE - se generará al hacer commit]`  
-**Mensaje:** `fix(railway): align port + healthcheck for Railway networking - PORT obligatorio sin fallback`
+**Commit hash:** `9169ea6`  
+**Mensaje:** `fix(railway): align port + healthcheck for Railway networking`
 
 ### Verificación Local Exitosa
 
