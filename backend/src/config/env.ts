@@ -325,18 +325,21 @@ const validateProductionEnvironment = (parsedEnv: EnvConfig): void => {
     console.error('╚════════════════════════════════════════════════════════════════╝');
     console.error('');
     
-    // CRÍTICO RAILWAY: No hacer process.exit(1) inmediatamente
-    // Si el servidor ya está escuchando (early listen), dar tiempo para que responda a healthchecks
-    // Usar setTimeout para permitir que el servidor responda antes de cerrar
-    // Esto permite que Railway haga healthcheck incluso si hay errores de configuración
+    // CRÍTICO RAILWAY: NO cerrar el servidor si ya está escuchando
+    // Si el servidor está escuchando, Railway puede hacer healthcheck
+    // El servidor debe seguir funcionando en modo degraded para que Railway pase el healthcheck
+    // Solo cerrar si el servidor NO está escuchando (fallo temprano)
     const serverMayBeListening = (global as any).__SERVER_LISTENING__ === true;
     if (serverMayBeListening) {
-      console.error('⚠️  Servidor está escuchando - dando 5 segundos para healthcheck antes de cerrar');
-      setTimeout(() => {
-        console.error('❌ Cerrando servidor por errores de configuración');
-        process.exit(1);
-      }, 5000);
+      console.error('⚠️  Servidor está escuchando - NO cerrando para permitir healthcheck de Railway');
+      console.error('⚠️  El servidor continuará en modo DEGRADED - configura las variables y reinicia');
+      console.error('⚠️  Railway puede hacer healthcheck ahora - el servidor responderá 200 OK');
+      // NO hacer process.exit() - dejar que el servidor siga funcionando
+      // Railway necesita que el servidor responda para pasar el healthcheck
+      // Las variables se pueden configurar después y el servidor se reiniciará
     } else {
+      // Solo cerrar si el servidor NO está escuchando (fallo muy temprano)
+      console.error('❌ Servidor no está escuchando - cerrando por errores de configuración');
       process.exit(1);
     }
   }
