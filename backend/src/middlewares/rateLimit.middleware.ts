@@ -1,4 +1,5 @@
 import rateLimit from 'express-rate-limit';
+import { Request } from 'express';
 import env from '@/config/env';
 
 export const generalRateLimiter = rateLimit({
@@ -7,6 +8,16 @@ export const generalRateLimiter = rateLimit({
   message: 'Demasiadas solicitudes desde esta IP, intenta de nuevo más tarde.',
   standardHeaders: true,
   legacyHeaders: false,
+  // CRÍTICO RAILWAY: Excluir endpoints de healthcheck del rate limiting
+  // Railway hace healthchecks frecuentes y no deben ser bloqueados
+  skip: (req: Request) => {
+    const path = req.path;
+    // Excluir todos los endpoints de healthcheck
+    return path === '/health' || 
+           path === '/healthcheck' || 
+           path === '/healthz' || 
+           path === '/deploy-info';
+  },
 });
 
 export const authRateLimiter = rateLimit({
