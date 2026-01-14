@@ -325,7 +325,20 @@ const validateProductionEnvironment = (parsedEnv: EnvConfig): void => {
     console.error('╚════════════════════════════════════════════════════════════════╝');
     console.error('');
     
-    process.exit(1);
+    // CRÍTICO RAILWAY: No hacer process.exit(1) inmediatamente
+    // Si el servidor ya está escuchando (early listen), dar tiempo para que responda a healthchecks
+    // Usar setTimeout para permitir que el servidor responda antes de cerrar
+    // Esto permite que Railway haga healthcheck incluso si hay errores de configuración
+    const serverMayBeListening = (global as any).__SERVER_LISTENING__ === true;
+    if (serverMayBeListening) {
+      console.error('⚠️  Servidor está escuchando - dando 5 segundos para healthcheck antes de cerrar');
+      setTimeout(() => {
+        console.error('❌ Cerrando servidor por errores de configuración');
+        process.exit(1);
+      }, 5000);
+    } else {
+      process.exit(1);
+    }
   }
 };
 

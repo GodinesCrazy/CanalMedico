@@ -63,6 +63,9 @@ if (process.env.PORT) {
     // CRÍTICO: listen() inicia el servidor inmediatamente
     // El servidor puede recibir requests incluso antes del callback
     // En Node.js, listen() es asíncrono pero el servidor empieza a escuchar de inmediato
+    // Marcar globalmente que el servidor está escuchando para que env.ts lo sepa
+    (global as any).__SERVER_LISTENING__ = true;
+    
     httpServer.listen(earlyPort, HOST, () => {
       serverListening = true;
       console.log(`[BOOT] Early listen on 0.0.0.0:${earlyPort} (before env.ts load)`);
