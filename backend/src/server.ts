@@ -6,7 +6,7 @@ console.log('[BOOT] Starting CanalMedico backend...');
 console.log(`[BOOT] Node version: ${process.version}`);
 console.log(`[BOOT] Platform: ${process.platform}`);
 console.log(`[BOOT] PID: ${process.pid}`);
-console.log(`[BOOT] PORT env: ${process.env.PORT || 'not set'}`);
+console.log(`[BOOT] PORT env: ${process.env.PORT || 'NOT SET (will fail)'}`);
 console.log('='.repeat(60));
 
 import express, { Application } from 'express';
@@ -21,9 +21,20 @@ const httpServer = createServer(app);
 // ============================================================================
 // CONSTANTES GLOBALES DE CONFIGURACIÓN (Railway-safe)
 // ============================================================================
-// PORT: Railway asigna dinámicamente via process.env.PORT, fallback a 8080
+// PORT: Railway asigna dinámicamente via process.env.PORT (OBLIGATORIO)
 // HOST: 0.0.0.0 para escuchar en todas las interfaces (requerido para Railway)
-const PORT = Number(process.env.PORT) || 8080;
+// CRÍTICO: PORT es OBLIGATORIO - Railway siempre asigna PORT, no usar fallback
+if (!process.env.PORT) {
+  const errorMsg = '[BOOT] FATAL: PORT environment variable is required. Railway must assign PORT.';
+  console.error(errorMsg);
+  throw new Error(errorMsg);
+}
+const PORT = Number(process.env.PORT);
+if (!PORT || isNaN(PORT) || PORT <= 0) {
+  const errorMsg = `[BOOT] FATAL: Invalid PORT value: ${process.env.PORT}. PORT must be a positive number.`;
+  console.error(errorMsg);
+  throw new Error(errorMsg);
+}
 const HOST = '0.0.0.0';
 
 // ============================================================================
@@ -418,17 +429,19 @@ async function runMigrations() {
 async function startServer() {
   try {
     // CRÍTICO RAILWAY: PORT y HOST son constantes globales definidas arriba
-    // PORT = Number(process.env.PORT) || 8080
+    // PORT ya fue validado al inicio del archivo (obligatorio, sin fallback)
     // HOST = '0.0.0.0'
+    // Validación redundante (defensa en profundidad)
     if (!PORT || isNaN(PORT) || PORT <= 0) {
-      const errorMsg = `Invalid PORT: ${PORT}. PORT must be a positive number.`;
-      console.error(`[BOOT] ${errorMsg}`);
-      logger.error(`[BOOT] Invalid PORT: ${PORT}`);
+      const errorMsg = `[BOOT] FATAL: Invalid PORT: ${PORT}. PORT must be a positive number.`;
+      console.error(errorMsg);
+      logger.error(errorMsg);
       throw new Error(errorMsg);
     }
     
     // Logs obligatorios [BOOT] según formato requerido
-    console.log(`[BOOT] PORT env=${process.env.PORT || 'not set'}`);
+    console.log(`[BOOT] PORT env=${process.env.PORT}`);
+    console.log(`[BOOT] Using port: ${PORT}`);
     console.log('[BOOT] Starting HTTP server...');
 
     // ============================================================================
