@@ -48,6 +48,29 @@ app.get('/healthz', (_req, res) => {
 });
 console.log('[BOOT] Healthz route mounted at /healthz (ultra minimal, before env load)');
 
+// ============================================================================
+// CRÍTICO RAILWAY: Hacer listen() INMEDIATAMENTE después de /healthz
+// ============================================================================
+// El servidor DEBE estar escuchando ANTES de importar env.ts (que puede hacer process.exit)
+// Esto garantiza que /healthz responde incluso si env.ts falla
+// Usar process.env.PORT directamente (Railway siempre lo asigna)
+// Variable global para indicar que el servidor ya está escuchando
+let serverListening = false;
+if (process.env.PORT) {
+  const earlyPort = Number(process.env.PORT);
+  if (earlyPort && !isNaN(earlyPort) && earlyPort > 0) {
+    try {
+      httpServer.listen(earlyPort, HOST, () => {
+        serverListening = true;
+        console.log(`[BOOT] Early listen on 0.0.0.0:${earlyPort} (before env.ts load)`);
+        console.log('[BOOT] Healthz endpoint ready: /healthz');
+      });
+    } catch (error: any) {
+      console.error('[BOOT] Early listen failed (will retry in startServer):', error?.message || error);
+    }
+  }
+}
+
 // Ahora importar el resto (env puede hacer process.exit, pero /healthz ya está montado)
 import path from 'path';
 import fs from 'fs';
@@ -442,6 +465,41 @@ async function startServer() {
     // Logs obligatorios [BOOT] según formato requerido
     console.log(`[BOOT] PORT env=${process.env.PORT}`);
     console.log(`[BOOT] Using port: ${PORT}`);
+    
+    // Si el servidor ya está escuchando (early listen), solo continuar con inicialización
+    if (serverListening) {
+      console.log('[BOOT] Server already listening (early listen succeeded)');
+      console.log('[BOOT] Health endpoint ready: /health');
+      logger.info(`[BOOT] Server already listening on ${HOST}:${PORT}`);
+      logger.info('[BOOT] Health endpoint ready: /health');
+      
+      // Inicializar Socket.io DESPUÉS de listen()
+      try {
+        socketService.initialize(httpServer);
+        logger.info('[BOOT] Socket.io initialized');
+      } catch (socketError: any) {
+        console.error('[BOOT] Socket.io initialization failed (non-blocking):', socketError?.message || socketError);
+        logger.error('[BOOT] Socket.io initialization failed (non-blocking):', socketError?.message || socketError);
+      }
+      
+      // Ejecutar inicialización en background
+      console.log('[BOOT] Background init started');
+      initializeBackend()
+        .then(() => {
+          console.log('[BOOT] Background init OK');
+          logger.info('[BOOT] Background initialization completed');
+        })
+        .catch((error: any) => {
+          systemHealth.status = 'degraded';
+          console.error(`[BOOT] Background init FAIL: ${error?.message || error}`);
+          logger.error('[BOOT] Background initialization failed (running in degraded mode):', error?.message || error);
+          console.warn('[BOOT] Server is running in DEGRADED mode - /health still works');
+          logger.warn('[BOOT] Server is running in DEGRADED mode - /health still works');
+        });
+      
+      return Promise.resolve();
+    }
+    
     console.log('[BOOT] Starting HTTP server...');
 
     // ============================================================================
