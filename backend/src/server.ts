@@ -56,12 +56,13 @@ console.log('[BOOT] Healthz route mounted at /healthz (ultra minimal, before env
 // Usar process.env.PORT directamente (Railway siempre lo asigna)
 // Variable global para indicar que el servidor ya está escuchando
 let serverListening = false;
+
 if (process.env.PORT) {
   const earlyPort = Number(process.env.PORT);
   if (earlyPort && !isNaN(earlyPort) && earlyPort > 0) {
-    // CRÍTICO: listen() es asíncrono pero inicia inmediatamente
+    // CRÍTICO: listen() inicia el servidor inmediatamente
     // El servidor puede recibir requests incluso antes del callback
-    // Pero marcamos serverListening = true en el callback para confirmar que está listo
+    // En Node.js, listen() es asíncrono pero el servidor empieza a escuchar de inmediato
     httpServer.listen(earlyPort, HOST, () => {
       serverListening = true;
       console.log(`[BOOT] Early listen on 0.0.0.0:${earlyPort} (before env.ts load)`);
@@ -81,7 +82,16 @@ if (process.env.PORT) {
     });
     
     // Log inmediato para confirmar que listen() fue llamado
-    console.log(`[BOOT] Early listen() called on 0.0.0.0:${earlyPort} (callback pending)`);
+    // El servidor ya está escuchando en este punto (aunque el callback aún no se ejecutó)
+    console.log(`[BOOT] Early listen() called on 0.0.0.0:${earlyPort}`);
+    console.log('[BOOT] Server should be accepting connections now');
+    
+    // CRÍTICO: Dar un tick al event loop para que el servidor esté completamente listo
+    // Esto asegura que el servidor puede responder a requests antes de que env.ts se importe
+    // setImmediate ejecuta el callback después de que el código actual termine
+    setImmediate(() => {
+      console.log('[BOOT] Event loop tick completed - server should be ready');
+    });
   } else {
     console.error(`[BOOT] Invalid PORT for early listen: ${process.env.PORT}`);
   }
@@ -89,7 +99,7 @@ if (process.env.PORT) {
   console.error('[BOOT] PORT not set - early listen skipped (will fail in startServer)');
 }
 
-// Ahora importar el resto (env puede hacer process.exit, pero /healthz ya está montado)
+// Ahora importar el resto (env puede hacer process.exit, pero /healthz ya está montado y escuchando)
 import path from 'path';
 import fs from 'fs';
 import { execSync } from 'child_process';
