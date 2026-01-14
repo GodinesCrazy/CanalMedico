@@ -127,6 +127,7 @@ function getDeployInfoSync() {
 // ============================================================================
 // Health check - DEBE responder instantáneamente incluso si DB está caída
 // Railway hace healthcheck ANTES de que el servidor termine de iniciar
+// NO usar env.NODE_ENV para evitar dependencia de env.ts
 app.get('/health', (_req, res) => {
   try {
     const deployInfo = getDeployInfoSync();
@@ -140,7 +141,7 @@ app.get('/health', (_req, res) => {
       status: systemHealth.status === 'initializing' ? 'ok' : systemHealth.status,
       timestamp: new Date().toISOString(),
       uptime: `${uptime}s`,
-      environment: env.NODE_ENV || 'unknown',
+      environment: process.env.NODE_ENV || 'unknown',
       version: deployInfo.version,
       commit: deployInfo.commitHash,
       services: {
@@ -332,8 +333,8 @@ import { startPayoutJob } from './jobs/payout.job';
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-// Inicializar Socket.io
-socketService.initialize(httpServer);
+// CRÍTICO: socketService.initialize() se ejecuta DESPUÉS de listen()
+// en startServer() para no bloquear el boot
 
 // Función para ejecutar migraciones
 async function runMigrations() {
@@ -410,14 +411,6 @@ async function runMigrations() {
 // CRÍTICO RAILWAY: listen() DEBE ejecutarse ANTES de lógica pesada para que /health responda
 async function startServer() {
   try {
-    // Logs inmediatos en console.log para Railway logs
-    console.log('='.repeat(60));
-    console.log('[BOOT] Starting CanalMedico backend...');
-    console.log(`[BOOT] NODE_ENV: ${env.NODE_ENV}`);
-    logger.info('='.repeat(60));
-    logger.info('[BOOT] Starting CanalMedico backend...');
-    logger.info(`[BOOT] NODE_ENV: ${env.NODE_ENV}`);
-    
     // CRÍTICO RAILWAY: PORT y HOST son constantes globales definidas arriba
     // PORT = Number(process.env.PORT) || 8080
     // HOST = '0.0.0.0'
@@ -428,22 +421,9 @@ async function startServer() {
       throw new Error(errorMsg);
     }
     
-    const deployInfo = getDeployInfoSync();
-    console.log(`[BOOT] env PORT = ${process.env.PORT || 'not set'}`);
-    console.log(`[BOOT] Using PORT = ${PORT}`);
-    console.log(`[BOOT] Using HOST = ${HOST}`);
-    console.log(`[DEPLOY] Version: ${deployInfo.version}`);
-    console.log(`[DEPLOY] Commit: ${deployInfo.commitHash}`);
-    console.log(`[DEPLOY] NODE_ENV: ${env.NODE_ENV || 'not set'}`);
-    console.log(`[BOOT] Health route mounted at /health`);
-    logger.info(`[BOOT] PORT env detected: ${process.env.PORT || 'not set'}`);
-    logger.info(`[BOOT] Using PORT = ${PORT}, HOST = ${HOST}`);
-    logger.info(`[DEPLOY] Version: ${deployInfo.version}`);
-    logger.info(`[DEPLOY] Commit: ${deployInfo.commitHash}`);
-    logger.info(`[DEPLOY] NODE_ENV: ${env.NODE_ENV || 'not set'}`);
-    logger.info(`[BOOT] Health route mounted at /health`);
-    console.log('='.repeat(60));
-    logger.info('='.repeat(60));
+    // Logs obligatorios [BOOT] según formato requerido
+    console.log(`[BOOT] PORT env=${process.env.PORT || 'not set'}`);
+    console.log('[BOOT] Starting HTTP server...');
 
     // ============================================================================
     // CRÍTICO: Hacer listen() INMEDIATAMENTE para que /health responda instantáneamente
@@ -453,48 +433,42 @@ async function startServer() {
     return new Promise<void>((resolve, reject) => {
       // CRÍTICO: Listen INMEDIATAMENTE en PORT y HOST (constantes globales)
       httpServer.listen(PORT, HOST, () => {
-        // CRÍTICO: Estos logs DEBEN aparecer inmediatamente para Railway
-        const deployInfoFinal = getDeployInfoSync();
-        console.log('='.repeat(60));
-        console.log('[DEPLOY] CanalMedico Backend');
-        console.log(`[DEPLOY] Commit: ${deployInfoFinal.commitHash}`);
-        console.log(`[DEPLOY] Version: ${deployInfoFinal.version}`);
-        console.log(`[DEPLOY] Environment: ${env.NODE_ENV}`);
-        console.log('='.repeat(60));
-        console.log(`[BOOT] Server listening on ${HOST}:${PORT}`);
-        console.log(`[BOOT] Health endpoints ready: /healthz /health`);
-        console.log(`[BOOT] Uptime: 0s`);
-        console.log('='.repeat(60));
-        logger.info('='.repeat(60));
-        logger.info('[DEPLOY] CanalMedico Backend');
-        logger.info(`[DEPLOY] Commit: ${deployInfoFinal.commitHash}`);
-        logger.info(`[DEPLOY] Version: ${deployInfoFinal.version}`);
-        logger.info(`[DEPLOY] Environment: ${env.NODE_ENV}`);
-        logger.info('='.repeat(60));
+        // CRÍTICO: Logs obligatorios [BOOT] según formato requerido
+        console.log(`[BOOT] Listening on 0.0.0.0:${PORT}`);
+        console.log('[BOOT] Health endpoint ready: /health');
         logger.info(`[BOOT] Server listening on ${HOST}:${PORT}`);
-        logger.info(`[BOOT] Health endpoints ready: /healthz /health`);
-        logger.info('='.repeat(60));
+        logger.info('[BOOT] Health endpoint ready: /health');
         
         // Marcar sistema como "ok" (aunque no esté completamente inicializado)
         systemHealth.status = 'ok';
         systemHealth.initialized = true;
         
+        // Inicializar Socket.io DESPUÉS de listen()
+        try {
+          socketService.initialize(httpServer);
+          logger.info('[BOOT] Socket.io initialized');
+        } catch (socketError: any) {
+          console.error('[BOOT] Socket.io initialization failed (non-blocking):', socketError?.message || socketError);
+          logger.error('[BOOT] Socket.io initialization failed (non-blocking):', socketError?.message || socketError);
+          // No bloquear - servidor sigue funcionando
+        }
+        
         // Ahora que el servidor está escuchando, ejecutar inicialización en background
         // NO bloquea el healthcheck - Railway ya puede hacer healthcheck
-        console.log('[INIT] Starting background initialization...');
+        console.log('[BOOT] Background init started');
         initializeBackend()
           .then(() => {
-            console.log('[INIT] ✅ Background initialization completed');
-            logger.info('[INIT] Background initialization completed');
+            console.log('[BOOT] Background init OK');
+            logger.info('[BOOT] Background initialization completed');
             resolve();
           })
           .catch((error: any) => {
             systemHealth.status = 'degraded';
-            console.error('[INIT] ❌ Background initialization failed (running in degraded mode):', error?.message || error);
-            logger.error('[INIT] Background initialization failed (running in degraded mode):', error?.message || error);
+            console.error(`[BOOT] Background init FAIL: ${error?.message || error}`);
+            logger.error('[BOOT] Background initialization failed (running in degraded mode):', error?.message || error);
             // No rechazamos la promesa - servidor sigue arriba en modo degraded
-            console.warn('[INIT] Server is running in DEGRADED mode - /healthz and /health still work');
-            logger.warn('[INIT] Server is running in DEGRADED mode - /healthz and /health still work');
+            console.warn('[BOOT] Server is running in DEGRADED mode - /health still works');
+            logger.warn('[BOOT] Server is running in DEGRADED mode - /health still works');
             resolve();
           });
       });
