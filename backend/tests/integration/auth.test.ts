@@ -154,5 +154,78 @@ describe('Autenticación - Flujo Crítico', () => {
       expect(response.body.error).toBeDefined();
     });
   });
+
+  describe('POST /api/auth/logout', () => {
+    it('✅ Test feliz: Logout exitoso invalida token (200)', async () => {
+      // Crear usuario y login
+      const user = await createTestUser({
+        email: 'logout@example.com',
+        password: 'password123',
+        role: 'PATIENT',
+        name: 'Logout User',
+      });
+
+      // Login para obtener token
+      const loginResponse = await unauthenticatedRequest()
+        .post('/api/auth/login')
+        .send({
+          email: 'logout@example.com',
+          password: 'password123',
+        });
+
+      expect(loginResponse.status).toBe(200);
+      const accessToken = loginResponse.body.data.accessToken;
+
+      // Hacer logout
+      const logoutResponse = await authenticatedRequest(accessToken)
+        .post('/api/auth/logout');
+
+      expect(logoutResponse.status).toBe(200);
+      expect(logoutResponse.body.success).toBe(true);
+      expect(logoutResponse.body.data.success).toBe(true);
+    });
+
+    it('❌ Test de seguridad: Token blacklisted después de logout no funciona (401)', async () => {
+      // Crear usuario y login
+      const user = await createTestUser({
+        email: 'blacklist@example.com',
+        password: 'password123',
+        role: 'PATIENT',
+        name: 'Blacklist User',
+      });
+
+      // Login para obtener token
+      const loginResponse = await unauthenticatedRequest()
+        .post('/api/auth/login')
+        .send({
+          email: 'blacklist@example.com',
+          password: 'password123',
+        });
+
+      expect(loginResponse.status).toBe(200);
+      const accessToken = loginResponse.body.data.accessToken;
+
+      // Hacer logout para blacklistear el token
+      const logoutResponse = await authenticatedRequest(accessToken)
+        .post('/api/auth/logout');
+
+      expect(logoutResponse.status).toBe(200);
+
+      // Intentar usar el mismo token después de logout
+      const response = await authenticatedRequest(accessToken)
+        .get('/api/users/profile');
+
+      expect(response.status).toBe(401);
+      expect(response.body.error).toBeDefined();
+    });
+
+    it('❌ Test de acceso no autorizado: Logout sin token (401)', async () => {
+      const response = await unauthenticatedRequest()
+        .post('/api/auth/logout');
+
+      expect(response.status).toBe(401);
+      expect(response.body.error).toBeDefined();
+    });
+  });
 });
 
