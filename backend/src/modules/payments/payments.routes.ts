@@ -2,7 +2,7 @@ import { Router } from 'express';
 import paymentsController, { validateCreatePaymentSession, webhookMiddleware } from './payments.controller';
 import { authenticate, requireRole } from '@/middlewares/auth.middleware';
 import { paymentRateLimiter } from '@/middlewares/rateLimit.middleware';
-import { requirePaymentOwnership } from '@/middlewares/ownership.middleware';
+import { requirePaymentOwnership, requireDoctorOwnership } from '@/middlewares/ownership.middleware';
 
 const router = Router();
 
@@ -94,7 +94,7 @@ router.get('/consultation/:consultationId', authenticate, requirePaymentOwnershi
  *       403:
  *         description: Solo doctores pueden ver sus pagos
  */
-router.get('/doctor/:doctorId', authenticate, requireRole('DOCTOR'), paymentsController.getPaymentsByDoctor.bind(paymentsController));
+router.get('/doctor/:doctorId', authenticate, requireRole('DOCTOR'), requireDoctorOwnership, paymentsController.getPaymentsByDoctor.bind(paymentsController));
 
 export default router;
 

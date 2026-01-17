@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import consultationsController, { validateCreateConsultation } from './consultations.controller';
 import { authenticate, requireRole } from '@/middlewares/auth.middleware';
-import { requireConsultationOwnership } from '@/middlewares/ownership.middleware';
+import { requireConsultationOwnership, requireDoctorOwnership, requirePatientIdOwnership } from '@/middlewares/ownership.middleware';
 
 const router = Router();
 
@@ -94,7 +94,7 @@ router.get('/:id', authenticate, requireConsultationOwnership, consultationsCont
  *       403:
  *         description: Solo doctores pueden ver sus consultas
  */
-router.get('/doctor/:doctorId', authenticate, requireRole('DOCTOR'), consultationsController.getByDoctor.bind(consultationsController));
+router.get('/doctor/:doctorId', authenticate, requireRole('DOCTOR'), requireDoctorOwnership, consultationsController.getByDoctor.bind(consultationsController));
 
 /**
  * @swagger
@@ -118,7 +118,7 @@ router.get('/doctor/:doctorId', authenticate, requireRole('DOCTOR'), consultatio
  *       403:
  *         description: Solo pacientes pueden ver sus consultas
  */
-router.get('/patient/:patientId', authenticate, requireRole('PATIENT'), consultationsController.getByPatient.bind(consultationsController));
+router.get('/patient/:patientId', authenticate, requireRole('PATIENT'), requirePatientIdOwnership, consultationsController.getByPatient.bind(consultationsController));
 
 /**
  * @swagger
@@ -144,7 +144,7 @@ router.get('/patient/:patientId', authenticate, requireRole('PATIENT'), consulta
  *       403:
  *         description: Solo doctores pueden aceptar consultas
  */
-router.patch('/:id/accept', authenticate, requireRole('DOCTOR'), consultationsController.accept.bind(consultationsController));
+router.patch('/:id/accept', authenticate, requireRole('DOCTOR'), requireConsultationOwnership, consultationsController.accept.bind(consultationsController));
 
 /**
  * @swagger
@@ -170,7 +170,7 @@ router.patch('/:id/accept', authenticate, requireRole('DOCTOR'), consultationsCo
  *       403:
  *         description: Solo doctores pueden completar consultas
  */
-router.patch('/:id/complete', authenticate, requireRole('DOCTOR'), consultationsController.complete.bind(consultationsController));
+router.patch('/:id/complete', authenticate, requireRole('DOCTOR'), requireConsultationOwnership, consultationsController.complete.bind(consultationsController));
 
 /**
  * @swagger
