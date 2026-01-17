@@ -312,9 +312,31 @@ const swaggerSpec = swaggerJsdoc(swaggerOptions);
 app.set('trust proxy', 1);
 
 app.use(helmet());
-app.use(
-  cors({
-    origin: [
+// CORS configurado por ambiente - en producción solo URLs de producción
+const corsOrigins = (() => {
+  if (env.NODE_ENV === 'production') {
+    // En producción, usar CORS_ALLOWED_ORIGINS si está configurado
+    if (env.CORS_ALLOWED_ORIGINS) {
+      const origins = env.CORS_ALLOWED_ORIGINS.split(',').map(o => o.trim()).filter(o => o);
+      // Validar que no haya localhost o IPs locales
+      const hasLocalhost = origins.some(o => 
+        o.includes('localhost') || 
+        o.includes('127.0.0.1') || 
+        o.includes('192.168.') ||
+        o.startsWith('http://')
+      );
+      if (hasLocalhost) {
+        console.warn('⚠️  WARNING: CORS_ALLOWED_ORIGINS contiene localhost/IPs locales en producción. Esto es un riesgo de seguridad.');
+      }
+      return origins;
+    }
+    // Fallback a URLs de producción si CORS_ALLOWED_ORIGINS no está configurado
+    return [env.FRONTEND_WEB_URL, env.MOBILE_APP_URL].filter(url => 
+      url && !url.includes('localhost') && !url.includes('127.0.0.1') && !url.includes('192.168.')
+    );
+  } else {
+    // En desarrollo, permitir localhost e IPs locales
+    return [
       env.FRONTEND_WEB_URL,
       env.MOBILE_APP_URL,
       'http://localhost:5173',
@@ -322,8 +344,13 @@ app.use(
       'http://192.168.4.43:5173',
       'http://192.168.4.43:8081',
       'http://192.168.4.43:19000',
-      'https://canalmedico-web-production.up.railway.app'
-    ],
+    ].filter(Boolean);
+  }
+})();
+
+app.use(
+  cors({
+    origin: corsOrigins,
     credentials: true,
   })
 );
