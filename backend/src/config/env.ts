@@ -58,6 +58,9 @@ const envSchema = z.object({
   FRONTEND_WEB_URL: z.string().url().default('http://localhost:5173'),
   MOBILE_APP_URL: z.string().url().default('http://localhost:8081'),
 
+  // CORS - Requerida en producción
+  CORS_ALLOWED_ORIGINS: z.string().optional(),
+
   BCRYPT_ROUNDS: z.string().default('10').transform(Number).pipe(z.number().int().positive()),
   RATE_LIMIT_WINDOW_MS: z.string().default('900000').transform(Number).pipe(z.number().int().positive()),
   RATE_LIMIT_MAX_REQUESTS: z.string().default('100').transform(Number).pipe(z.number().int().positive()),
@@ -159,6 +162,92 @@ const validateProductionEnvironment = (parsedEnv: EnvConfig): void => {
   }
   
   const errors: Array<{ variable: string; reason: string }> = [];
+  
+  // CRÍTICA 0: DATABASE_URL
+  if (!parsedEnv.DATABASE_URL) {
+    errors.push({
+      variable: 'DATABASE_URL',
+      reason: 'Requerida en producción. Debe ser la URL de conexión a PostgreSQL (Railway asigna automáticamente).',
+    });
+  } else if (parsedEnv.DATABASE_URL.trim() === '') {
+    errors.push({
+      variable: 'DATABASE_URL',
+      reason: 'No puede estar vacía en producción.',
+    });
+  } else if (!parsedEnv.DATABASE_URL.startsWith('postgresql://') && !parsedEnv.DATABASE_URL.startsWith('postgres://')) {
+    errors.push({
+      variable: 'DATABASE_URL',
+      reason: 'Formato inválido. Debe comenzar con postgresql:// o postgres://',
+    });
+  }
+
+  // CRÍTICA 0.1: JWT_SECRET
+  if (!parsedEnv.JWT_SECRET) {
+    errors.push({
+      variable: 'JWT_SECRET',
+      reason: 'Requerida en producción para firmar tokens JWT. Sistema NO puede funcionar sin esta variable.',
+    });
+  } else if (parsedEnv.JWT_SECRET.trim() === '') {
+    errors.push({
+      variable: 'JWT_SECRET',
+      reason: 'No puede estar vacía en producción.',
+    });
+  } else if (parsedEnv.JWT_SECRET.length < 32) {
+    errors.push({
+      variable: 'JWT_SECRET',
+      reason: `Longitud insuficiente (${parsedEnv.JWT_SECRET.length} caracteres). Mínimo requerido: 32 caracteres. Genera con: openssl rand -base64 32`,
+    });
+  } else if (isPlaceholderValue(parsedEnv.JWT_SECRET)) {
+    errors.push({
+      variable: 'JWT_SECRET',
+      reason: 'Contiene valor placeholder. Debe ser una clave real generada aleatoriamente.',
+    });
+  }
+
+  // CRÍTICA 0.2: JWT_REFRESH_SECRET
+  if (!parsedEnv.JWT_REFRESH_SECRET) {
+    errors.push({
+      variable: 'JWT_REFRESH_SECRET',
+      reason: 'Requerida en producción para firmar refresh tokens JWT. Sistema NO puede funcionar sin esta variable.',
+    });
+  } else if (parsedEnv.JWT_REFRESH_SECRET.trim() === '') {
+    errors.push({
+      variable: 'JWT_REFRESH_SECRET',
+      reason: 'No puede estar vacía en producción.',
+    });
+  } else if (parsedEnv.JWT_REFRESH_SECRET.length < 32) {
+    errors.push({
+      variable: 'JWT_REFRESH_SECRET',
+      reason: `Longitud insuficiente (${parsedEnv.JWT_REFRESH_SECRET.length} caracteres). Mínimo requerido: 32 caracteres. Genera con: openssl rand -base64 32`,
+    });
+  } else if (isPlaceholderValue(parsedEnv.JWT_REFRESH_SECRET)) {
+    errors.push({
+      variable: 'JWT_REFRESH_SECRET',
+      reason: 'Contiene valor placeholder. Debe ser una clave real generada aleatoriamente.',
+    });
+  }
+
+  // CRÍTICA 0.3: CORS_ALLOWED_ORIGINS
+  if (!parsedEnv.CORS_ALLOWED_ORIGINS || parsedEnv.CORS_ALLOWED_ORIGINS.trim() === '') {
+    errors.push({
+      variable: 'CORS_ALLOWED_ORIGINS',
+      reason: 'Requerida en producción para seguridad CORS. Debe ser una lista comma-separated de URLs permitidas (ej: https://app.canalmedico.cl,https://web.canalmedico.cl). NO incluir localhost.',
+    });
+  } else {
+    const origins = parsedEnv.CORS_ALLOWED_ORIGINS.split(',').map(o => o.trim()).filter(o => o);
+    const hasLocalhost = origins.some(o => 
+      o.includes('localhost') || 
+      o.includes('127.0.0.1') || 
+      o.includes('192.168.') ||
+      o.startsWith('http://')
+    );
+    if (hasLocalhost) {
+      errors.push({
+        variable: 'CORS_ALLOWED_ORIGINS',
+        reason: 'NO debe incluir localhost, 127.0.0.1, IPs locales o URLs http:// en producción. Solo URLs HTTPS de producción.',
+      });
+    }
+  }
   
   // CRÍTICA 1: MERCADOPAGO_ACCESS_TOKEN
   if (!parsedEnv.MERCADOPAGO_ACCESS_TOKEN) {
@@ -294,6 +383,19 @@ const validateProductionEnvironment = (parsedEnv: EnvConfig): void => {
     console.error('═══════════════════════════════════════════════════════════════════');
     console.error('');
     console.error('📋 VARIABLES CRÍTICAS REQUERIDAS EN PRODUCCIÓN:');
+    console.error('');
+    console.error('   0. DATABASE_URL');
+    console.error('      → Railway asigna automáticamente: ${{Postgres.DATABASE_URL}}');
+    console.error('');
+    console.error('   0.1. JWT_SECRET');
+    console.error('      → Generar con: openssl rand -base64 32');
+    console.error('');
+    console.error('   0.2. JWT_REFRESH_SECRET');
+    console.error('      → Generar con: openssl rand -base64 32');
+    console.error('');
+    console.error('   0.3. CORS_ALLOWED_ORIGINS');
+    console.error('      → URLs permitidas separadas por coma (ej: https://app.canalmedico.cl,https://web.canalmedico.cl)');
+    console.error('      → NO incluir localhost, 127.0.0.1 o IPs locales');
     console.error('');
     console.error('   1. MERCADOPAGO_ACCESS_TOKEN');
     console.error('      → Obtener de: https://www.mercadopago.cl/developers/panel/credentials');
