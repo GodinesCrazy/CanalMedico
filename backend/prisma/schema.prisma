@@ -375,3 +375,18 @@ model OTPVerification {
   @@index([expiresAt])
   @@map("otp_verifications")
 }
+
+// Modelo para blacklist de tokens JWT (logout invalida tokens)
+model TokenBlacklist {
+  id        String   @id @default(cuid())
+  token     String   @unique // Hash SHA-256 del token (no almacenar token completo)
+  userId    String? // ID del usuario que hizo logout (opcional para auditoría)
+  reason    String? // Razón de invalidación (LOGOUT, SECURITY, etc.)
+  expiresAt DateTime // Fecha de expiración del token (mismo que exp del JWT)
+  createdAt DateTime @default(now())
+
+  @@index([token])
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("token_blacklist")
+}
