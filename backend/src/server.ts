@@ -412,11 +412,9 @@ import adminRoutes from './modules/admin/admin.routes';
 app.use('/api/admin', adminRoutes);
 
 // Importar rutas de deploy (información de deploy)
-import deployRoutes, { debugRouter } from './modules/deploy/deploy.routes';
+import deployRoutes from './modules/deploy/deploy.routes';
 app.use('/api/deploy', deployRoutes);
-app.use('/api/debug', debugRouter);
 logger.info('[DEPLOY] Deploy routes mounted at /api/deploy');
-logger.info('[DEBUG] Debug routes mounted at /api/debug (ADMIN only)');
 
 // Importar rutas de verificación de médicos
 import doctorVerificationRoutes, { doctorVerificationAdminRoutes } from './modules/doctor-verification/doctor-verification.routes';
