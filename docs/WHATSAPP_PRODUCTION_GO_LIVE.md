@@ -1,18 +1,18 @@
-# WhatsApp Cloud API - GuÌa de ProducciÛn GO LIVE
+# WhatsApp Cloud API - Guùa de Producciùn GO LIVE
 
 **Fecha:** 2025-01-26  
-**VersiÛn:** 1.0.0  
-**Objetivo:** GuÌa completa para pasar WhatsApp Cloud API de sandbox a producciÛn real
+**Versiùn:** 1.0.0  
+**Objetivo:** Guùa completa para pasar WhatsApp Cloud API de sandbox a producciùn real
 
 ---
 
-## ?? Õndice
+## ?? ùndice
 
 1. [Pre-Requisitos](#pre-requisitos)
-2. [ConfiguraciÛn en Meta Dashboard](#configuraciÛn-en-meta-dashboard)
+2. [Configuraciùn en Meta Dashboard](#configuraciùn-en-meta-dashboard)
 3. [Variables de Entorno en Railway](#variables-de-entorno-en-railway)
-4. [ConfiguraciÛn del Backend](#configuraciÛn-del-backend)
-5. [VerificaciÛn y Testing](#verificaciÛn-y-testing)
+4. [Configuraciùn del Backend](#configuraciùn-del-backend)
+5. [Verificaciùn y Testing](#verificaciùn-y-testing)
 6. [Checklist Final](#checklist-final)
 7. [Troubleshooting](#troubleshooting)
 
@@ -36,16 +36,16 @@
 
 ---
 
-## 2. ConfiguraciÛn en Meta Dashboard
+## 2. Configuraciùn en Meta Dashboard
 
 ### 2.1 Obtener Access Token Permanente (System User Token)
 
-**CRÕTICO:** En producciÛn, usar token permanente (System User Token), NO token temporal.
+**CRùTICO:** En producciùn, usar token permanente (System User Token), NO token temporal.
 
-#### OpciÛn A: System User Token (Recomendado - Permanente)
+#### Opciùn A: System User Token (Recomendado - Permanente)
 
 1. Ir a **Meta Developers** ? Tu App ? **WhatsApp** ? **API Setup**
-2. En la secciÛn **"Access tokens"**, buscar **"System User Token"**
+2. En la secciùn **"Access tokens"**, buscar **"System User Token"**
 3. Si no existe, crear System User:
    - Ir a **Settings** ? **Business Settings** ? **Users** ? **System Users**
    - Click **"Add"** ? Nombre: `CanalMedico-WhatsApp-Service`
@@ -56,27 +56,27 @@
    - **?? IMPORTANTE:** Copiar el token INMEDIATAMENTE (solo se muestra una vez)
    - Guardar en lugar seguro ? Este es `WHATSAPP_ACCESS_TOKEN`
 
-#### OpciÛn B: Page Access Token (Alternativa)
+#### Opciùn B: Page Access Token (Alternativa)
 
-1. Crear una P·gina de Facebook para tu negocio
-2. Conectar la P·gina a tu WhatsApp Business Account
+1. Crear una Pùgina de Facebook para tu negocio
+2. Conectar la Pùgina a tu WhatsApp Business Account
 3. En **WhatsApp** ? **API Setup** ? **"Page Access Token"**
-4. Generar token permanente (siempre que la p·gina estÈ conectada)
+4. Generar token permanente (siempre que la pùgina estù conectada)
 
 **Validez:**
 - System User Token: **Permanente** (hasta que se revoque manualmente)
-- Page Access Token: **Permanente** (mientras la p·gina estÈ conectada)
-- Temporary Token: ? **NO USAR EN PRODUCCI”N** (expira en 24 horas)
+- Page Access Token: **Permanente** (mientras la pùgina estù conectada)
+- Temporary Token: ? **NO USAR EN PRODUCCIùN** (expira en 24 horas)
 
 ---
 
 ### 2.2 Obtener Phone Number ID
 
 1. Ir a **WhatsApp** ? **API Setup**
-2. En la secciÛn **"Phone number ID"**, copiar el ID
+2. En la secciùn **"Phone number ID"**, copiar el ID
    - Ejemplo: `123456789012345`
    - Este es `WHATSAPP_PHONE_NUMBER_ID`
-3. **Verificar:** El n˙mero debe estar verificado y listo para usar
+3. **Verificar:** El nùmero debe estar verificado y listo para usar
 
 ---
 
@@ -105,28 +105,28 @@
 
 ### 2.5 Obtener App Secret (Opcional pero Recomendado)
 
-**CRÕTICO:** Necesario para verificar la signature del webhook y prevenir ataques.
+**CRùTICO:** Necesario para verificar la signature del webhook y prevenir ataques.
 
 1. Ir a **Settings** ? **Basic** ? **App Secret**
-2. Click **"Show"** (puede requerir contraseÒa)
+2. Click **"Show"** (puede requerir contraseùa)
 3. Copiar el **App Secret**
    - Este es `WHATSAPP_APP_SECRET`
 4. **?? IMPORTANTE:** Guardar de forma segura
 
 **Si no configuras App Secret:**
-- El webhook seguir· funcionando, pero sin verificaciÛn de signature
-- Menos seguro (posibles ataques de falsificaciÛn)
-- En producciÛn, se recomienda configurarlo
+- El webhook seguirù funcionando, pero sin verificaciùn de signature
+- Menos seguro (posibles ataques de falsificaciùn)
+- En producciùn, se recomienda configurarlo
 
 ---
 
-### 2.6 Verificar N˙mero y Templates
+### 2.6 Verificar Nùmero y Templates
 
-#### Verificar N˙mero de TelÈfono
+#### Verificar Nùmero de Telùfono
 
-1. El n˙mero debe estar **verificado** en Meta Dashboard
+1. El nùmero debe estar **verificado** en Meta Dashboard
 2. Estado debe ser **"Connected"** o **"Ready"**
-3. Si no est· verificado:
+3. Si no estù verificado:
    - Ir a **WhatsApp** ? **API Setup** ? **Phone number**
    - Seguir instrucciones para verificar
 
@@ -137,16 +137,16 @@ Para enviar mensajes fuera de la ventana de 24 horas, se requieren templates apr
 1. Ir a **WhatsApp** ? **Message Templates** ? **"Create Template"**
 2. Configurar:
    - **Name:** `consultation_redirect` (o el nombre que uses)
-   - **Category:** `UTILITY` o `MARKETING` (seg˙n tu caso)
+   - **Category:** `UTILITY` o `MARKETING` (segùn tu caso)
    - **Language:** `Spanish (Spain)` o `Spanish (Latin America)`
-   - **Body:** Tu mensaje con par·metros `{{1}}`, `{{2}}`, etc.
+   - **Body:** Tu mensaje con parùmetros `{{1}}`, `{{2}}`, etc.
    - Ejemplo:
      ```
-     Hola {{1}}, te invitamos a iniciar tu consulta mÈdica.
-     Haz clic aquÌ: {{2}}
+     Hola {{1}}, te invitamos a iniciar tu consulta mùdica.
+     Haz clic aquù: {{2}}
      ```
-3. Submit para revisiÛn (puede tomar horas o dÌas)
-4. Esperar aprobaciÛn antes de usar en producciÛn
+3. Submit para revisiùn (puede tomar horas o dùas)
+4. Esperar aprobaciùn antes de usar en producciùn
 
 **Templates Necesarios:**
 - `consultation_redirect`: Para enviar deep links a pacientes
@@ -159,20 +159,20 @@ Para enviar mensajes fuera de la ventana de 24 horas, se requieren templates apr
 
 Configurar en **Railway Dashboard** ? Tu Proyecto ? **Variables**:
 
-| Variable | DescripciÛn | Ejemplo | Requerido |
+| Variable | Descripciùn | Ejemplo | Requerido |
 |----------|-------------|---------|-----------|
-| `ENABLE_WHATSAPP_AUTO_RESPONSE` | Habilitar mÛdulo WhatsApp | `true` | ? SÌ |
-| `WHATSAPP_ACCESS_TOKEN` | Token permanente de Meta | `EAAB...` | ? SÌ |
-| `WHATSAPP_PHONE_NUMBER_ID` | ID del n˙mero de WhatsApp | `123456789012345` | ? SÌ |
-| `WHATSAPP_BUSINESS_ACCOUNT_ID` | ID de la cuenta Business | `1234567890123456` | ? SÌ |
-| `WHATSAPP_WEBHOOK_VERIFY_TOKEN` | Token de verificaciÛn webhook | `canalmedico_verify_2026` | ? SÌ |
-| `WHATSAPP_API_VERSION` | VersiÛn de la API | `v21.0` | ? SÌ (default: v21.0) |
+| `ENABLE_WHATSAPP_AUTO_RESPONSE` | Habilitar mùdulo WhatsApp | `true` | ? Sù |
+| `WHATSAPP_ACCESS_TOKEN` | Token permanente de Meta | `EAAB...` | ? Sù |
+| `WHATSAPP_PHONE_NUMBER_ID` | ID del nùmero de WhatsApp | `123456789012345` | ? Sù |
+| `WHATSAPP_BUSINESS_ACCOUNT_ID` | ID de la cuenta Business | `1234567890123456` | ? Sù |
+| `WHATSAPP_WEBHOOK_VERIFY_TOKEN` | Token de verificaciùn webhook | `canalmedico_verify_2026` | ? Sù |
+| `WHATSAPP_API_VERSION` | Versiùn de la API | `v21.0` | ? Sù (default: v21.0) |
 | `WHATSAPP_APP_SECRET` | App Secret para verificar signatures | `abc123...` | ?? Recomendado |
-| `INTERNAL_API_KEY` | Secret para proteger endpoints de envÌo | `generar-secreto-seguro` | ? SÌ (para envÌo) |
+| `INTERNAL_API_KEY` | Secret para proteger endpoints de envùo | `generar-secreto-seguro` | ? Sù (para envùo) |
 
 ### 3.2 Generar INTERNAL_API_KEY
 
-**CRÕTICO:** Este secret protege los endpoints de envÌo (`/api/whatsapp/send/*`).
+**CRùTICO:** Este secret protege los endpoints de envùo (`/api/whatsapp/send/*`).
 
 **Generar con OpenSSL:**
 ```bash
@@ -188,16 +188,16 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 
 **?? IMPORTANTE:**
 - Debe ser un string aleatorio de al menos 32 caracteres
-- NO compartir p˙blicamente
+- NO compartir pùblicamente
 - Usar para autenticar requests a `/api/whatsapp/send/*`
 
 ---
 
-## 4. ConfiguraciÛn del Backend
+## 4. Configuraciùn del Backend
 
 ### 4.1 Verificar Feature Flags
 
-El backend debe tener habilitado el mÛdulo WhatsApp:
+El backend debe tener habilitado el mùdulo WhatsApp:
 
 ```env
 ENABLE_WHATSAPP_AUTO_RESPONSE=true
@@ -206,12 +206,12 @@ ENABLE_WHATSAPP_AUTO_RESPONSE=true
 ### 4.2 Verificar Variables en Railway
 
 1. Ir a **Railway Dashboard** ? Tu Proyecto ? **Variables**
-2. Verificar que todas las variables estÈn configuradas (ver secciÛn 3.1)
-3. **Aplicar cambios** (Railway reinicia autom·ticamente)
+2. Verificar que todas las variables estùn configuradas (ver secciùn 3.1)
+3. **Aplicar cambios** (Railway reinicia automùticamente)
 
 ### 4.3 Verificar Logs
 
-DespuÈs de configurar las variables, verificar logs en Railway:
+Despuùs de configurar las variables, verificar logs en Railway:
 
 ```
 [WHATSAPP] WhatsApp router montado (feature flag ACTIVO)
@@ -220,12 +220,12 @@ DespuÈs de configurar las variables, verificar logs en Railway:
 
 Si ves errores, revisar:
 - Variables mal configuradas
-- Token inv·lido o expirado
+- Token invùlido o expirado
 - Phone Number ID incorrecto
 
 ---
 
-## 5. VerificaciÛn y Testing
+## 5. Verificaciùn y Testing
 
 ### 5.1 Test 1: Verificar Webhook (GET Challenge)
 
@@ -252,14 +252,14 @@ curl "https://canalmedico-production.up.railway.app/api/whatsapp/webhook?hub.mod
 
 ### 5.2 Test 2: Enviar Mensaje de Texto (Ventana 24h)
 
-**?? IMPORTANTE:** Solo funciona dentro de la ventana de 24 horas despuÈs de que el usuario iniciÛ la conversaciÛn.
+**?? IMPORTANTE:** Solo funciona dentro de la ventana de 24 horas despuùs de que el usuario iniciù la conversaciùn.
 
 **Desde PowerShell:**
 
 ```powershell
 $apiUrl = "https://canalmedico-production.up.railway.app"
 $internalKey = "TU_INTERNAL_API_KEY_AQUI"
-$phoneNumber = "56912345678" # N˙mero real del usuario (formato internacional sin +)
+$phoneNumber = "56912345678" # Nùmero real del usuario (formato internacional sin +)
 
 $headers = @{
     "Content-Type" = "application/json"
@@ -268,7 +268,7 @@ $headers = @{
 
 $body = @{
     to = $phoneNumber
-    text = "?? Test de WhatsApp - Mensaje de prueba desde producciÛn"
+    text = "?? Test de WhatsApp - Mensaje de prueba desde producciùn"
 } | ConvertTo-Json
 
 Invoke-RestMethod -Uri "$apiUrl/api/whatsapp/send/text" -Method POST -Headers $headers -Body $body
@@ -318,7 +318,7 @@ $body = @{
     to = $phoneNumber
     templateName = "consultation_redirect"
     languageCode = "es"
-    parameters = @("Dr. Juan PÈrez", "canalmedico://consultation/create?doctorId=123")
+    parameters = @("Dr. Juan Pùrez", "canalmedico://consultation/create?doctorId=123")
 } | ConvertTo-Json
 
 Invoke-RestMethod -Uri "$apiUrl/api/whatsapp/send/template" -Method POST -Headers $headers -Body $body
@@ -338,7 +338,7 @@ Invoke-RestMethod -Uri "$apiUrl/api/whatsapp/send/template" -Method POST -Header
 
 ---
 
-### 5.4 Test 4: Smoke Test Autom·tico
+### 5.4 Test 4: Smoke Test Automùtico
 
 Ejecutar script de smoke test automatizado:
 
@@ -357,35 +357,57 @@ npm run whatsapp:test
 
 **Este script prueba:**
 1. ? GET /api/whatsapp/webhook (challenge)
-2. ? POST /api/whatsapp/send/text (si WHATSAPP_TEST_TO est· configurado)
-3. ? ValidaciÛn de autenticaciÛn (debe fallar sin X-Internal-Secret)
+2. ? POST /api/whatsapp/send/text (si WHATSAPP_TEST_TO estù configurado)
+3. ? Validaciùn de autenticaciùn (debe fallar sin X-Internal-Secret)
 
 ---
 
 ### 5.5 Test 5: Recibir Mensaje Real
 
-1. Enviar un mensaje de WhatsApp al n˙mero configurado desde tu telÈfono personal
+1. Enviar un mensaje de WhatsApp al nùmero configurado desde tu telùfono personal
 2. Verificar logs en Railway:
    ```
    [WHATSAPP] POST webhook recibido y validado
    [WHATSAPP] Procesando mensaje de WhatsApp
    [WHATSAPP] Auto-respuesta de WhatsApp enviada
    ```
-3. Debes recibir una respuesta autom·tica con el deep link
+3. Debes recibir una respuesta automùtica con el deep link
 
 ---
 
-## 6. Checklist Final
+## 6. Checklist Final GO LIVE
 
-### Meta Dashboard
+### 6.1 Meta Dashboard - Modo LIVE
 
+**CRùTICO:** Verificar que la App estù en modo **LIVE** (no Development):
+
+1. Ir a **Meta Developers** ? Tu App ? **Settings** ? **Basic**
+2. Verificar **"App Mode"**: Debe estar en **"Live"** (no "Development")
+3. Si estù en Development:
+   - Verificar requisitos de verificaciùn de negocio
+   - Completar verificaciùn si es necesario
+   - Cambiar a modo **Live**
+
+**Configuraciùn de Webhook:**
+- [ ] Callback URL configurada: `https://canalmedico-production.up.railway.app/api/whatsapp/webhook`
+- [ ] Verify Token configurado: `canalmedico_verify_2026` (debe coincidir con `WHATSAPP_WEBHOOK_VERIFY_TOKEN`)
+- [ ] Subscription Fields: **`messages`** marcado (para recibir mensajes)
+- [ ] Webhook verificado y muestra **"Webhook verified successfully"**
+- [ ] Event Logs muestran eventos entrantes (opcional, para debug)
+
+**Token y Permisos:**
 - [ ] Token permanente configurado (System User Token o Page Access Token)
+- [ ] Token tiene permisos: `whatsapp_business_messaging`, `whatsapp_business_management`
+- [ ] Token NO es temporal (temporal expira en 24h)
 - [ ] Phone Number ID obtenido y verificado
-- [ ] Business Account ID obtenido
-- [ ] Webhook configurado y verificado (? "Webhook verified successfully")
-- [ ] Subscription Fields: `messages` marcado
-- [ ] App Secret obtenido (recomendado)
+- [ ] Business Account ID obtenido (WABA ID)
+- [ ] App Secret obtenido (recomendado para verificar signatures)
+
+**Nùmero y Templates:**
+- [ ] Nùmero de telùfono verificado y en estado **"Connected"** o **"Ready"**
 - [ ] Templates creados y aprobados (si los usas)
+  - Estado debe ser **"Approved"** (no "Pending" o "Rejected")
+  - Template `consultation_redirect` aprobado (si lo usas)
 
 ### Railway Variables
 
@@ -408,31 +430,31 @@ npm run whatsapp:test
 ### Testing
 
 - [ ] Test 1: GET webhook challenge ? ? 200 OK
-- [ ] Test 2: POST send/text (con autenticaciÛn) ? ? 200 + messageId
-- [ ] Test 3: POST send/text (sin autenticaciÛn) ? ? 401/403
+- [ ] Test 2: POST send/text (con autenticaciùn) ? ? 200 + messageId
+- [ ] Test 3: POST send/text (sin autenticaciùn) ? ? 401/403
 - [ ] Test 4: Smoke test automatizado ? ? Todos los tests pasan
 - [ ] Test 5: Mensaje real recibido ? ? Auto-respuesta enviada
 
 ---
 
-## 7. Troubleshooting
+## 9. Troubleshooting
 
-### Error: "WhatsApp Cloud API no est· configurado"
+### Error: "WhatsApp Cloud API no estù configurado"
 
 **Causa:** Variables `WHATSAPP_ACCESS_TOKEN` o `WHATSAPP_PHONE_NUMBER_ID` no configuradas.
 
-**SoluciÛn:**
+**Soluciùn:**
 1. Verificar variables en Railway Dashboard
-2. Asegurar que est·n configuradas (no vacÌas)
+2. Asegurar que estùn configuradas (no vacùas)
 3. Reiniciar servicio en Railway
 
 ---
 
 ### Error: "Invalid OAuth access token"
 
-**Causa:** Token expirado o inv·lido.
+**Causa:** Token expirado o invùlido.
 
-**SoluciÛn:**
+**Soluciùn:**
 1. Generar nuevo token permanente (System User Token)
 2. Actualizar `WHATSAPP_ACCESS_TOKEN` en Railway
 3. Reiniciar servicio
@@ -443,7 +465,7 @@ npm run whatsapp:test
 
 **Causa:** `WHATSAPP_WEBHOOK_VERIFY_TOKEN` no coincide con Meta Dashboard.
 
-**SoluciÛn:**
+**Soluciùn:**
 1. Verificar valor en Meta Dashboard ? Webhook ? Verify Token
 2. Verificar valor en Railway ? `WHATSAPP_WEBHOOK_VERIFY_TOKEN`
 3. Deben ser exactamente iguales (case-sensitive)
@@ -452,41 +474,41 @@ npm run whatsapp:test
 
 ### Error: "Phone number not found"
 
-**Causa:** `WHATSAPP_PHONE_NUMBER_ID` incorrecto o n˙mero no verificado.
+**Causa:** `WHATSAPP_PHONE_NUMBER_ID` incorrecto o nùmero no verificado.
 
-**SoluciÛn:**
+**Soluciùn:**
 1. Verificar Phone Number ID en Meta Dashboard ? API Setup
-2. Verificar que el n˙mero estÈ "Connected" o "Ready"
+2. Verificar que el nùmero estù "Connected" o "Ready"
 3. Actualizar `WHATSAPP_PHONE_NUMBER_ID` en Railway
 
 ---
 
 ### Error: "X-Internal-Secret header requerido" (401/403)
 
-**Causa:** Endpoint `/api/whatsapp/send/*` requiere autenticaciÛn.
+**Causa:** Endpoint `/api/whatsapp/send/*` requiere autenticaciùn.
 
-**SoluciÛn:**
+**Soluciùn:**
 1. Agregar header `X-Internal-Secret` con valor de `INTERNAL_API_KEY`
-2. Verificar que `INTERNAL_API_KEY` estÈ configurado en Railway
+2. Verificar que `INTERNAL_API_KEY` estù configurado en Railway
 
 ---
 
 ### Error: "Template not found" o "Template not approved"
 
-**Causa:** Template no existe o no est· aprobado.
+**Causa:** Template no existe o no estù aprobado.
 
-**SoluciÛn:**
+**Soluciùn:**
 1. Verificar nombre del template en Meta Dashboard
 2. Verificar estado: debe estar "Approved" (no "Pending" o "Rejected")
-3. Esperar aprobaciÛn si est· pendiente (puede tomar horas/dÌas)
+3. Esperar aprobaciùn si estù pendiente (puede tomar horas/dùas)
 
 ---
 
 ### Webhook no recibe mensajes
 
-**Causa:** Webhook no est· configurado correctamente en Meta.
+**Causa:** Webhook no estù configurado correctamente en Meta.
 
-**SoluciÛn:**
+**Soluciùn:**
 1. Verificar Callback URL en Meta Dashboard ? Webhook
 2. Verificar que Subscription Fields tenga `messages` marcado
 3. Verificar logs en Railway (debe aparecer `[WHATSAPP] POST webhook recibido`)
@@ -494,13 +516,13 @@ npm run whatsapp:test
 
 ---
 
-### Mensajes no se envÌan fuera de ventana 24h
+### Mensajes no se envùan fuera de ventana 24h
 
 **Causa:** Para enviar fuera de 24h, se requiere template aprobado.
 
-**SoluciÛn:**
+**Soluciùn:**
 1. Crear template en Meta Dashboard ? Message Templates
-2. Esperar aprobaciÛn
+2. Esperar aprobaciùn
 3. Usar `POST /api/whatsapp/send/template` (no `/send/text`)
 
 ---
@@ -512,9 +534,9 @@ Si encuentras problemas:
 1. Revisar logs en Railway Dashboard ? Logs
 2. Verificar variables de entorno
 3. Revisar Meta Dashboard ? Webhook ? Event Logs
-4. Consultar documentaciÛn oficial: https://developers.facebook.com/docs/whatsapp/cloud-api
+4. Consultar documentaciùn oficial: https://developers.facebook.com/docs/whatsapp/cloud-api
 
 ---
 
-**⁄ltima actualizaciÛn:** 2025-01-26  
-**Estado:** ? ProducciÛn Ready
+**ùltima actualizaciùn:** 2025-01-26  
+**Estado:** ? Producciùn Ready
