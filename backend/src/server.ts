@@ -412,9 +412,11 @@ import adminRoutes from './modules/admin/admin.routes';
 app.use('/api/admin', adminRoutes);
 
 // Importar rutas de deploy (información de deploy)
-import deployRoutes from './modules/deploy/deploy.routes';
+import deployRoutes, { debugRouter } from './modules/deploy/deploy.routes';
 app.use('/api/deploy', deployRoutes);
+app.use('/api/debug', debugRouter);
 logger.info('[DEPLOY] Deploy routes mounted at /api/deploy');
+logger.info('[DEBUG] Debug routes mounted at /api/debug (ADMIN only)');
 
 // Importar rutas de verificación de médicos
 import doctorVerificationRoutes, { doctorVerificationAdminRoutes } from './modules/doctor-verification/doctor-verification.routes';
@@ -723,17 +725,16 @@ async function initializeBackend() {
 
     // Cargar módulos opcionales (WhatsApp, etc.)
     // IMPORTANTE: Usa require() dinámico, TypeScript NO analiza estos módulos durante la compilación
-    if (process.env.ENABLE_WHATSAPP_AUTO_RESPONSE === 'true') {
-      try {
-        logger.info('[BOOT] Loading optional modules...');
-        const { loadOptionalModules } = await import('@/bootstrap/loadOptionalModules');
-        await loadOptionalModules(app);
-        logger.info('[BOOT] Optional modules loaded');
-      } catch (modulesError: any) {
-        logger.warn('[BOOT] Optional modules failed to load:', modulesError?.message || modulesError);
-        logger.warn('[BOOT] Server continues without optional modules');
-        // No bloquear
-      }
+    // CRÍTICO: Montar SIEMPRE el router de WhatsApp para que Meta pueda validar el webhook (GET challenge)
+    // El controller verifica el feature flag internamente
+    try {
+      const { loadOptionalModules } = await import('@/bootstrap/loadOptionalModules');
+      await loadOptionalModules(app);
+      logger.info('[BOOT] Optional modules loaded');
+    } catch (modulesError: any) {
+      logger.warn('[BOOT] Optional modules failed to load:', modulesError?.message || modulesError);
+      logger.warn('[BOOT] Server continues without optional modules');
+      // No bloquear
     }
 
     // Iniciar job de liquidaciones mensuales

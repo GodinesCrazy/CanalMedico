@@ -26,35 +26,42 @@ export class WhatsAppController {
    */
   async webhook(req: Request, res: Response, _next: NextFunction): Promise<void> {
     try {
-      // Verificar feature flag
-      if (!featureFlags.WHATSAPP_AUTO_RESPONSE) {
-        logger.debug('WhatsApp webhook recibido pero feature flag desactivado');
-        return res.status(404).json({ error: 'Feature not enabled' });
-      }
-
       // Verificación de webhook (Meta envía GET para verificar)
+      // CRÍTICO: El GET challenge DEBE funcionar SIEMPRE (incluso si el flag está desactivado)
+      // Meta necesita validar el webhook antes de poder enviar eventos POST
       if (req.method === 'GET') {
         const mode = req.query['hub.mode'];
         const token = req.query['hub.verify_token'];
         const challenge = req.query['hub.challenge'];
 
         if (mode === 'subscribe' && token === env.WHATSAPP_WEBHOOK_VERIFY_TOKEN) {
-          logger.info('WhatsApp webhook verified by Meta');
+          logger.info('[WHATSAPP] Webhook verified by Meta (GET challenge)', {
+            challenge: challenge ? 'present' : 'missing',
+            featureFlag: featureFlags.WHATSAPP_AUTO_RESPONSE ? 'ACTIVE' : 'INACTIVE',
+          });
           return res.status(200).send(challenge);
         }
 
-        logger.warn('WhatsApp webhook verification failed', {
+        logger.warn('[WHATSAPP] Webhook verification failed (GET challenge)', {
           mode,
           tokenProvided: !!token,
+          featureFlag: featureFlags.WHATSAPP_AUTO_RESPONSE ? 'ACTIVE' : 'INACTIVE',
         });
         return res.status(403).send('Forbidden');
+      }
+
+      // Procesar mensajes (POST) - SOLO si el feature flag está activo
+      if (!featureFlags.WHATSAPP_AUTO_RESPONSE) {
+        logger.debug('[WHATSAPP] POST webhook recibido pero feature flag desactivado');
+        // Responder OK para no recibir reintentos de Meta, pero no procesar
+        return res.status(200).json({ status: 'ok', message: 'Feature not enabled' });
       }
 
       // Procesar mensaje (POST)
       // Verificar signature del webhook
       const signature = req.headers['x-hub-signature-256'] as string;
       if (!signature) {
-        logger.warn('WhatsApp webhook sin signature');
+        logger.warn('[WHATSAPP] POST webhook sin signature');
         return res.status(403).json({ error: 'Missing signature' });
       }
 
@@ -63,15 +70,17 @@ export class WhatsAppController {
       const isValidSignature = whatsappService.verifyWebhookSignature(rawBody, signature);
 
       if (!isValidSignature) {
-        logger.warn('WhatsApp webhook signature inválida');
+        logger.warn('[WHATSAPP] POST webhook signature inválida');
         return res.status(403).json({ error: 'Invalid signature' });
       }
+
+      logger.info('[WHATSAPP] POST webhook recibido y validado');
 
       const payload: WhatsAppWebhookPayload = req.body;
 
       // Validar estructura del payload
       if (payload.object !== 'whatsapp_business_account') {
-        logger.warn('WhatsApp webhook con object inválido', {
+        logger.warn('[WHATSAPP] POST webhook con object inválido', {
           object: payload.object,
         });
         return res.status(200).json({ status: 'ok' }); // Responder OK para no recibir reintentos
@@ -96,7 +105,7 @@ export class WhatsAppController {
 
                     // Procesar mensaje de forma asíncrona (no bloquear respuesta)
                     whatsappService.handleIncomingMessage(fullMessage).catch((error) => {
-                      logger.error('Error al procesar mensaje de WhatsApp (async)', error);
+                      logger.error('[WHATSAPP] Error al procesar mensaje (async)', error);
                     });
                   }
                 }
@@ -107,10 +116,11 @@ export class WhatsAppController {
       }
 
       // Responder 200 OK a Meta inmediatamente (importante para no recibir reintentos)
+      logger.info('[WHATSAPP] POST webhook procesado exitosamente');
       res.status(200).json({ status: 'ok' });
       return;
     } catch (error) {
-      logger.error('Error en webhook de WhatsApp', error);
+      logger.error('[WHATSAPP] Error en webhook:', error);
       // Responder OK incluso si hay error para evitar reintentos de Meta
       res.status(200).json({ status: 'ok', error: 'Internal error' });
       return;
