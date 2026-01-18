@@ -267,6 +267,80 @@ export const requireSenderOwnership = (
     });
 };
 
+/**
+ * Valida que el doctorId del parámetro corresponde al doctor del usuario autenticado
+ */
+export const requireDoctorOwnership = (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): void => {
+  const doctorId = req.params.doctorId;
+  
+  if (!doctorId) {
+    res.status(400).json({ error: 'ID de doctor requerido' });
+    return;
+  }
+
+  if (!req.user) {
+    res.status(401).json({ error: 'No autenticado' });
+    return;
+  }
+
+  if (req.user.role !== 'DOCTOR') {
+    res.status(403).json({ error: 'Solo los médicos pueden acceder a este recurso' });
+    return;
+  }
+
+  validateDoctorOwnership(req.user.id, doctorId)
+    .then(() => next())
+    .catch((error) => {
+      if (error.status === 403 || error.status === 404) {
+        res.status(error.status).json({ error: error.message });
+      } else {
+        logger.error('Error al validar propiedad de doctor:', error);
+        res.status(500).json({ error: 'Error al validar permisos' });
+      }
+    });
+};
+
+/**
+ * Valida que el patientId del parámetro corresponde al paciente del usuario autenticado
+ */
+export const requirePatientIdOwnership = (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): void => {
+  const patientId = req.params.patientId;
+  
+  if (!patientId) {
+    res.status(400).json({ error: 'ID de paciente requerido' });
+    return;
+  }
+
+  if (!req.user) {
+    res.status(401).json({ error: 'No autenticado' });
+    return;
+  }
+
+  if (req.user.role !== 'PATIENT') {
+    res.status(403).json({ error: 'Solo los pacientes pueden acceder a este recurso' });
+    return;
+  }
+
+  validatePatientOwnership(req.user.id, req.user.role, patientId)
+    .then(() => next())
+    .catch((error) => {
+      if (error.status === 403 || error.status === 404) {
+        res.status(error.status).json({ error: error.message });
+      } else {
+        logger.error('Error al validar propiedad de paciente:', error);
+        res.status(500).json({ error: 'Error al validar permisos' });
+      }
+    });
+};
+
 // ============================================================================
 // FUNCIONES DE VALIDACIÓN INTERNAS
 // ============================================================================
@@ -361,6 +435,27 @@ async function validatePatientOwnership(
   // Solo el paciente mismo o un admin puede ver su información
   if (patient.userId !== userId && userRole !== 'ADMIN') {
     throw createError('No tienes permiso para acceder a este paciente', 403);
+  }
+}
+
+/**
+ * Valida que el doctorId corresponde al doctor del usuario autenticado
+ */
+async function validateDoctorOwnership(
+  userId: string,
+  doctorId: string
+): Promise<void> {
+  const doctor = await prisma.doctor.findUnique({
+    where: { userId },
+    select: { id: true },
+  });
+
+  if (!doctor) {
+    throw createError('Doctor no encontrado', 404);
+  }
+
+  if (doctor.id !== doctorId) {
+    throw createError('No tienes permiso para acceder a este recurso', 403);
   }
 }
 
