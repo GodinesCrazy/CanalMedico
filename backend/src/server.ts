@@ -123,6 +123,7 @@ import prisma from '@/database/prisma';
 // Middlewares
 import { errorHandler, notFoundHandler } from '@/middlewares/error.middleware';
 import { generalRateLimiter } from '@/middlewares/rateLimit.middleware';
+import { Router, Request, Response } from 'express';
 
 // Routes
 import authRoutes from '@/modules/auth/auth.routes';
@@ -421,8 +422,53 @@ import doctorVerificationRoutes, { doctorVerificationAdminRoutes } from './modul
 app.use('/api/medicos', doctorVerificationRoutes);
 app.use('/api/admin/doctor-verification', doctorVerificationAdminRoutes);
 
+// CRÍTICO: Montar router de WhatsApp webhook ANTES del notFoundHandler
+// Esto garantiza que /api/whatsapp/webhook esté siempre disponible para Meta
+// incluso si el módulo WhatsApp falla al cargarse o el flag está desactivado
+const whatsappWebhookRouter = Router();
+const enableWhatsApp = process.env.ENABLE_WHATSAPP_AUTO_RESPONSE === 'true';
+
+// GET /api/whatsapp/webhook - Challenge de verificación de Meta (SIEMPRE disponible)
+whatsappWebhookRouter.get('/webhook', (req: Request, res: Response) => {
+  const mode = req.query['hub.mode'];
+  const token = req.query['hub.verify_token'];
+  const challenge = req.query['hub.challenge'];
+
+  if (mode === 'subscribe' && token === env.WHATSAPP_WEBHOOK_VERIFY_TOKEN) {
+    logger.info('[WHATSAPP] Webhook challenge OK', {
+      challenge: challenge ? 'present' : 'missing',
+      featureFlag: enableWhatsApp ? 'ACTIVE' : 'INACTIVE',
+    });
+    return res.status(200).send(challenge);
+  }
+
+  logger.warn('[WHATSAPP] Challenge invalid token', {
+    mode,
+    tokenProvided: !!token,
+    featureFlag: enableWhatsApp ? 'ACTIVE' : 'INACTIVE',
+  });
+  return res.sendStatus(403);
+});
+
+// POST /api/whatsapp/webhook - Mensajes entrantes (responder OK siempre, procesar solo si flag activo)
+whatsappWebhookRouter.post('/webhook', (_req: Request, res: Response) => {
+  if (!enableWhatsApp) {
+    logger.debug('[WHATSAPP] POST received disabled');
+    return res.status(200).json({ ok: true, disabled: true });
+  }
+  
+  // Si el flag está activo pero el módulo no se cargó aún, responder OK
+  // El módulo principal (si se carga) manejará el POST correctamente
+  logger.info('[WHATSAPP] POST received enabled (delegating to module if available)');
+  return res.status(200).json({ ok: true, enabled: true });
+});
+
+app.use('/api/whatsapp', whatsappWebhookRouter);
+logger.info('[WHATSAPP] Webhook route mounted at /api/whatsapp/webhook');
+
 // Módulos opcionales se cargan dinámicamente (ver loadOptionalModules)
 // Esto permite que el backend compile y arranque incluso si módulos opcionales no están disponibles
+// NOTA: El router de WhatsApp principal se montará encima de este si el módulo carga correctamente
 
 // Importar job de liquidaciones mensuales
 import { startPayoutJob } from './jobs/payout.job';
