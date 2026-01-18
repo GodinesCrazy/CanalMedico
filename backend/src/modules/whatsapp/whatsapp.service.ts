@@ -316,6 +316,88 @@ export class WhatsAppService {
   }
 
   /**
+   * Enviar mensaje de texto por WhatsApp
+   * 
+   * IMPORTANTE: Solo funciona dentro de la ventana de 24 horas después
+   * de que el usuario inició la conversación. Para mensajes fuera de
+   * esta ventana, usar sendTemplateMessage().
+   * 
+   * @param to - Número de teléfono destinatario
+   * @param text - Texto del mensaje
+   * @returns Respuesta de WhatsApp con message_id
+   */
+  async sendTextMessage(to: string, text: string): Promise<{ messageId: string }> {
+    try {
+      const response = await whatsappClient.sendTextMessage(to, text);
+      
+      const messageId = response.messages[0]?.id;
+      if (!messageId) {
+        throw new Error('WhatsApp no devolvió message_id en la respuesta');
+      }
+
+      logger.info('[WHATSAPP] Mensaje de texto enviado desde servicio', {
+        messageId,
+        to,
+        textLength: text.length,
+      });
+
+      return { messageId };
+    } catch (error: any) {
+      logger.error('[WHATSAPP] Error al enviar mensaje de texto desde servicio', {
+        error: error.message,
+        to,
+        textLength: text.length,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Enviar mensaje template por WhatsApp
+   * 
+   * @param to - Número de teléfono destinatario
+   * @param templateName - Nombre del template aprobado
+   * @param languageCode - Código de idioma (ej: 'es')
+   * @param parameters - Parámetros del template
+   * @returns Respuesta de WhatsApp con message_id
+   */
+  async sendTemplateMessage(
+    to: string,
+    templateName: string,
+    languageCode: string = 'es',
+    parameters: string[] = []
+  ): Promise<{ messageId: string }> {
+    try {
+      const response = await whatsappClient.sendTemplateMessage(
+        to,
+        templateName,
+        languageCode,
+        parameters
+      );
+
+      const messageId = response.messages[0]?.id;
+      if (!messageId) {
+        throw new Error('WhatsApp no devolvió message_id en la respuesta');
+      }
+
+      logger.info('[WHATSAPP] Template enviado desde servicio', {
+        messageId,
+        to,
+        templateName,
+      });
+
+      return { messageId };
+    } catch (error: any) {
+      logger.error('[WHATSAPP] Error al enviar template desde servicio', {
+        error: error.message,
+        to,
+        templateName,
+      });
+      throw error;
+    }
+  }
+
+  /**
    * Verificar signature del webhook de Meta
    * 
    * @param payload - Payload del webhook (string)

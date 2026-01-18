@@ -87,10 +87,10 @@ export class WhatsAppClient {
         },
       };
 
-      logger.info('Enviando template de WhatsApp', {
+      logger.info('[WHATSAPP] Enviando template de WhatsApp', {
         to: normalizedPhone,
         templateName,
-        phoneNumberId: this.phoneNumberId,
+        phoneNumberId: this.phoneNumberId.substring(0, 10) + '...', // No exponer completo
       });
 
       const response = await this.api.post<WhatsAppSendResponse>(
@@ -105,11 +105,72 @@ export class WhatsAppClient {
 
       return response.data;
     } catch (error: any) {
-      logger.error('Error al enviar template de WhatsApp', {
+      logger.error('[WHATSAPP] Error al enviar template de WhatsApp', {
         error: error.message,
         response: error.response?.data,
         to,
         templateName,
+      });
+      throw new Error(`Error al enviar mensaje de WhatsApp: ${error.response?.data?.error?.message || error.message}`);
+    }
+  }
+
+  /**
+   * Enviar mensaje de texto por WhatsApp
+   * 
+   * IMPORTANTE: Este método solo funciona dentro de la ventana de 24 horas
+   * después de que el usuario inició la conversación. Para mensajes fuera
+   * de esta ventana, usar sendTemplateMessage().
+   * 
+   * @param to - Número de teléfono destinatario (formato: 56912345678)
+   * @param text - Texto del mensaje a enviar
+   */
+  async sendTextMessage(to: string, text: string): Promise<WhatsAppSendResponse> {
+    if (!this.isConfigured()) {
+      throw new Error('WhatsApp Cloud API no está configurado. Verifica las variables de entorno.');
+    }
+
+    if (!text || text.trim().length === 0) {
+      throw new Error('El texto del mensaje no puede estar vacío');
+    }
+
+    try {
+      // Normalizar número de teléfono
+      const normalizedPhone = this.normalizePhoneNumber(to);
+
+      const payload = {
+        messaging_product: 'whatsapp',
+        to: normalizedPhone,
+        type: 'text',
+        text: {
+          body: text,
+        },
+      };
+
+      logger.info('[WHATSAPP] Enviando mensaje de texto', {
+        to: normalizedPhone,
+        textLength: text.length,
+        phoneNumberId: this.phoneNumberId.substring(0, 10) + '...', // No exponer completo
+      });
+
+      const response = await this.api.post<WhatsAppSendResponse>(
+        `/${this.phoneNumberId}/messages`,
+        payload
+      );
+
+      logger.info('[WHATSAPP] Mensaje de texto enviado exitosamente', {
+        messageId: response.data.messages[0]?.id,
+        to: normalizedPhone,
+      });
+
+      return response.data;
+    } catch (error: any) {
+      logger.error('[WHATSAPP] Error al enviar mensaje de texto', {
+        error: error.message,
+        response: error.response?.data,
+        to,
+        // NO exponer el texto completo del mensaje en el log
+        textLength: text.length,
       });
       throw new Error(`Error al enviar mensaje de WhatsApp: ${error.response?.data?.error?.message || error.message}`);
     }

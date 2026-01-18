@@ -305,6 +305,108 @@ export class WhatsAppController {
       return;
     }
   }
+
+  /**
+   * Enviar mensaje de texto por WhatsApp
+   * 
+   * POST /api/whatsapp/send/text
+   * 
+   * Requiere: X-Internal-Secret header o autenticación admin
+   * 
+   * IMPORTANTE: Solo funciona dentro de la ventana de 24 horas
+   * después de que el usuario inició la conversación.
+   */
+  async sendTextMessage(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      // Verificar feature flag
+      if (!featureFlags.WHATSAPP_AUTO_RESPONSE) {
+        return res.status(404).json({ error: 'Feature not enabled' });
+      }
+
+      const { to, text } = req.body;
+
+      if (!to || !text) {
+        return res.status(400).json({ 
+          error: 'Campos requeridos: to (número de teléfono) y text (mensaje)' 
+        });
+      }
+
+      if (typeof text !== 'string' || text.trim().length === 0) {
+        return res.status(400).json({ error: 'El texto del mensaje no puede estar vacío' });
+      }
+
+      const result = await whatsappService.sendTextMessage(to, text);
+
+      res.status(200).json({
+        success: true,
+        data: {
+          messageId: result.messageId,
+          to,
+        },
+      });
+      return;
+    } catch (error: any) {
+      logger.error('[WHATSAPP] Error al enviar mensaje de texto desde endpoint', {
+        error: error.message,
+        to: req.body.to,
+      });
+      next(error);
+      return;
+    }
+  }
+
+  /**
+   * Enviar mensaje template por WhatsApp
+   * 
+   * POST /api/whatsapp/send/template
+   * 
+   * Requiere: X-Internal-Secret header o autenticación admin
+   */
+  async sendTemplateMessage(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      // Verificar feature flag
+      if (!featureFlags.WHATSAPP_AUTO_RESPONSE) {
+        return res.status(404).json({ error: 'Feature not enabled' });
+      }
+
+      const { to, templateName, languageCode = 'es', parameters = [] } = req.body;
+
+      if (!to || !templateName) {
+        return res.status(400).json({ 
+          error: 'Campos requeridos: to (número de teléfono) y templateName (nombre del template)' 
+        });
+      }
+
+      if (!Array.isArray(parameters)) {
+        return res.status(400).json({ error: 'parameters debe ser un array de strings' });
+      }
+
+      const result = await whatsappService.sendTemplateMessage(
+        to,
+        templateName,
+        languageCode,
+        parameters
+      );
+
+      res.status(200).json({
+        success: true,
+        data: {
+          messageId: result.messageId,
+          to,
+          templateName,
+        },
+      });
+      return;
+    } catch (error: any) {
+      logger.error('[WHATSAPP] Error al enviar template desde endpoint', {
+        error: error.message,
+        to: req.body.to,
+        templateName: req.body.templateName,
+      });
+      next(error);
+      return;
+    }
+  }
 }
 
 export default new WhatsAppController();

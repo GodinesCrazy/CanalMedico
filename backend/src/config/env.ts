@@ -103,6 +103,9 @@ const envSchema = z.object({
   WHATSAPP_WEBHOOK_VERIFY_TOKEN: z.string().optional(),
   WHATSAPP_API_VERSION: z.string().default('v21.0'),
   WHATSAPP_APP_SECRET: z.string().optional(), // Para verificar signature del webhook
+
+  // Seguridad interna - OPCIONAL (para proteger endpoints internos de envío WhatsApp)
+  INTERNAL_API_KEY: z.string().optional(),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;

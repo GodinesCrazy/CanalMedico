@@ -8,7 +8,7 @@
 
 import { Router } from 'express';
 import { featureFlags } from '@/config/featureFlags';
-import { authenticate, requireRole } from '@/middlewares/auth.middleware';
+import { authenticate, requireRole, requireInternalSecret } from '@/middlewares/auth.middleware';
 import whatsappController from './whatsapp.controller';
 
 const router = Router();
@@ -67,6 +67,34 @@ if (featureFlags.WHATSAPP_AUTO_RESPONSE) {
     requireRole('DOCTOR'),
     whatsappController.resendLink.bind(whatsappController)
   );
+
+  /**
+   * Enviar mensaje de texto por WhatsApp
+   * 
+   * POST /api/whatsapp/send/text
+   * 
+   * Requiere: X-Internal-Secret header
+   * Protegido con requireInternalSecret middleware
+   */
+  router.post(
+    '/send/text',
+    requireInternalSecret,
+    whatsappController.sendTextMessage.bind(whatsappController)
+  );
+
+  /**
+   * Enviar mensaje template por WhatsApp
+   * 
+   * POST /api/whatsapp/send/template
+   * 
+   * Requiere: X-Internal-Secret header
+   * Protegido con requireInternalSecret middleware
+   */
+  router.post(
+    '/send/template',
+    requireInternalSecret,
+    whatsappController.sendTemplateMessage.bind(whatsappController)
+  );
 } else {
   // Endpoints deshabilitados (retornan 404)
   router.get('/attempts/pending', (_req, res) => {
@@ -76,6 +104,12 @@ if (featureFlags.WHATSAPP_AUTO_RESPONSE) {
     res.status(404).json({ error: 'Feature not enabled' });
   });
   router.post('/attempts/:id/resend-link', (_req, res) => {
+    res.status(404).json({ error: 'Feature not enabled' });
+  });
+  router.post('/send/text', (_req, res) => {
+    res.status(404).json({ error: 'Feature not enabled' });
+  });
+  router.post('/send/template', (_req, res) => {
     res.status(404).json({ error: 'Feature not enabled' });
   });
 }
