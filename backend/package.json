@@ -23,7 +23,8 @@
     "verify:health": "tsx scripts/verify-health.ts",
     "verify:remote-health": "tsx scripts/verify-remote-health.ts",
     "debug:port": "tsx scripts/print-port.ts",
-    "whatsapp:test": "tsx scripts/whatsapp_smoke_test.ts"
+    "whatsapp:test": "tsx scripts/whatsapp_smoke_test.ts",
+    "system:test": "tsx scripts/system_smoke_test.ts"
   },
   "keywords": [
     "medical",
