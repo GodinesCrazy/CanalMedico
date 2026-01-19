@@ -435,14 +435,14 @@ whatsappWebhookRouter.get('/webhook', (req: Request, res: Response) => {
   const challenge = req.query['hub.challenge'];
 
   if (mode === 'subscribe' && token === env.WHATSAPP_WEBHOOK_VERIFY_TOKEN) {
-    logger.info('[WHATSAPP] Webhook challenge OK', {
+    logger.info('[WHATSAPP] CHALLENGE_OK', {
       challenge: challenge ? 'present' : 'missing',
       featureFlag: enableWhatsApp ? 'ACTIVE' : 'INACTIVE',
     });
     return res.status(200).send(challenge);
   }
 
-  logger.warn('[WHATSAPP] Challenge invalid token', {
+  logger.warn('[WHATSAPP] CHALLENGE_FORBIDDEN', {
     mode,
     tokenProvided: !!token,
     featureFlag: enableWhatsApp ? 'ACTIVE' : 'INACTIVE',
@@ -453,13 +453,17 @@ whatsappWebhookRouter.get('/webhook', (req: Request, res: Response) => {
 // POST /api/whatsapp/webhook - Mensajes entrantes (responder OK siempre, procesar solo si flag activo)
 whatsappWebhookRouter.post('/webhook', (_req: Request, res: Response) => {
   if (!enableWhatsApp) {
-    logger.debug('[WHATSAPP] POST received disabled');
+    logger.info('[WHATSAPP] POST_DISABLED', {
+      message: 'Feature flag ENABLE_WHATSAPP_AUTO_RESPONSE is not true (fallback handler)',
+    });
     return res.status(200).json({ ok: true, disabled: true });
   }
   
   // Si el flag está activo pero el módulo no se cargó aún, responder OK
   // El módulo principal (si se carga) manejará el POST correctamente
-  logger.info('[WHATSAPP] POST received enabled (delegating to module if available)');
+  logger.info('[WHATSAPP] POST_ENABLED', {
+    message: 'Delegating to module if available (fallback handler)',
+  });
   return res.status(200).json({ ok: true, enabled: true });
 });
 

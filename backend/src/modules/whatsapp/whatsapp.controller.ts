@@ -35,14 +35,14 @@ export class WhatsAppController {
         const challenge = req.query['hub.challenge'];
 
         if (mode === 'subscribe' && token === env.WHATSAPP_WEBHOOK_VERIFY_TOKEN) {
-          logger.info('[WHATSAPP] Webhook verified by Meta (GET challenge)', {
+          logger.info('[WHATSAPP] CHALLENGE_OK', {
             challenge: challenge ? 'present' : 'missing',
             featureFlag: featureFlags.WHATSAPP_AUTO_RESPONSE ? 'ACTIVE' : 'INACTIVE',
           });
           return res.status(200).send(challenge);
         }
 
-        logger.warn('[WHATSAPP] Webhook verification failed (GET challenge)', {
+        logger.warn('[WHATSAPP] CHALLENGE_FORBIDDEN', {
           mode,
           tokenProvided: !!token,
           featureFlag: featureFlags.WHATSAPP_AUTO_RESPONSE ? 'ACTIVE' : 'INACTIVE',
@@ -52,10 +52,16 @@ export class WhatsAppController {
 
       // Procesar mensajes (POST) - SOLO si el feature flag está activo
       if (!featureFlags.WHATSAPP_AUTO_RESPONSE) {
-        logger.debug('[WHATSAPP] POST webhook recibido pero feature flag desactivado');
+        logger.info('[WHATSAPP] POST_DISABLED', {
+          message: 'Feature flag ENABLE_WHATSAPP_AUTO_RESPONSE is not true',
+        });
         // Responder OK para no recibir reintentos de Meta, pero no procesar
-        return res.status(200).json({ status: 'ok', message: 'Feature not enabled' });
+        return res.status(200).json({ ok: true, disabled: true });
       }
+
+      logger.info('[WHATSAPP] POST_ENABLED', {
+        message: 'Processing incoming webhook message',
+      });
 
       // Procesar mensaje (POST)
       // Verificar signature del webhook
@@ -117,7 +123,7 @@ export class WhatsAppController {
 
       // Responder 200 OK a Meta inmediatamente (importante para no recibir reintentos)
       logger.info('[WHATSAPP] POST webhook procesado exitosamente');
-      res.status(200).json({ status: 'ok' });
+      res.status(200).json({ ok: true });
       return;
     } catch (error) {
       logger.error('[WHATSAPP] Error en webhook:', error);
@@ -337,6 +343,11 @@ export class WhatsAppController {
 
       const result = await whatsappService.sendTextMessage(to, text);
 
+      logger.info('[WHATSAPP] SEND_TEXT_OK', {
+        messageId: result.messageId,
+        to,
+      });
+
       res.status(200).json({
         success: true,
         data: {
@@ -346,7 +357,7 @@ export class WhatsAppController {
       });
       return;
     } catch (error: any) {
-      logger.error('[WHATSAPP] Error al enviar mensaje de texto desde endpoint', {
+      logger.error('[WHATSAPP] SEND_TEXT_FAIL', {
         error: error.message,
         to: req.body.to,
       });
