@@ -250,6 +250,173 @@ async function testSendTextMessageUnauthorized(): Promise<boolean> {
 }
 
 /**
+ * Test 0: Verificar health endpoint
+ */
+async function testHealth(): Promise<boolean> {
+  console.log('\n[TEST 0] Verificar /health endpoint');
+  console.log('-'.repeat(60));
+
+  try {
+    const url = `${API_URL}/health`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+      signal: AbortSignal.timeout(5000),
+    });
+
+    const responseData = await response.json().catch(() => ({}));
+
+    if (response.status === 200) {
+      logTest('GET /health', true, {
+        status: response.status,
+        data: responseData,
+      });
+      return true;
+    } else {
+      logTest('GET /health', false, {
+        status: response.status,
+        error: 'Health check failed',
+        data: responseData,
+      });
+      return false;
+    }
+  } catch (error: any) {
+    logTest('GET /health', false, {
+      error: error.message || 'Network error',
+    });
+    return false;
+  }
+}
+
+/**
+ * Test 0b: Verificar status del módulo WhatsApp
+ */
+async function testModuleStatus(): Promise<boolean> {
+  console.log('\n[TEST 0b] Verificar estado del módulo WhatsApp (/api/whatsapp/status)');
+  console.log('-'.repeat(60));
+
+  if (!INTERNAL_API_KEY) {
+    logTest('GET /api/whatsapp/status', false, {
+      skipped: true,
+      reason: 'INTERNAL_API_KEY no configurado (requerido para este test)',
+    });
+    return false;
+  }
+
+  try {
+    const url = `${API_URL}/api/whatsapp/status`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Internal-Secret': INTERNAL_API_KEY,
+      },
+      signal: AbortSignal.timeout(5000),
+    });
+
+    const responseData = await response.json();
+
+    if (response.status === 200 && responseData.success && responseData.data) {
+      const status = responseData.data;
+      logTest('GET /api/whatsapp/status', true, {
+        status: response.status,
+        moduleLoaded: status.moduleLoaded,
+        fallbackActive: status.fallbackActive,
+        enableFlag: status.enableFlag,
+        verifyTokenSet: status.verifyTokenSet,
+        phoneNumberIdSet: status.phoneNumberIdSet,
+        wabaIdSet: status.wabaIdSet,
+        tokenSet: status.tokenSet,
+      });
+
+      // Advertir si está en fallback
+      if (status.fallbackActive) {
+        console.log('   ⚠️  ADVERTENCIA: Módulo WhatsApp está usando fallback handler');
+        console.log('   ⚠️  Esto significa que el módulo real no se cargó correctamente');
+      }
+
+      return true;
+    } else {
+      logTest('GET /api/whatsapp/status', false, {
+        status: response.status,
+        response: responseData,
+        error: 'Respuesta no exitosa o sin data',
+      });
+      return false;
+    }
+  } catch (error: any) {
+    logTest('GET /api/whatsapp/status', false, {
+      error: error.message || 'Network error',
+    });
+    return false;
+  }
+}
+
+/**
+ * Test 2b: POST webhook fake (simular mensaje de Meta)
+ */
+async function testPostWebhookFake(): Promise<boolean> {
+  console.log('\n[TEST 2b] Validar POST /api/whatsapp/webhook (simulación)');
+  console.log('-'.repeat(60));
+
+  try {
+    const url = `${API_URL}/api/whatsapp/webhook`;
+    const fakePayload = {
+      object: 'whatsapp_business_account',
+      entry: [{
+        id: 'test_entry_id',
+        changes: [{
+          value: {
+            messaging_product: 'whatsapp',
+            metadata: {
+              display_phone_number: '56912345678',
+              phone_number_id: process.env.WHATSAPP_PHONE_NUMBER_ID || 'test_phone_id',
+            },
+          },
+          field: 'messages',
+        }],
+      }],
+    };
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Hub-Signature-256': 'sha256=fake_signature_for_test', // Fake signature
+      },
+      body: JSON.stringify(fakePayload),
+      signal: AbortSignal.timeout(5000),
+    });
+
+    const responseData = await response.json().catch(() => ({}));
+
+    // Debe responder 200 OK (incluso si la signature es inválida, para no recibir reintentos)
+    if (response.status === 200) {
+      logTest('POST /api/whatsapp/webhook (fake)', true, {
+        status: response.status,
+        response: responseData,
+        message: 'Webhook responde correctamente (puede rechazar por signature inválida)',
+      });
+      return true;
+    } else {
+      logTest('POST /api/whatsapp/webhook (fake)', false, {
+        status: response.status,
+        response: responseData,
+        error: 'Webhook no respondió 200 OK',
+      });
+      return false;
+    }
+  } catch (error: any) {
+    logTest('POST /api/whatsapp/webhook (fake)', false, {
+      error: error.message || 'Network error',
+    });
+    return false;
+  }
+}
+
+/**
  * Test 4: Validar env?o directo a Meta Graph API (opcional - requiere credenciales)
  * Este test valida que el token y permisos funcionan directamente con Meta
  */
@@ -328,18 +495,25 @@ async function testMetaGraphAPIDirect(): Promise<boolean> {
 async function main() {
   console.log('');
   console.log('='.repeat(60));
-  console.log('WhatsApp Cloud API - Smoke Test');
+  console.log('WhatsApp Cloud API - Smoke Test End-to-End');
   console.log('='.repeat(60));
   console.log(`API URL: ${API_URL}`);
-  console.log(`INTERNAL_API_KEY: ${INTERNAL_API_KEY ? '? Configurado' : '? No configurado'}`);
-  console.log(`WHATSAPP_TEST_TO: ${WHATSAPP_TEST_TO || '? No configurado (test de env?o ser? skip)'}`);
-  console.log(`VERIFY_TOKEN: ${VERIFY_TOKEN ? '? Configurado' : '? No configurado'}`);
+  console.log(`INTERNAL_API_KEY: ${INTERNAL_API_KEY ? '[OK] Configurado' : '[SKIP] No configurado'}`);
+  console.log(`WHATSAPP_TEST_TO: ${WHATSAPP_TEST_TO || '[SKIP] No configurado (test de envío será skip)'}`);
+  console.log(`VERIFY_TOKEN: ${VERIFY_TOKEN ? '[OK] Configurado' : '[SKIP] No configurado'}`);
+  console.log(`WHATSAPP_ACCESS_TOKEN: ${process.env.WHATSAPP_ACCESS_TOKEN ? '[OK] Configurado' : '[SKIP] No configurado'}`);
+  console.log(`WHATSAPP_PHONE_NUMBER_ID: ${process.env.WHATSAPP_PHONE_NUMBER_ID ? '[OK] Configurado' : '[SKIP] No configurado'}`);
   console.log('='.repeat(60));
 
-  // Ejecutar tests
+  // Ejecutar tests en orden
+  const test0 = await testHealth();
+  const test0b = await testModuleStatus();
   const test1 = await testWebhookChallenge();
+  const test1b = await testWebhookChallengeInvalidToken();
+  const test2b = await testPostWebhookFake();
   const test2 = await testSendTextMessage();
   const test3 = await testSendTextMessageUnauthorized();
+  const test4 = await testMetaGraphAPIDirect();
 
   // Resumen
   console.log('');

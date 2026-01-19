@@ -95,6 +95,20 @@ if (featureFlags.WHATSAPP_AUTO_RESPONSE) {
     requireInternalSecret,
     whatsappController.sendTemplateMessage.bind(whatsappController)
   );
+
+  /**
+   * Obtener estado del módulo WhatsApp
+   * 
+   * GET /api/whatsapp/status
+   * 
+   * Requiere: X-Internal-Secret header
+   * Protegido con requireInternalSecret middleware
+   */
+  router.get(
+    '/status',
+    requireInternalSecret,
+    whatsappController.getStatus.bind(whatsappController)
+  );
 } else {
   // Endpoints deshabilitados (retornan 404)
   router.get('/attempts/pending', (_req, res) => {
@@ -110,6 +124,9 @@ if (featureFlags.WHATSAPP_AUTO_RESPONSE) {
     res.status(404).json({ error: 'Feature not enabled' });
   });
   router.post('/send/template', (_req, res) => {
+    res.status(404).json({ error: 'Feature not enabled' });
+  });
+  router.get('/status', (_req, res) => {
     res.status(404).json({ error: 'Feature not enabled' });
   });
 }

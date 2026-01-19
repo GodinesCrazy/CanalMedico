@@ -121,6 +121,9 @@ export class WhatsAppController {
         }
       }
 
+      // Guardar timestamp del último evento (en memoria)
+      (global as any).__WHATSAPP_LAST_WEBHOOK_EVENT__ = new Date().toISOString();
+
       // Responder 200 OK a Meta inmediatamente (importante para no recibir reintentos)
       logger.info('[WHATSAPP] POST webhook procesado exitosamente');
       res.status(200).json({ ok: true });
@@ -413,6 +416,75 @@ export class WhatsAppController {
         error: error.message,
         to: req.body.to,
         templateName: req.body.templateName,
+      });
+      next(error);
+      return;
+    }
+  }
+
+  /**
+   * Obtener estado del módulo WhatsApp
+   * 
+   * GET /api/whatsapp/status
+   * 
+   * Requiere: X-Internal-Secret header
+   * 
+   * Retorna información sobre el estado del módulo:
+   * - moduleLoaded: si el módulo real está cargado
+   * - fallbackActive: si está usando fallback handler
+   * - enableFlag: si ENABLE_WHATSAPP_AUTO_RESPONSE está activo
+   * - Variables configuradas
+   */
+  async getStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const enableFlag = featureFlags.WHATSAPP_AUTO_RESPONSE;
+      const verifyTokenSet = !!env.WHATSAPP_WEBHOOK_VERIFY_TOKEN;
+      const phoneNumberIdSet = !!env.WHATSAPP_PHONE_NUMBER_ID;
+      const wabaIdSet = !!env.WHATSAPP_BUSINESS_ACCOUNT_ID;
+      const tokenSet = !!env.WHATSAPP_ACCESS_TOKEN;
+
+      // Detectar si el módulo real está cargado
+      // Si podemos acceder a whatsappService, el módulo está cargado
+      let moduleLoaded = false;
+      let fallbackActive = false;
+
+      try {
+        // Intentar acceder al servicio (si está cargado, esto funcionará)
+        const service = require('./whatsapp.service');
+        moduleLoaded = !!(service && service.default);
+        fallbackActive = !moduleLoaded;
+      } catch (error) {
+        // Si falla, el módulo no está cargado
+        moduleLoaded = false;
+        fallbackActive = true;
+      }
+
+      // Obtener último evento de webhook (en memoria simple)
+      // Esto se puede mejorar con un store más robusto si es necesario
+      const lastWebhookEventAt = (global as any).__WHATSAPP_LAST_WEBHOOK_EVENT__ || null;
+
+      const status = {
+        moduleLoaded,
+        fallbackActive,
+        enableFlag,
+        verifyTokenSet,
+        phoneNumberIdSet,
+        wabaIdSet,
+        tokenSet,
+        lastWebhookEventAt,
+        timestamp: new Date().toISOString(),
+      };
+
+      logger.info('[WHATSAPP] STATUS', status);
+
+      res.status(200).json({
+        success: true,
+        data: status,
+      });
+      return;
+    } catch (error: any) {
+      logger.error('[WHATSAPP] Error al obtener status', {
+        error: error.message,
       });
       next(error);
       return;
