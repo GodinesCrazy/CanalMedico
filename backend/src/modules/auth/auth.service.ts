@@ -194,8 +194,19 @@ export class AuthService {
         throw createError('Email o contraseña incorrectos', 401);
       }
 
-      // Verificar contraseña
-      const isPasswordValid = await comparePassword(data.password, user.password);
+      // INCIDENT FIX: Guard defensivo - evita bcrypt.compare() con hash null/inválido (→ 500)
+      if (!user.password || typeof user.password !== 'string') {
+        throw createError('Email o contraseña incorrectos', 401);
+      }
+
+      // Verificar contraseña (wrap para evitar 500 si bcrypt lanza por hash inválido)
+      let isPasswordValid = false;
+      try {
+        isPasswordValid = await comparePassword(data.password, user.password);
+      } catch (compareErr) {
+        logger.warn('Error en comparePassword (hash inválido o corrupto):', compareErr);
+        throw createError('Email o contraseña incorrectos', 401);
+      }
 
       if (!isPasswordValid) {
         throw createError('Email o contraseña incorrectos', 401);
@@ -243,9 +254,14 @@ export class AuthService {
         },
         ...tokens,
       };
-    } catch (error) {
+    } catch (error: any) {
+      // INCIDENT FIX: Errores operacionales (createError) se reenvían con su statusCode.
+      // Cualquier otro error se convierte en 401 para no devolver 500.
+      if (error?.isOperational === true && typeof error?.statusCode === 'number') {
+        throw error;
+      }
       logger.error('Error en login:', error);
-      throw error;
+      throw createError('Email o contraseña incorrectos', 401);
     }
   }
 
