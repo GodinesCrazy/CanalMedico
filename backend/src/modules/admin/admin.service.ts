@@ -196,28 +196,35 @@ export class AdminService {
       const skip = page && limit ? (page - 1) * limit : undefined;
       const take = limit;
 
+      // FIX P2022: select explícito - solo columnas presentes en migraciones
       const [doctors, total] = await Promise.all([
         prisma.doctor.findMany({
           skip,
           take,
-          include: {
+          select: {
+            id: true,
+            userId: true,
+            name: true,
+            rut: true,
+            speciality: true,
+            horarios: true,
+            tarifaConsulta: true,
+            tarifaUrgencia: true,
+            estadoOnline: true,
+            horariosAutomaticos: true,
+            payoutMode: true,
+            payoutDay: true,
+            bankAccountInfo: true,
+            whatsappBusinessNumber: true,
+            whatsappBusinessId: true,
+            createdAt: true,
+            updatedAt: true,
             user: {
-              select: {
-                id: true,
-                email: true,
-                role: true,
-                createdAt: true,
-              },
+              select: { id: true, email: true, role: true },
             },
-            _count: {
-              select: {
-                consultations: true,
-              },
-            },
+            _count: { select: { consultations: true } },
           },
-          orderBy: {
-            createdAt: 'desc',
-          },
+          orderBy: { createdAt: 'desc' },
         }),
         prisma.doctor.count(),
       ]);

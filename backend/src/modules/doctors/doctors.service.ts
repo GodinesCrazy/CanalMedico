@@ -9,22 +9,34 @@ export class DoctorsService {
     try {
       const { skip, take } = getPaginationParams(page, limit);
 
+      // FIX P2022: select explícito - solo columnas presentes en migraciones (evita P2022)
       const [doctors, total] = await Promise.all([
         prisma.doctor.findMany({
           skip,
           take,
-          include: {
+          select: {
+            id: true,
+            userId: true,
+            name: true,
+            rut: true,
+            speciality: true,
+            horarios: true,
+            tarifaConsulta: true,
+            tarifaUrgencia: true,
+            estadoOnline: true,
+            horariosAutomaticos: true,
+            payoutMode: true,
+            payoutDay: true,
+            bankAccountInfo: true,
+            whatsappBusinessNumber: true,
+            whatsappBusinessId: true,
+            createdAt: true,
+            updatedAt: true,
             user: {
-              select: {
-                id: true,
-                email: true,
-                role: true,
-              },
+              select: { id: true, email: true, role: true },
             },
           },
-          orderBy: {
-            createdAt: 'desc',
-          },
+          orderBy: { createdAt: 'desc' },
         }),
         prisma.doctor.count(),
       ]);
@@ -38,15 +50,29 @@ export class DoctorsService {
 
   async getById(doctorId: string) {
     try {
+      // FIX P2022: select explícito - solo columnas presentes en migraciones
       const doctor = await prisma.doctor.findUnique({
         where: { id: doctorId },
-        include: {
+        select: {
+          id: true,
+          userId: true,
+          name: true,
+          rut: true,
+          speciality: true,
+          horarios: true,
+          tarifaConsulta: true,
+          tarifaUrgencia: true,
+          estadoOnline: true,
+          horariosAutomaticos: true,
+          payoutMode: true,
+          payoutDay: true,
+          bankAccountInfo: true,
+          whatsappBusinessNumber: true,
+          whatsappBusinessId: true,
+          createdAt: true,
+          updatedAt: true,
           user: {
-            select: {
-              id: true,
-              email: true,
-              role: true,
-            },
+            select: { id: true, email: true, role: true },
           },
         },
       });
@@ -75,15 +101,29 @@ export class DoctorsService {
 
   async getByUserId(userId: string) {
     try {
+      // FIX P2022: select explícito - solo columnas presentes en migraciones
       const doctor = await prisma.doctor.findUnique({
         where: { userId },
-        include: {
+        select: {
+          id: true,
+          userId: true,
+          name: true,
+          rut: true,
+          speciality: true,
+          horarios: true,
+          tarifaConsulta: true,
+          tarifaUrgencia: true,
+          estadoOnline: true,
+          horariosAutomaticos: true,
+          payoutMode: true,
+          payoutDay: true,
+          bankAccountInfo: true,
+          whatsappBusinessNumber: true,
+          whatsappBusinessId: true,
+          createdAt: true,
+          updatedAt: true,
           user: {
-            select: {
-              id: true,
-              email: true,
-              role: true,
-            },
+            select: { id: true, email: true, role: true },
           },
         },
       });
@@ -101,20 +141,31 @@ export class DoctorsService {
 
   async getOnlineDoctors() {
     try {
-      // Obtener todos los doctores para calcular disponibilidad
+      // FIX P2022: select explícito - solo columnas presentes en migraciones
       const allDoctors = await prisma.doctor.findMany({
-        include: {
+        select: {
+          id: true,
+          userId: true,
+          name: true,
+          rut: true,
+          speciality: true,
+          horarios: true,
+          tarifaConsulta: true,
+          tarifaUrgencia: true,
+          estadoOnline: true,
+          horariosAutomaticos: true,
+          payoutMode: true,
+          payoutDay: true,
+          bankAccountInfo: true,
+          whatsappBusinessNumber: true,
+          whatsappBusinessId: true,
+          createdAt: true,
+          updatedAt: true,
           user: {
-            select: {
-              id: true,
-              email: true,
-              role: true,
-            },
+            select: { id: true, email: true, role: true },
           },
         },
-        orderBy: {
-          createdAt: 'desc',
-        },
+        orderBy: { createdAt: 'desc' },
       });
 
       // Filtrar solo los que están disponibles (siempre modo MANUAL)
@@ -181,8 +232,14 @@ export class DoctorsService {
 
   async getCurrentAvailability(doctorId: string) {
     try {
+      // FIX P2022: select explícito - solo columnas necesarias
       const doctor = await prisma.doctor.findUnique({
         where: { id: doctorId },
+        select: {
+          id: true,
+          estadoOnline: true,
+          horariosAutomaticos: true,
+        },
       });
 
       if (!doctor) {

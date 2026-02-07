@@ -5,15 +5,20 @@ import logger from '@/config/logger';
 export class PatientsService {
   async getById(patientId: string) {
     try {
+      // FIX P2022: select explícito - solo columnas presentes en migraciones
       const patient = await prisma.patient.findUnique({
         where: { id: patientId },
-        include: {
+        select: {
+          id: true,
+          userId: true,
+          name: true,
+          age: true,
+          medicalHistory: true,
+          phoneNumber: true,
+          createdAt: true,
+          updatedAt: true,
           user: {
-            select: {
-              id: true,
-              email: true,
-              role: true,
-            },
+            select: { id: true, email: true, role: true },
           },
         },
       });
@@ -31,15 +36,20 @@ export class PatientsService {
 
   async getByUserId(userId: string) {
     try {
+      // FIX P2022: select explícito - solo columnas presentes en migraciones (id, userId, name, age, medicalHistory, phoneNumber, createdAt, updatedAt)
       const patient = await prisma.patient.findUnique({
         where: { userId },
-        include: {
+        select: {
+          id: true,
+          userId: true,
+          name: true,
+          age: true,
+          medicalHistory: true,
+          phoneNumber: true,
+          createdAt: true,
+          updatedAt: true,
           user: {
-            select: {
-              id: true,
-              email: true,
-              role: true,
-            },
+            select: { id: true, email: true, role: true },
           },
         },
       });
