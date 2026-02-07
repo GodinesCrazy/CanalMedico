@@ -3,7 +3,8 @@
   "$comment": "Railway configuration for CanalMedico Backend. Root directory should be set to 'backend' in Railway Dashboard.",
   "$comment_deploy_trigger": "2025-01-23: Trigger to force Railway redeploy after push to main",
   "build": {
-    "builder": "NIXPACKS"
+    "builder": "NIXPACKS",
+    "buildCommand": "npm ci && npx prisma migrate deploy && npm run build"
   },
   "deploy": {
     "startCommand": "node dist/server.js",
