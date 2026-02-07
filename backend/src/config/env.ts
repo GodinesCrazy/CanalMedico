@@ -516,6 +516,16 @@ try {
   
   // Parseo exitoso, asignar valores
   env = parseResult.data;
+
+  // INCIDENT FIX: Railway Postgres requiere sslmode=require para Prisma Client.
+  // Añadir si no está presente (Railway puede inyectar URL sin sslmode en algunos casos).
+  // Ref: https://www.prisma.io/docs/orm/reference/connection-urls
+  if (env.NODE_ENV === 'production' && env.DATABASE_URL && !env.DATABASE_URL.includes('sslmode=')) {
+    const sslParam = env.DATABASE_URL.includes('?') ? '&sslmode=require' : '?sslmode=require';
+    const urlWithSsl = env.DATABASE_URL + sslParam;
+    env.DATABASE_URL = urlWithSsl;
+    process.env.DATABASE_URL = urlWithSsl;
+  }
   
   // Validación estricta post-parse SOLO en producción
   if (env.NODE_ENV === 'production') {
