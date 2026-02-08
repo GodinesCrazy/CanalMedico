@@ -42,7 +42,7 @@ export class ConsultationsService {
         throw createError('La tarifa del médico no está configurada', 400);
       }
 
-      // Verificar si ya existe una consulta activa
+      // Verificar si ya existe una consulta activa - FIX P2022: select mínimo
       const existingConsultation = await prisma.consultation.findFirst({
         where: {
           doctorId: data.doctorId,
@@ -51,6 +51,7 @@ export class ConsultationsService {
             in: ['PENDING', 'ACTIVE'],
           },
         },
+        select: { id: true },
       });
 
       if (existingConsultation) {
