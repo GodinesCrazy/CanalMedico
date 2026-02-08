@@ -56,8 +56,9 @@ console.log('[BOOT] Healthz route mounted at /healthz (ultra minimal, before env
 // Usar process.env.PORT directamente (Railway siempre lo asigna)
 // Variable global para indicar que el servidor ya está escuchando
 let serverListening = false;
+const earlyListenEnabled = process.env.DISABLE_EARLY_LISTEN !== 'true';
 
-if (process.env.PORT) {
+if (process.env.PORT && earlyListenEnabled) {
   const earlyPort = Number(process.env.PORT);
   if (earlyPort && !isNaN(earlyPort) && earlyPort > 0) {
     // CRÍTICO: listen() inicia el servidor inmediatamente
@@ -99,7 +100,11 @@ if (process.env.PORT) {
     console.error(`[BOOT] Invalid PORT for early listen: ${process.env.PORT}`);
   }
 } else {
-  console.error('[BOOT] PORT not set - early listen skipped (will fail in startServer)');
+  if (!process.env.PORT) {
+    console.error('[BOOT] PORT not set - early listen skipped (will fail in startServer)');
+  } else if (!earlyListenEnabled) {
+    console.warn('[BOOT] Early listen deshabilitado por DISABLE_EARLY_LISTEN=true (no recomendado en Railway)');
+  }
 }
 
 // Ahora importar el resto (env puede hacer process.exit, pero /healthz ya está montado y escuchando)
@@ -112,6 +117,7 @@ import compression from 'compression';
 import morgan from 'morgan';
 import swaggerUi from 'swagger-ui-express';
 import swaggerJsdoc from 'swagger-jsdoc';
+import { v4 as uuidv4 } from 'uuid';
 
 // CRÍTICO: Importar env.ts - puede hacer process.exit(1) si falla
 // Si env.ts falla, el proceso muere ANTES de que el servidor pueda iniciar
@@ -355,6 +361,17 @@ app.use(
     credentials: true,
   })
 );
+
+// Correlation ID middleware (simple)
+app.use((req, res, next) => {
+  const existing = req.headers['x-correlation-id'] as string | undefined;
+  const correlationId = existing && existing.trim().length > 0 ? existing : uuidv4();
+  (req as any).correlationId = correlationId;
+  // Añadir al logger por contexto simple
+  (req as any).logContext = { correlationId };
+  res.locals.correlationId = correlationId;
+  next();
+});
 app.use(compression());
 app.use(morgan('combined', { stream: { write: (message) => logger.info(message.trim()) } }));
 app.use(express.json({ limit: '10mb' }));
@@ -742,7 +759,7 @@ async function initializeBackend() {
 
     // RESET FORZADO ADMIN (TEMPORAL) - SOLO si FORCE_ADMIN_PASSWORD_RESET=true
     // ⚠️ Este código debe eliminarse después de usar en producción
-    if (process.env.FORCE_ADMIN_PASSWORD_RESET === 'true') {
+    if (process.env.FORCE_ADMIN_PASSWORD_RESET === 'true' && process.env.NODE_ENV !== 'production') {
       try {
         logger.info('[BOOT] Executing forced admin password reset...');
         const { forceAdminPasswordReset } = await import('@/bootstrap/forceAdminReset');

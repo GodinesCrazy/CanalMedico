@@ -1,4 +1,4 @@
-import { Router } from 'express';
+﻿import { Router } from 'express';
 import consultationsController, { validateCreateConsultation } from './consultations.controller';
 import { authenticate, requireRole } from '@/middlewares/auth.middleware';
 import { requireConsultationOwnership, requireDoctorOwnership, requirePatientIdOwnership } from '@/middlewares/ownership.middleware';
@@ -40,7 +40,7 @@ const router = Router();
  *       201:
  *         description: Consulta creada exitosamente
  *       400:
- *         description: Error de validación (precio inválido)
+ *         description: Error de validaciÃ³n (precio invÃ¡lido)
  *       401:
  *         description: No autenticado
  *       403:
@@ -64,7 +64,7 @@ router.post('/', authenticate, requireRole('PATIENT'), validateCreateConsultatio
  *           type: string
  *     responses:
  *       200:
- *         description: Información de la consulta
+ *         description: InformaciÃ³n de la consulta
  *       401:
  *         description: No autenticado
  *       404:
@@ -124,7 +124,7 @@ router.get('/patient/:patientId', authenticate, requireRole('PATIENT'), requireP
  * @swagger
  * /api/consultations/{id}/accept:
  *   patch:
- *     summary: DOCTOR acepta consulta (PENDING → ACTIVE)
+ *     summary: DOCTOR acepta consulta (PENDING â†’ ACTIVE)
  *     tags: [Consultations]
  *     security:
  *       - bearerAuth: []
@@ -150,7 +150,7 @@ router.patch('/:id/accept', authenticate, requireRole('DOCTOR'), requireConsulta
  * @swagger
  * /api/consultations/{id}/complete:
  *   patch:
- *     summary: DOCTOR completa consulta (ACTIVE → COMPLETED)
+ *     summary: DOCTOR completa consulta (ACTIVE â†’ COMPLETED)
  *     tags: [Consultations]
  *     security:
  *       - bearerAuth: []
@@ -176,7 +176,7 @@ router.patch('/:id/complete', authenticate, requireRole('DOCTOR'), requireConsul
  * @swagger
  * /api/consultations/{id}/activate:
  *   patch:
- *     summary: Activar consulta (después del pago) - DEPRECATED
+ *     summary: Activar consulta (despuÃ©s del pago) - DEPRECATED
  *     tags: [Consultations]
  *     parameters:
  *       - in: path
@@ -221,4 +221,5 @@ import { consultationsPrescriptionsRoutes } from '../snre/snre.routes';
 router.use('/', consultationsPrescriptionsRoutes);
 
 export default router;
+
 

@@ -204,3 +204,9 @@ app-mobile/src/screens/
 
 **¡Todo está documentado y listo para usar!** 📚✨
 
+
+---
+
+### 6. **ASINCRONO.md**  
+   - Explicación comercial y técnica del modelo de atención asíncrona  
+   - Beneficios para médico y paciente, flujo E2E, FAQs y métricas sugeridas

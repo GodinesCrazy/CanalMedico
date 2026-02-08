@@ -4,6 +4,7 @@ import { verifyAccessToken } from '@/utils/jwt';
 import { AuthenticatedSocket } from '@/types';
 import messagesService from '../messages/messages.service';
 import logger from '@/config/logger';
+import prisma from '@/database/prisma';
 
 export class SocketService {
   private io!: SocketIOServer;
@@ -68,9 +69,35 @@ export class SocketService {
       // Nuevo mensaje
       socket.on('new-message', async (data: any) => {
         try {
+          // Seguridad: mapear userId -> doctorId/patientId de la consulta para evitar suplantación
+          const consultation = await prisma.consultation.findUnique({
+            where: { id: data.consultationId },
+            include: {
+              doctor: { select: { id: true, userId: true } },
+              patient: { select: { id: true, userId: true } },
+            },
+          });
+
+          if (!consultation) {
+            throw new Error('Consulta no encontrada');
+          }
+
+          let senderConsultationId: string | null = null;
+          if (consultation.doctor?.userId === userId) {
+            senderConsultationId = consultation.doctor.id;
+          } else if (consultation.patient?.userId === userId) {
+            senderConsultationId = consultation.patient.id;
+          } else {
+            throw new Error('No autorizado para enviar en esta consulta');
+          }
+
+          if (!senderConsultationId) {
+            throw new Error('No autorizado para enviar en esta consulta');
+          }
+
           const message = await messagesService.create({
             consultationId: data.consultationId,
-            senderId: userId,
+            senderId: senderConsultationId,
             text: data.text,
             fileUrl: data.fileUrl,
             audioUrl: data.audioUrl,
@@ -81,9 +108,9 @@ export class SocketService {
           this.io.to(`consultation:${data.consultationId}`).emit('message-received', message);
 
           logger.info(`Mensaje enviado en consulta ${data.consultationId}: ${message.id}`);
-        } catch (error) {
+        } catch (error: any) {
           logger.error('Error al enviar mensaje:', error);
-          socket.emit('message-error', { error: 'Error al enviar mensaje' });
+          socket.emit('message-error', { error: error?.message || 'Error al enviar mensaje' });
         }
       });
 

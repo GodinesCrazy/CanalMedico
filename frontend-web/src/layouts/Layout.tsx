@@ -1,6 +1,7 @@
-import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+﻿import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { FiHome, FiMessageSquare, FiSettings, FiDollarSign, FiUser, FiLogOut, FiPieChart, FiUsers } from 'react-icons/fi';
+import { FiStar } from 'react-icons/fi';
 
 export default function Layout() {
   const location = useLocation();
@@ -14,11 +15,12 @@ export default function Layout() {
 
   const navigation = [
     { name: 'Dashboard', href: '/', icon: FiHome, roles: ['DOCTOR', 'ADMIN'] },
+    { name: 'Beneficios', href: '/benefits', icon: FiStar, roles: ['DOCTOR', 'ADMIN'] },
     { name: 'Consultas', href: '/consultations', icon: FiMessageSquare, roles: ['DOCTOR', 'ADMIN'] },
     { name: 'Ingresos', href: '/earnings', icon: FiDollarSign, roles: ['DOCTOR'] },
     { name: 'Comisiones', href: '/commissions', icon: FiPieChart, roles: ['ADMIN'] },
     { name: 'Solicitudes de Registro', href: '/admin/signup-requests', icon: FiUsers, roles: ['ADMIN'] },
-    { name: 'Configuración', href: '/settings', icon: FiSettings, roles: ['DOCTOR', 'ADMIN'] },
+    { name: 'ConfiguraciÃ³n', href: '/settings', icon: FiSettings, roles: ['DOCTOR', 'ADMIN'] },
     { name: 'Perfil', href: '/profile', icon: FiUser, roles: ['DOCTOR', 'ADMIN'] },
   ];
 
@@ -84,7 +86,7 @@ export default function Layout() {
               className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
             >
               <FiLogOut className="mr-3 h-5 w-5" />
-              Cerrar sesión
+              Cerrar sesiÃ³n
             </button>
           </div>
         </div>
@@ -99,3 +101,5 @@ export default function Layout() {
     </div>
   );
 }
+
+

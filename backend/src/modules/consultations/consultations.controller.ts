@@ -1,4 +1,4 @@
-import { Response, NextFunction } from 'express';
+﻿import { Response, NextFunction } from 'express';
 import { z } from 'zod';
 import consultationsService from './consultations.service';
 import doctorsService from '../doctors/doctors.service';
@@ -11,8 +11,7 @@ const createConsultationSchema = z.object({
     doctorId: z.string().min(1, 'Doctor ID requerido'),
     patientId: z.string().min(1, 'Paciente ID requerido'),
     type: z.nativeEnum(ConsultationType),
-    price: z.number().int().positive('El precio debe ser mayor a 0'),
-  }),
+    }),
 });
 
 export class ConsultationsController {
@@ -50,7 +49,7 @@ export class ConsultationsController {
 
   async getById(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
-      // La validación de propiedad ya se realizó en el middleware requireConsultationOwnership
+      // La validaciÃ³n de propiedad ya se realizÃ³ en el middleware requireConsultationOwnership
       const consultation = await consultationsService.getById(req.params.id);
       res.json({
         success: true,
@@ -171,8 +170,8 @@ export class ConsultationsController {
 
   async activate(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
-      // La validación de propiedad ya se realizó en el middleware requireConsultationOwnership
-      // Solo el paciente de la consulta puede activarla después del pago
+      // La validaciÃ³n de propiedad ya se realizÃ³ en el middleware requireConsultationOwnership
+      // Solo el paciente de la consulta puede activarla despuÃ©s del pago
       const { paymentId } = req.body;
       const consultation = await consultationsService.activate(req.params.id, paymentId);
       res.json({
@@ -186,7 +185,7 @@ export class ConsultationsController {
 
   /**
    * PATCH /api/consultations/:id/accept
-   * DOCTOR acepta consulta (PENDING → ACTIVE)
+   * DOCTOR acepta consulta (PENDING â†’ ACTIVE)
    */
   async accept(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
@@ -221,7 +220,7 @@ export class ConsultationsController {
 
   /**
    * PATCH /api/consultations/:id/complete
-   * DOCTOR completa consulta (ACTIVE → COMPLETED)
+   * DOCTOR completa consulta (ACTIVE â†’ COMPLETED)
    */
   async complete(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
@@ -256,7 +255,7 @@ export class ConsultationsController {
 
   async close(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
-      // La validación de propiedad ya se realizó en el middleware requireConsultationOwnership
+      // La validaciÃ³n de propiedad ya se realizÃ³ en el middleware requireConsultationOwnership
       // Solo el doctor de la consulta puede cerrarla (validado por requireRole('DOCTOR') + requireConsultationOwnership)
       const closedConsultation = await consultationsService.close(req.params.id);
       res.json({
@@ -272,4 +271,5 @@ export class ConsultationsController {
 export default new ConsultationsController();
 
 export const validateCreateConsultation = validate(createConsultationSchema);
+
 

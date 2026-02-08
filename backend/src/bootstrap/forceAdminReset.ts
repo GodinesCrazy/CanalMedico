@@ -127,7 +127,7 @@ export async function forceAdminPasswordReset(): Promise<void> {
     }
 
     logger.info(`[FORCE-ADMIN] Email: ${ADMIN_EMAIL}`);
-    logger.info(`[FORCE-ADMIN] Password: ${ADMIN_PASSWORD}`);
+    // No registrar contraseñas en logs por seguridad
     logger.info('[FORCE-ADMIN] Proceso completado');
     logger.info('[FORCE-ADMIN] ✅ Reset forzado completado correctamente');
 

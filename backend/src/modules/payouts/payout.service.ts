@@ -44,62 +44,74 @@ export class PayoutService {
      */
     async createPayoutBatch(doctorId: string) {
         try {
-            // Obtener pagos pendientes de liquidación
-            const pendingPayments = await prisma.payment.findMany({
-                where: {
-                    payoutStatus: 'PENDING',
-                    status: 'PAID',
-                    consultation: {
-                        doctorId: doctorId
+            const today = new Date();
+            const period = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+
+            // Idempotencia: evitar duplicar batch del mismo periodo
+            const existing = await prisma.payoutBatch.findFirst({
+                where: { doctorId, period },
+            });
+            if (existing) {
+                logger.info(`Batch ya existe para doctor ${doctorId} periodo ${period} (id ${existing.id})`);
+                return null;
+            }
+
+            // Transacción: capturar pagos pendientes y marcarlos sin condiciones de carrera
+            const result = await prisma.$transaction(async (tx) => {
+                const pendingPayments = await tx.payment.findMany({
+                    where: {
+                        payoutStatus: 'PENDING',
+                        payoutBatchId: null,
+                        status: 'PAID',
+                        consultation: { doctorId }
+                    },
+                    include: {
+                        consultation: true
                     }
-                },
-                include: {
-                    consultation: true
+                });
+
+                if (pendingPayments.length === 0) {
+                    return null;
                 }
+
+                const totalAmount = pendingPayments.reduce(
+                    (sum, p) => sum + Number(p.netAmount),
+                    0
+                );
+
+                const batch = await tx.payoutBatch.create({
+                    data: {
+                        doctorId,
+                        period,
+                        totalAmount,
+                        paymentCount: pendingPayments.length,
+                        status: 'PROCESSED',
+                        processedAt: new Date(),
+                    }
+                });
+
+                await tx.payment.updateMany({
+                    where: {
+                        id: { in: pendingPayments.map(p => p.id) },
+                        payoutBatchId: null,
+                    },
+                    data: {
+                        payoutStatus: 'PAID_OUT',
+                        payoutDate: new Date(),
+                        payoutBatchId: batch.id,
+                    }
+                });
+
+                return batch;
             });
 
-            if (pendingPayments.length === 0) {
+            if (!result) {
                 logger.info(`No hay pagos pendientes para el médico ${doctorId}`);
                 return null;
             }
 
-            // Calcular total
-            const totalAmount = pendingPayments.reduce(
-                (sum, p) => sum + Number(p.netAmount),
-                0
-            );
-
-            // Crear período (formato YYYY-MM)
-            const today = new Date();
-            const period = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
-
-            // Crear batch de liquidación
-            const batch = await prisma.payoutBatch.create({
-                data: {
-                    doctorId,
-                    period,
-                    totalAmount,
-                    paymentCount: pendingPayments.length,
-                    status: 'PROCESSED',
-                    processedAt: new Date(),
-                }
-            });
-
-            // Marcar todos los pagos como liquidados
-            await prisma.payment.updateMany({
-                where: {
-                    id: { in: pendingPayments.map(p => p.id) }
-                },
-                data: {
-                    payoutStatus: 'PAID_OUT',
-                    payoutDate: new Date(),
-                    payoutBatchId: batch.id,
-                }
-            });
-
-            logger.info(`Liquidación creada para médico ${doctorId}: ${pendingPayments.length} pagos, total $${totalAmount}`);
-
-            return batch;
+            logger.info(`Liquidación creada para médico ${doctorId}: periodo ${result.period}`);
+            return result;
         } catch (error) {
             logger.error(`Error al crear liquidación para médico ${doctorId}:`, error);
             throw error;

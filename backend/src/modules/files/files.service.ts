@@ -24,7 +24,8 @@ export class FilesService {
   private generateFileName(originalName: string): string {
     const timestamp = Date.now();
     const randomString = crypto.randomBytes(8).toString('hex');
-    const extension = originalName.split('.').pop();
+    const safeName = originalName.replace(/[^a-zA-Z0-9._-]/g, '');
+    const extension = safeName.includes('.') ? safeName.split('.').pop() : 'bin';
     return `${timestamp}-${randomString}.${extension}`;
   }
 
@@ -39,17 +40,28 @@ export class FilesService {
       'audio/mp3': 'audio/mpeg',
       'audio/wav': 'audio/wav',
       'audio/ogg': 'audio/ogg',
-      'video/mp4': 'video/mp4',
-      'video/quicktime': 'video/quicktime',
     };
 
     return contentTypes[mimetype] || 'application/octet-stream';
+  }
+
+  private isExecutable(mimetype: string, originalname: string): boolean {
+    const forbiddenExtensions = ['.exe', '.sh', '.bat', '.cmd', '.com', '.msi', '.dll', '.ps1', '.apk'];
+    const lower = originalname.toLowerCase();
+    return (
+      mimetype === 'application/x-msdownload' ||
+      forbiddenExtensions.some((ext) => lower.endsWith(ext))
+    );
   }
 
   async uploadFile(file: FileUpload, folder: string = 'uploads'): Promise<S3UploadResult> {
     try {
       if (!env.AWS_S3_BUCKET) {
         throw createError('AWS S3 no configurado', 500);
+      }
+
+      if (this.isExecutable(file.mimetype, file.originalname)) {
+        throw createError('Tipo de archivo prohibido', 400);
       }
 
       const fileName = this.generateFileName(file.originalname);

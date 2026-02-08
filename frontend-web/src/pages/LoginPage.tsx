@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import toast from 'react-hot-toast';
 import { FiMail, FiLock } from 'react-icons/fi';
@@ -96,6 +96,11 @@ export default function LoginPage() {
               ¿No tienes cuenta? Contacta al administrador
             </button>
           </div>
+          <p className="mt-4 text-xs text-gray-500 text-center">
+            Al continuar aceptas los{' '}
+            <Link to="/legal/terminos" className="text-primary-600 underline">Términos y Condiciones</Link> y la{' '}
+            <Link to="/legal/privacidad" className="text-primary-600 underline">Política de Privacidad</Link>.
+          </p>
         </div>
       </div>
     </div>

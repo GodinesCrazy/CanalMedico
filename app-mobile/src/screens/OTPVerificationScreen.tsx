@@ -258,6 +258,9 @@ export default function OTPVerificationScreen() {
               ¿No recibiste el código?{'\n'}
               Verifica que el número sea correcto o solicita un nuevo código.
             </Text>
+            <Text style={styles.legalText}>
+              Al continuar aceptas los Términos y Condiciones y la Política de Privacidad de CanalMedico.
+            </Text>
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -377,6 +380,13 @@ const styles = StyleSheet.create({
     color: colors.gray[600],
     textAlign: 'center',
     lineHeight: 18,
+  },
+  legalText: {
+    marginTop: 12,
+    fontSize: 11,
+    color: colors.gray[500],
+    textAlign: 'center',
+    lineHeight: 16,
   },
 });
 

@@ -151,20 +151,15 @@ export default function PaymentScreen() {
 
   const handleDeepLink = (event: { url: string }) => {
     const url = event.url;
-    if (url.includes('payment/success')) {
-      // Pago exitoso - verificar estado y redirigir
-      checkPaymentAndNavigate();
-    } else if (url.includes('payment/failure') || url.includes('payment/cancel')) {
-      // Pago fallido o cancelado
+    // Siempre verificar en servidor; no confiar en querystring
+    setPaymentStatus('checking');
+    if (url.includes('payment/failure') || url.includes('payment/cancel')) {
+      // Si el usuario canceló, seguimos verificando estado real antes de marcar fallo
       stopPolling();
-      setPaymentStatus('failed');
-      Alert.alert('Pago Cancelado', 'El pago fue cancelado. Puedes intentar nuevamente.');
-    } else if (url.includes('payment/pending')) {
-      // Pago pendiente - continuar polling
-      setPaymentStatus('checking');
-      if (!isPolling) {
-        startPolling();
-      }
+    }
+    checkPaymentAndNavigate();
+    if (!isPolling) {
+      startPolling();
     }
   };
 

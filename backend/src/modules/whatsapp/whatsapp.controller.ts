@@ -80,6 +80,7 @@ export class WhatsAppController {
         return res.status(403).json({ error: 'Invalid signature' });
       }
 
+      // No loguear el cuerpo completo para evitar PII
       logger.info('[WHATSAPP] POST webhook recibido y validado');
 
       const payload: WhatsAppWebhookPayload = req.body;
@@ -102,7 +103,7 @@ export class WhatsAppController {
                 for (const message of change.value.messages) {
                   // Procesar solo mensajes de texto
                   if (message.type === 'text' && message.text) {
-                    // Construir mensaje completo con metadata
+                    // Construir mensaje completo con metadata (sin loguear contenido)
                     const fullMessage: WhatsAppMessage = {
                       ...message,
                       from: message.from || change.value.contacts?.[0]?.wa_id || '',
@@ -111,7 +112,7 @@ export class WhatsAppController {
 
                     // Procesar mensaje de forma asíncrona (no bloquear respuesta)
                     whatsappService.handleIncomingMessage(fullMessage).catch((error) => {
-                      logger.error('[WHATSAPP] Error al procesar mensaje (async)', error);
+                      logger.error('[WHATSAPP] Error al procesar mensaje (async)', { error: error?.message });
                     });
                   }
                 }

@@ -31,6 +31,10 @@ logger.add(
       winston.format.colorize(),
       winston.format.printf(({ timestamp, level, message, ...meta }) => {
         let msg = `${timestamp} [${level}]: ${message}`;
+        if (meta?.correlationId) {
+          msg += ` [corr:${meta.correlationId}]`;
+          delete meta.correlationId;
+        }
         if (Object.keys(meta).length > 0) {
           msg += ` ${JSON.stringify(meta)}`;
         }

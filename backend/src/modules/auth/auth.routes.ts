@@ -8,6 +8,7 @@ import authController, {
 } from './auth.controller';
 import { authRateLimiter } from '@/middlewares/rateLimit.middleware';
 import { featureFlags } from '@/config/featureFlags';
+import { authenticate } from '@/middlewares/auth.middleware';
 
 const router = Router();
 
@@ -104,7 +105,23 @@ router.post('/login', authRateLimiter, validateLogin, authController.login.bind(
  *       401:
  *         description: Refresh token inválido
  */
-router.post('/refresh', validateRefreshToken, authController.refreshToken.bind(authController));
+router.post('/refresh', authRateLimiter, validateRefreshToken, authController.refreshToken.bind(authController));
+
+/**
+ * @swagger
+ * /api/auth/logout:
+ *   post:
+ *     summary: Cerrar sesión e invalidar el token
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Logout exitoso
+ *       401:
+ *         description: No autenticado
+ */
+router.post('/logout', authenticate, authController.logout.bind(authController));
 
 /**
  * @swagger

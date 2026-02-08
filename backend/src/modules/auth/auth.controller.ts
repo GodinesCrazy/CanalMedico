@@ -119,6 +119,21 @@ export class AuthController {
       next(error);
     }
   }
+
+  async logout(req: Request, res: Response, next: NextFunction) {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        res.status(401).json({ error: 'Token de autenticación requerido' });
+        return;
+      }
+      const token = authHeader.substring(7);
+      await authService.logout(token);
+      res.json({ success: true, data: { success: true } });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default new AuthController();

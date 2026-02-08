@@ -4,6 +4,7 @@ import * as bcrypt from 'bcryptjs';
 import logger from '@/config/logger';
 import { execSync } from 'child_process';
 import { createTestUsers, TEST_CREDENTIALS } from './test-data.seed';
+import { requireInternalSecret } from '@/middlewares/auth.middleware';
 
 const router = Router();
 
@@ -20,6 +21,11 @@ router.get('/health', (_req: Request, res: Response): void => {
         enableTestData: process.env.ENABLE_TEST_DATA === 'true',
     });
 });
+
+// Proteger en producción con clave interna
+if (process.env.NODE_ENV === 'production') {
+    router.use(requireInternalSecret);
+}
 
 /**
  * Endpoint para crear usuarios de prueba E2E
@@ -346,5 +352,4 @@ router.get('/verify-validation', async (_req: Request, res: Response): Promise<v
 });
 
 export default router;
-
 

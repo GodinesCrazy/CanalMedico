@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import env from '@/config/env';
 import { JwtPayload, UserRole } from '@/types';
+import crypto from 'crypto';
 
 export interface TokenPair {
   accessToken: string;
@@ -50,5 +51,17 @@ export const decodeToken = (token: string): JwtPayload | null => {
   } catch (error) {
     return null;
   }
+};
+
+// Hash SHA-256 seguro para almacenar tokens en blacklist
+export const hashToken = (token: string): string => {
+  return crypto.createHash('sha256').update(token).digest('hex');
+};
+
+// Obtiene la fecha de expiración (Date) desde el token (exp en segundos)
+export const getTokenExpiration = (token: string): Date | null => {
+  const decoded = decodeToken(token);
+  if (!decoded || !decoded.exp) return null;
+  return new Date(decoded.exp * 1000);
 };
 

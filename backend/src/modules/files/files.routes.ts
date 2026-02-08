@@ -1,14 +1,23 @@
 import { Router } from 'express';
 import filesController from './files.controller';
 import { authenticate } from '@/middlewares/auth.middleware';
+import { validate } from '@/middlewares/validation.middleware';
+import { z } from 'zod';
+import { requireConsultationOwnership } from '@/middlewares/ownership.middleware';
 
 const router = Router();
+
+const uploadSchema = z.object({
+  body: z.object({
+    consultationId: z.string().min(1, 'Consultation ID requerido'),
+  }),
+});
 
 /**
  * @swagger
  * /api/files/upload:
  *   post:
- *     summary: Subir archivo a S3
+ *     summary: Subir archivo a S3 (atado a una consulta)
  *     tags: [Files]
  *     security:
  *       - bearerAuth: []
@@ -20,17 +29,26 @@ const router = Router();
  *             type: object
  *             required:
  *               - file
+ *               - consultationId
  *             properties:
  *               file:
  *                 type: string
  *                 format: binary
+ *               consultationId:
+ *                 type: string
  *     responses:
  *       200:
  *         description: Archivo subido exitosamente
  *       401:
  *         description: No autenticado
  */
-router.post('/upload', authenticate, filesController.uploadFile.bind(filesController));
+router.post(
+  '/upload',
+  authenticate,
+  validate(uploadSchema),
+  requireConsultationOwnership,
+  filesController.uploadFile.bind(filesController)
+);
 
 /**
  * @swagger

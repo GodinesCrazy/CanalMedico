@@ -1,14 +1,15 @@
 import { Request, Response, NextFunction } from 'express';
-import { verifyAccessToken } from '@/utils/jwt';
+import { verifyAccessToken, hashToken } from '@/utils/jwt';
 import { AuthenticatedRequest } from '@/types';
 import logger from '@/config/logger';
 import env from '@/config/env';
+import prisma from '@/database/prisma';
 
-export const authenticate = (
+export const authenticate = async (
   req: Request,
   res: Response,
   next: NextFunction
-): void => {
+): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
 
@@ -18,6 +19,20 @@ export const authenticate = (
     }
 
     const token = authHeader.substring(7);
+
+    // Blacklist check (token invalidado por logout o rotación)
+    try {
+      const tokenHash = hashToken(token);
+      const blacklisted = await prisma.tokenBlacklist.findUnique({ where: { token: tokenHash } });
+      if (blacklisted) {
+        res.status(401).json({ error: 'Token inválido o expirado' });
+        return;
+      }
+    } catch (e) {
+      logger.error('[AUTH] Error checking token blacklist', e);
+      // continuar con verificación normal
+    }
+
     const decoded = verifyAccessToken(token);
 
     (req as AuthenticatedRequest).user = {
@@ -51,23 +66,27 @@ export const requireRole = (...allowedRoles: string[]) => {
   };
 };
 
-export const optionalAuth = (
+export const optionalAuth = async (
   req: Request,
   _res: Response,
   next: NextFunction
-): void => {
+): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
 
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.substring(7);
-      const decoded = verifyAccessToken(token);
 
-      (req as AuthenticatedRequest).user = {
-        id: decoded.id,
-        email: decoded.email,
-        role: decoded.role,
-      };
+      const tokenHash = hashToken(token);
+      const blacklisted = await prisma.tokenBlacklist.findUnique({ where: { token: tokenHash } });
+      if (!blacklisted) {
+        const decoded = verifyAccessToken(token);
+        (req as AuthenticatedRequest).user = {
+          id: decoded.id,
+          email: decoded.email,
+          role: decoded.role,
+        };
+      }
     }
 
     next();

@@ -1,4 +1,4 @@
-import prisma from '@/database/prisma';
+﻿import prisma from '@/database/prisma';
 import env from '@/config/env';
 import { createError } from '@/middlewares/error.middleware';
 import logger from '@/config/logger';
@@ -94,8 +94,8 @@ export class PaymentsService {
       if (type === 'payment') {
         const paymentId = data.id;
         
-        // VALIDACIÓN CRÍTICA: Verificar que el pago existe en MercadoPago antes de procesar
-        // Esto es la validación principal de MercadoPago (no usan firmas como Stripe)
+        // VALIDACIÃ“N CRÃTICA: Verificar que el pago existe en MercadoPago antes de procesar
+        // Esto es la validaciÃ³n principal de MercadoPago (no usan firmas como Stripe)
         let paymentInfo;
         try {
           paymentInfo = await mercadopagoService.getPaymentInfo(paymentId);
@@ -108,7 +108,7 @@ export class PaymentsService {
           return { received: true, error: 'Payment not found in MercadoPago - webhook rechazado' };
         }
 
-        // VALIDACIÓN ADICIONAL: Verificar que el pago tiene external_reference válido
+        // VALIDACIÃ“N ADICIONAL: Verificar que el pago tiene external_reference vÃ¡lido
         if (!paymentInfo || !paymentInfo.external_reference) {
           logger.warn(`Webhook de pago ${paymentId} sin external_reference valido`, {
             paymentId,
@@ -117,11 +117,27 @@ export class PaymentsService {
           return { received: true, error: 'Invalid payment reference - webhook rechazado' };
         }
         
-        // VALIDACIÓN ADICIONAL: Verificar que el external_reference corresponde a una consulta válida
+        // VALIDACIÃ“N ADICIONAL: Verificar que el external_reference corresponde a una consulta vÃ¡lida
         const consultationId = paymentInfo.external_reference;
         const consultation = await prisma.consultation.findUnique({
           where: { id: consultationId },
         });
+        // Idempotencia temprana: si ya registramos este payment como PAID para esta consulta, ignorar
+        try {
+          const alreadyProcessed = await prisma.payment.findFirst({
+            where: {
+              consultationId,
+              mercadopagoPaymentId: String(paymentId),
+              status: 'PAID',
+            },
+          });
+          if (alreadyProcessed) {
+            logger.info(`Webhook idempotente ignorado para pago ${paymentId} (consulta ${consultationId})`);
+            return { received: true };
+          }
+        } catch (e) {
+          logger.warn('Idempotency check failed (continuando):', e);
+        }
         
         if (!consultation) {
           logger.warn(`Webhook de pago ${paymentId} con external_reference invalido: consulta ${consultationId} no existe`, {
@@ -139,7 +155,25 @@ export class PaymentsService {
           where: { consultationId },
         });
 
+        // Validar moneda y monto contra registro local
+        const paymentCurrency = (paymentInfo.currency_id || '').toString().toUpperCase();
+        if (paymentCurrency && paymentCurrency !== 'CLP') {
+          logger.warn('Webhook con moneda no permitida', { paymentId, paymentCurrency });
+          return { received: true, error: 'Invalid currency' };
+        }
+        const paidAmount = Number(paymentInfo.transaction_amount || (paymentInfo.transaction_details && paymentInfo.transaction_details.total_paid_amount) || 0);
+        const expectedAmount = localPayment ? Number(localPayment.amount) : 0;
+        if (!paidAmount || Math.round(paidAmount) !== Math.round(expectedAmount)) {
+          logger.error('Monto de pago no coincide con el esperado', { paymentId, paidAmount, expected: localPayment?.amount, consultationId });
+          return { received: true, error: 'Amount mismatch' };
+        }
+
         if (localPayment) {
+          // Idempotencia adicional: si ya está PAID en local, ignorar
+          if (status === 'approved' && localPayment.status === 'PAID') {
+            logger.info('Pago ya estaba PAID (idempotente)', { paymentId, consultationId });
+            return { received: true };
+          }
           let newStatus = localPayment.status;
 
           if (status === 'approved') {

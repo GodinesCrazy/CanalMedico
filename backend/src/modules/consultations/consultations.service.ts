@@ -1,4 +1,4 @@
-import prisma from '@/database/prisma';
+﻿import prisma from '@/database/prisma';
 import { createError } from '@/middlewares/error.middleware';
 import logger from '@/config/logger';
 import { ConsultationType, ConsultationStatus } from '@/types';
@@ -8,7 +8,6 @@ export interface CreateConsultationDto {
   doctorId: string;
   patientId: string;
   type: ConsultationType;
-  price: number; // Precio de la consulta en centavos/CLP
 }
 
 export class ConsultationsService {
@@ -32,9 +31,13 @@ export class ConsultationsService {
         throw createError('Paciente no encontrado', 404);
       }
 
-      // Validar precio
-      if (!data.price || data.price <= 0) {
-        throw createError('El precio de la consulta debe ser mayor a 0', 400);
+      // Calcular precio según tarifa del médico
+      const amountValue = data.type === ConsultationType.URGENCIA
+        ? Number(doctor.tarifaUrgencia)
+        : Number(doctor.tarifaConsulta);
+
+      if (!amountValue || amountValue <= 0) {
+        throw createError('La tarifa del médico no está configurada', 400);
       }
 
       // Verificar si ya existe una consulta activa
@@ -58,7 +61,7 @@ export class ConsultationsService {
           doctorId: data.doctorId,
           patientId: data.patientId,
           type: data.type,
-          price: data.price,
+          price: Math.round(amountValue),
           status: ConsultationStatus.PENDING,
         },
         include: {
@@ -257,7 +260,7 @@ export class ConsultationsService {
   }
 
   /**
-   * DOCTOR acepta consulta (PENDING → ACTIVE)
+   * DOCTOR acepta consulta (PENDING â†’ ACTIVE)
    * Solo si status === PENDING
    * Establece startedAt = now()
    */
@@ -320,7 +323,7 @@ export class ConsultationsService {
   }
 
   /**
-   * DOCTOR completa consulta (ACTIVE → COMPLETED)
+   * DOCTOR completa consulta (ACTIVE â†’ COMPLETED)
    * Solo si status === ACTIVE
    * Establece endedAt = now()
    */
@@ -383,7 +386,7 @@ export class ConsultationsService {
   }
 
   /**
-   * Cerrar consulta (para compatibilidad con código existente)
+   * Cerrar consulta (para compatibilidad con cÃ³digo existente)
    * Deprecated: usar complete() en su lugar
    */
   async close(consultationId: string) {
@@ -396,12 +399,12 @@ export class ConsultationsService {
         throw createError('Consulta no encontrada', 404);
       }
 
-      // Si está ACTIVE, completarla
+      // Si estÃ¡ ACTIVE, completarla
       if (consultation.status === ConsultationStatus.ACTIVE) {
         return this.complete(consultationId, consultation.doctorId);
       }
 
-      // Si está PENDING, cancelarla
+      // Si estÃ¡ PENDING, cancelarla
       if (consultation.status === ConsultationStatus.PENDING) {
         const updatedConsultation = await prisma.consultation.update({
           where: { id: consultationId },

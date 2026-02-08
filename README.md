@@ -323,3 +323,12 @@ Este proyecto está bajo la Licencia MIT. Ver `LICENSE` para más información.
 ---
 
 **Hecho con ❤️ en Chile 🇨🇱**
+
+---
+
+## 🕒 Atención Asíncrona (qué significa y por qué importa)
+- El paciente inicia la consulta cuando quiere (texto/fotos/audio/PDFs y pago) y el médico responde cuando está disponible.
+- El sistema guarda el hilo, notifica y avanza estados sin depender de videollamadas.
+- Si coinciden, el chat fluye en tiempo real; si no, cada parte responde en momentos distintos.
+
+Ver detalle: `docs/ASINCRONO.md`
