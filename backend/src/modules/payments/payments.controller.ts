@@ -9,16 +9,16 @@ import logger from '@/config/logger';
 
 const createPaymentSessionSchema = z.object({
   body: z.object({
-    consultationId: z.string().min(1, 'Consultation ID requerido'),
-    successUrl: z.string().url('URL de éxito inválida').optional(), // Opcional: puede ser deep link o URL web
-    cancelUrl: z.string().url('URL de cancelación inválida').optional(), // Opcional: puede ser deep link o URL web
+    consultationId: z.string().min(1).optional(), // Opcional: si no se envía, se usa la consulta PENDING del paciente
+    successUrl: z.string().url('URL de éxito inválida').optional(),
+    cancelUrl: z.string().url('URL de cancelación inválida').optional(),
   }),
 });
 
 export class PaymentsController {
-  async createPaymentSession(req: Request, res: Response, next: NextFunction) {
+  async createPaymentSession(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
-      const result = await paymentsService.createPaymentSession(req.body);
+      const result = await paymentsService.createPaymentSession(req.body, req.user?.id);
       res.json({
         success: true,
         data: result,

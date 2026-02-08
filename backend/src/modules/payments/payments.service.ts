@@ -6,17 +6,49 @@ import consultationsService from '../consultations/consultations.service';
 import mercadopagoService from './mercadopago.service';
 
 export interface CreatePaymentSessionDto {
-  consultationId: string;
+  consultationId?: string;
   successUrl?: string;
   cancelUrl?: string;
 }
 
 export class PaymentsService {
-  async createPaymentSession(data: CreatePaymentSessionDto) {
+  /**
+   * Crea preferencia de pago MercadoPago.
+   * Si consultationId no se envía, se resuelve la consulta PENDING del paciente (userId).
+   */
+  async createPaymentSession(data: CreatePaymentSessionDto, userId?: string) {
     try {
+      let consultationId = data.consultationId?.trim() || undefined;
+
+      if (!consultationId) {
+        if (!userId) {
+          throw createError('No autenticado', 401);
+        }
+        // Resolver consulta activa del paciente sin requerir consultationId
+        const patient = await prisma.patient.findUnique({
+          where: { userId },
+          select: { id: true },
+        });
+        if (!patient) {
+          throw createError('Paciente no encontrado', 404);
+        }
+        const pendings = await prisma.$queryRaw<{ id: string }[]>`
+          SELECT id FROM consultations
+          WHERE "patientId" = ${patient.id} AND status = 'PENDING'
+          ORDER BY "createdAt" DESC
+        `;
+        if (pendings.length === 0) {
+          throw createError('No tienes una consulta pendiente de pago', 404);
+        }
+        if (pendings.length > 1) {
+          throw createError('Tienes más de una consulta pendiente; indica consultationId', 400);
+        }
+        consultationId = pendings[0].id;
+      }
+
       // FIX P2022: select explícito - solo columnas garantizadas en prod
       const consultation = await prisma.consultation.findUnique({
-        where: { id: data.consultationId },
+        where: { id: consultationId },
         select: {
           id: true,
           type: true,

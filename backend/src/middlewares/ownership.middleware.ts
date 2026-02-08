@@ -70,11 +70,12 @@ export const requirePaymentOwnership = (
   res: Response,
   next: NextFunction
 ): void => {
-  const consultationId = req.params.consultationId || req.body.consultationId;
+  const consultationId = req.params.consultationId || req.body?.consultationId;
 
+  // Si no se envía consultationId (ej. POST /preference sin body), el servicio resolverá
+  // la consulta activa del paciente autenticado; solo aplica a rutas PATIENT.
   if (!consultationId) {
-    res.status(400).json({ error: 'ID de consulta requerido' });
-    return;
+    return next();
   }
 
   if (!req.user) {
