@@ -1,6 +1,6 @@
 import prisma from '@/database/prisma';
 import { hashPassword, comparePassword } from '@/utils/hash';
-import { generateTokenPair, verifyRefreshToken } from '@/utils/jwt';
+import { generateTokenPair, verifyRefreshToken, hashToken, getTokenExpiration, decodeToken } from '@/utils/jwt';
 
 import { createError } from '@/middlewares/error.middleware';
 import logger from '@/config/logger';
@@ -293,6 +293,33 @@ export class AuthService {
     } catch (error) {
       logger.error('Error al refrescar token:', error);
       throw createError('Refresh token inválido o expirado', 401);
+    }
+  }
+
+  /**
+   * Logout: invalida el access token añadiéndolo a la blacklist
+   */
+  async logout(accessToken: string) {
+    try {
+      const decoded = decodeToken(accessToken);
+      const tokenHash = hashToken(accessToken);
+      const exp = getTokenExpiration(accessToken) || new Date(Date.now() + 15 * 60 * 1000);
+
+      await prisma.tokenBlacklist.upsert({
+        where: { token: tokenHash },
+        update: { expiresAt: exp },
+        create: {
+          token: tokenHash,
+          userId: decoded?.id || null,
+          reason: 'LOGOUT',
+          expiresAt: exp,
+        },
+      });
+
+      return { success: true };
+    } catch (error) {
+      logger.error('Error en logout:', error);
+      throw error;
     }
   }
 }
