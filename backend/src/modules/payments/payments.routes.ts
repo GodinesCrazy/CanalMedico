@@ -34,7 +34,9 @@ const router = Router();
  *       401:
  *         description: No autenticado
  */
-router.post('/session', authenticate, paymentRateLimiter, validateCreatePaymentSession, requirePaymentOwnership, paymentsController.createPaymentSession.bind(paymentsController));
+// Alias /preference = /session (MVP pagos MercadoPago)
+router.post('/preference', authenticate, requireRole('PATIENT'), paymentRateLimiter, validateCreatePaymentSession, requirePaymentOwnership, paymentsController.createPaymentSession.bind(paymentsController));
+router.post('/session', authenticate, requireRole('PATIENT'), paymentRateLimiter, validateCreatePaymentSession, requirePaymentOwnership, paymentsController.createPaymentSession.bind(paymentsController));
 
 /**
  * @swagger

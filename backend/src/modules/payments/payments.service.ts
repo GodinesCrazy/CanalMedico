@@ -1,4 +1,4 @@
-﻿import prisma from '@/database/prisma';
+import prisma from '@/database/prisma';
 import env from '@/config/env';
 import { createError } from '@/middlewares/error.middleware';
 import logger from '@/config/logger';
@@ -14,14 +14,21 @@ export interface CreatePaymentSessionDto {
 export class PaymentsService {
   async createPaymentSession(data: CreatePaymentSessionDto) {
     try {
+      // FIX P2022: select explícito - solo columnas garantizadas en prod
       const consultation = await prisma.consultation.findUnique({
         where: { id: data.consultationId },
-        include: {
-          doctor: true,
+        select: {
+          id: true,
+          type: true,
+          status: true,
+          doctor: {
+            select: { id: true, tarifaConsulta: true, tarifaUrgencia: true },
+          },
           patient: {
-            include: {
-              user: true
-            }
+            select: {
+              id: true,
+              user: { select: { email: true } },
+            },
           },
         },
       });
@@ -45,7 +52,7 @@ export class PaymentsService {
       const fee = Math.round(amountValue * env.STRIPE_COMMISSION_FEE);
       const netAmount = amountValue - fee;
 
-      const payerEmail = consultation.patient.user?.email || 'paciente@canalmedico.cl';
+      const payerEmail = consultation.patient?.user?.email || 'paciente@canalmedico.cl';
 
       const title = `Consulta medica - ${consultation.type === 'URGENCIA' ? 'Urgencia' : 'Normal'}`;
       const preference = await mercadopagoService.createPreference(
@@ -82,6 +89,10 @@ export class PaymentsService {
     }
   }
 
+  /**
+   * Webhook MercadoPago: idempotente.
+   * Si approved → payment.status = PAID, consultation.status = ACTIVE.
+   */
   async handleWebhook(_signature: string, body: any, _reqHeaders?: Record<string, string>) {
     try {
       const { type, data } = body;
