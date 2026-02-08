@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import prisma from '@/database/prisma';
 import { createError } from '@/middlewares/error.middleware';
 import logger from '@/config/logger';
@@ -42,57 +43,33 @@ export class ConsultationsService {
         throw createError('La tarifa del médico no está configurada', 400);
       }
 
-      // Verificar si ya existe una consulta activa - FIX P2022: select mínimo
-      const existingConsultation = await prisma.consultation.findFirst({
-        where: {
-          doctorId: data.doctorId,
-          patientId: data.patientId,
-          status: {
-            in: ['PENDING', 'ACTIVE'],
-          },
-        },
-        select: { id: true },
-      });
-
-      if (existingConsultation) {
+      // INCIDENT FIX: findFirst/create con raw SQL - prod tiene solo columnas init (sin price/source).
+      // Evita P2022 cuando migraciones posteriores no están aplicadas.
+      const existingRows = await prisma.$queryRaw<{ id: string }[]>`
+        SELECT id FROM consultations
+        WHERE "doctorId" = ${data.doctorId} AND "patientId" = ${data.patientId}
+        AND status IN ('PENDING', 'ACTIVE') LIMIT 1
+      `;
+      if (existingRows.length > 0) {
         throw createError('Ya existe una consulta activa con este doctor', 409);
       }
 
-      // Crear consulta con precio - FIX P2022: select en relaciones para evitar columnas inexistentes
-      const consultation = await prisma.consultation.create({
-        data: {
-          doctorId: data.doctorId,
-          patientId: data.patientId,
-          type: data.type,
-          price: Math.round(amountValue),
-          status: ConsultationStatus.PENDING,
-        },
-        select: {
-          id: true,
-          doctorId: true,
-          patientId: true,
-          type: true,
-          status: true,
-          price: true,
-          createdAt: true,
-          updatedAt: true,
-          doctor: {
-            select: {
-              id: true,
-              name: true,
-              speciality: true,
-              user: { select: { id: true, email: true } },
-            },
-          },
-          patient: {
-            select: {
-              id: true,
-              name: true,
-              user: { select: { id: true, email: true } },
-            },
-          },
-        },
-      });
+      const consultationId = randomUUID();
+      await prisma.$executeRaw`
+        INSERT INTO consultations (id, "doctorId", "patientId", type, status, "createdAt", "updatedAt")
+        VALUES (${consultationId}, ${data.doctorId}, ${data.patientId}, ${data.type}, 'PENDING', NOW(), NOW())
+      `;
+
+      const [created] = await prisma.$queryRaw<
+        { id: string; doctorId: string; patientId: string; type: string; status: string; createdAt: Date; updatedAt: Date }[]
+      >`
+        SELECT id, "doctorId", "patientId", type, status, "createdAt", "updatedAt"
+        FROM consultations WHERE id = ${consultationId}
+      `;
+      const consultation = {
+        ...created!,
+        price: Math.round(amountValue),
+      };
 
       logger.info(`Consulta creada: ${consultation.id} - Doctor: ${data.doctorId} - Paciente: ${data.patientId}`);
 
