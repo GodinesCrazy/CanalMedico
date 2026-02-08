@@ -298,6 +298,8 @@ export class AuthService {
 
   /**
    * Logout: invalida el access token añadiéndolo a la blacklist
+   * INCIDENT FIX: Si la tabla token_blacklist no existe en producción (migración pendiente),
+   * devolvemos success para no romper el flujo; el token sigue expirando por JWT.
    */
   async logout(accessToken: string) {
     try {
@@ -317,7 +319,17 @@ export class AuthService {
       });
 
       return { success: true };
-    } catch (error) {
+    } catch (error: any) {
+      // INCIDENT FIX: tabla token_blacklist inexistente en producción → degradación controlada
+      const code = error?.code as string | undefined;
+      const msg = String(error?.message ?? '');
+      const isTableMissing =
+        code === 'P1014' || code === 'P2021' || msg.includes('does not exist') || msg.includes('relation "token_blacklist"');
+
+      if (isTableMissing) {
+        logger.warn('Logout: tabla token_blacklist no existe, devolviendo success (token expira por JWT)');
+        return { success: true };
+      }
       logger.error('Error en logout:', error);
       throw error;
     }
