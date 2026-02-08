@@ -1,4 +1,4 @@
-﻿import prisma from '@/database/prisma';
+import prisma from '@/database/prisma';
 import { createError } from '@/middlewares/error.middleware';
 import logger from '@/config/logger';
 import { ConsultationType, ConsultationStatus } from '@/types';
@@ -13,18 +13,20 @@ export interface CreateConsultationDto {
 export class ConsultationsService {
   async create(data: CreateConsultationDto) {
     try {
-      // Verificar que el doctor existe
+      // Verificar que el doctor existe - FIX P2022: select explícito
       const doctor = await prisma.doctor.findUnique({
         where: { id: data.doctorId },
+        select: { id: true, tarifaConsulta: true, tarifaUrgencia: true },
       });
 
       if (!doctor) {
         throw createError('Doctor no encontrado', 404);
       }
 
-      // Verificar que el paciente existe
+      // Verificar que el paciente existe - FIX P2022: select explícito
       const patient = await prisma.patient.findUnique({
         where: { id: data.patientId },
+        select: { id: true },
       });
 
       if (!patient) {
@@ -55,7 +57,7 @@ export class ConsultationsService {
         throw createError('Ya existe una consulta activa con este doctor', 409);
       }
 
-      // Crear consulta con precio
+      // Crear consulta con precio - FIX P2022: select en relaciones para evitar columnas inexistentes
       const consultation = await prisma.consultation.create({
         data: {
           doctorId: data.doctorId,
@@ -64,25 +66,28 @@ export class ConsultationsService {
           price: Math.round(amountValue),
           status: ConsultationStatus.PENDING,
         },
-        include: {
+        select: {
+          id: true,
+          doctorId: true,
+          patientId: true,
+          type: true,
+          status: true,
+          price: true,
+          createdAt: true,
+          updatedAt: true,
           doctor: {
-            include: {
-              user: {
-                select: {
-                  id: true,
-                  email: true,
-                },
-              },
+            select: {
+              id: true,
+              name: true,
+              speciality: true,
+              user: { select: { id: true, email: true } },
             },
           },
           patient: {
-            include: {
-              user: {
-                select: {
-                  id: true,
-                  email: true,
-                },
-              },
+            select: {
+              id: true,
+              name: true,
+              user: { select: { id: true, email: true } },
             },
           },
         },
