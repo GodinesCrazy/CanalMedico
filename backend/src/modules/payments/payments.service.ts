@@ -24,17 +24,17 @@ export class PaymentsService {
         if (!userId) {
           throw createError('No autenticado', 401);
         }
-        // Resolver consulta activa del paciente sin requerir consultationId
-        const patient = await prisma.patient.findUnique({
-          where: { userId },
-          select: { id: true },
-        });
-        if (!patient) {
+        // Resolver consulta PENDING del paciente (raw para evitar P2022 en prod)
+        const patients = await prisma.$queryRaw<{ id: string }[]>`
+          SELECT id FROM patients WHERE "userId" = ${userId} LIMIT 1
+        `;
+        if (!patients.length) {
           throw createError('Paciente no encontrado', 404);
         }
+        const patientId = patients[0].id;
         const pendings = await prisma.$queryRaw<{ id: string }[]>`
           SELECT id FROM consultations
-          WHERE "patientId" = ${patient.id} AND status = 'PENDING'
+          WHERE "patientId" = ${patientId} AND status = 'PENDING'
           ORDER BY "createdAt" DESC
         `;
         if (pendings.length === 0) {
