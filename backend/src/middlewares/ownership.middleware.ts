@@ -5,14 +5,7 @@ import logger from '@/config/logger';
 import { createError } from './error.middleware';
 
 /**
- * Middleware centralizado de validación de propiedad (IDOR Prevention)
- * 
- * Valida que el usuario autenticado tenga permiso para acceder al recurso solicitado.
- * Diseñado para prevenir acceso a datos médicos ajenos.
- */
-
-/**
- * Valida que el usuario es el propietario de una consulta (como doctor o paciente)
+ * Valida que el usuario es el propietario de una consulta (como doctor, paciente o admin)
  */
 export const requireConsultationOwnership = (
   req: AuthenticatedRequest,
@@ -20,7 +13,7 @@ export const requireConsultationOwnership = (
   next: NextFunction
 ): void => {
   const consultationId = req.params.id || req.params.consultationId || req.body.consultationId;
-  
+
   if (!consultationId) {
     res.status(400).json({ error: 'ID de consulta requerido' });
     return;
@@ -43,16 +36,13 @@ export const requireConsultationOwnership = (
     });
 };
 
-/**
- * Valida que el usuario es el propietario de un mensaje (parte de la consulta)
- */
 export const requireMessageOwnership = (
   req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ): void => {
   const messageId = req.params.id || req.params.messageId;
-  
+
   if (!messageId) {
     res.status(400).json({ error: 'ID de mensaje requerido' });
     return;
@@ -75,16 +65,13 @@ export const requireMessageOwnership = (
     });
 };
 
-/**
- * Valida que el usuario es el propietario de un pago (parte de la consulta)
- */
 export const requirePaymentOwnership = (
   req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ): void => {
   const consultationId = req.params.consultationId || req.body.consultationId;
-  
+
   if (!consultationId) {
     res.status(400).json({ error: 'ID de consulta requerido' });
     return;
@@ -107,9 +94,6 @@ export const requirePaymentOwnership = (
     });
 };
 
-/**
- * Valida que el usuario es el propietario de un paciente
- */
 export const requirePatientOwnership = (
   req: AuthenticatedRequest,
   res: Response,
@@ -117,7 +101,7 @@ export const requirePatientOwnership = (
 ): void => {
   const patientId = req.params.id || req.params.patientId || req.body.patientId;
   const userId = req.params.userId || req.body.userId;
-  
+
   if (!patientId && !userId) {
     res.status(400).json({ error: 'ID de paciente o usuario requerido' });
     return;
@@ -128,13 +112,11 @@ export const requirePatientOwnership = (
     return;
   }
 
-  // Si se pasa userId, validar que sea el usuario autenticado
   if (userId && userId !== req.user.id) {
     res.status(403).json({ error: 'No tienes permiso para acceder a este recurso' });
     return;
   }
 
-  // Si se pasa patientId, validar que pertenezca al usuario
   if (patientId) {
     validatePatientOwnership(req.user.id, req.user.role, patientId)
       .then(() => next())
@@ -151,9 +133,6 @@ export const requirePatientOwnership = (
   }
 };
 
-/**
- * Valida que el usuario es el propietario de una receta (doctor o paciente de la consulta)
- */
 export const requirePrescriptionOwnership = (
   req: AuthenticatedRequest,
   res: Response,
@@ -161,7 +140,7 @@ export const requirePrescriptionOwnership = (
 ): void => {
   const prescriptionId = req.params.id || req.params.prescriptionId;
   const consultationId = req.params.consultationId || req.body.consultationId;
-  
+
   if (!prescriptionId && !consultationId) {
     res.status(400).json({ error: 'ID de receta o consulta requerido' });
     return;
@@ -197,16 +176,13 @@ export const requirePrescriptionOwnership = (
   }
 };
 
-/**
- * Valida que el usuario es el propietario de un payout (doctor)
- */
 export const requirePayoutOwnership = (
   req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ): void => {
   const batchId = req.params.batchId || req.params.id;
-  
+
   if (!batchId) {
     res.status(400).json({ error: 'ID de liquidación requerido' });
     return;
@@ -234,9 +210,6 @@ export const requirePayoutOwnership = (
     });
 };
 
-/**
- * Valida que el senderId en el body corresponde al usuario autenticado
- */
 export const requireSenderOwnership = (
   req: AuthenticatedRequest,
   res: Response,
@@ -248,13 +221,12 @@ export const requireSenderOwnership = (
   }
 
   const senderId = req.body.senderId;
-  
+
   if (!senderId) {
     res.status(400).json({ error: 'ID de remitente requerido' });
     return;
   }
 
-  // Para mensajes, el senderId debe ser el doctorId o patientId del usuario autenticado
   validateSenderOwnership(req.user.id, req.user.role, senderId)
     .then(() => next())
     .catch((error) => {
@@ -267,16 +239,13 @@ export const requireSenderOwnership = (
     });
 };
 
-/**
- * Valida que el doctorId del parámetro corresponde al doctor del usuario autenticado
- */
 export const requireDoctorOwnership = (
   req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ): void => {
   const doctorId = req.params.doctorId;
-  
+
   if (!doctorId) {
     res.status(400).json({ error: 'ID de doctor requerido' });
     return;
@@ -304,16 +273,13 @@ export const requireDoctorOwnership = (
     });
 };
 
-/**
- * Valida que el patientId del parámetro corresponde al paciente del usuario autenticado
- */
 export const requirePatientIdOwnership = (
   req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ): void => {
   const patientId = req.params.patientId;
-  
+
   if (!patientId) {
     res.status(400).json({ error: 'ID de paciente requerido' });
     return;
@@ -341,13 +307,6 @@ export const requirePatientIdOwnership = (
     });
 };
 
-// ============================================================================
-// FUNCIONES DE VALIDACIÓN INTERNAS
-// ============================================================================
-
-/**
- * Valida que el usuario tiene acceso a una consulta
- */
 async function validateConsultationOwnership(
   userId: string,
   userRole: string,
@@ -355,16 +314,17 @@ async function validateConsultationOwnership(
 ): Promise<void> {
   const consultation = await prisma.consultation.findUnique({
     where: { id: consultationId },
-    include: {
-      doctor: { select: { userId: true } },
-      patient: { select: { userId: true } },
-    },
+    select: { doctorId: true, patientId: true },
   });
 
   if (!consultation) {
     throw createError('Consulta no encontrada', 404);
   }
 
+  // Admin puede leer cualquier consulta (GET /api/consultations/:id)
+  if (userRole === 'ADMIN') {
+    return;
+  }
   if (userRole === 'DOCTOR') {
     const doctor = await prisma.doctor.findUnique({
       where: { userId },
@@ -388,9 +348,6 @@ async function validateConsultationOwnership(
   }
 }
 
-/**
- * Valida que el usuario tiene acceso a un mensaje
- */
 async function validateMessageOwnership(
   userId: string,
   userRole: string,
@@ -398,14 +355,7 @@ async function validateMessageOwnership(
 ): Promise<void> {
   const message = await prisma.message.findUnique({
     where: { id: messageId },
-    include: {
-      consultation: {
-        include: {
-          doctor: { select: { userId: true } },
-          patient: { select: { userId: true } },
-        },
-      },
-    },
+    select: { consultationId: true },
   });
 
   if (!message) {
@@ -415,9 +365,6 @@ async function validateMessageOwnership(
   await validateConsultationOwnership(userId, userRole, message.consultationId);
 }
 
-/**
- * Valida que el usuario es propietario de un paciente
- */
 async function validatePatientOwnership(
   userId: string,
   userRole: string,
@@ -432,19 +379,12 @@ async function validatePatientOwnership(
     throw createError('Paciente no encontrado', 404);
   }
 
-  // Solo el paciente mismo o un admin puede ver su información
   if (patient.userId !== userId && userRole !== 'ADMIN') {
     throw createError('No tienes permiso para acceder a este paciente', 403);
   }
 }
 
-/**
- * Valida que el doctorId corresponde al doctor del usuario autenticado
- */
-async function validateDoctorOwnership(
-  userId: string,
-  doctorId: string
-): Promise<void> {
+async function validateDoctorOwnership(userId: string, doctorId: string): Promise<void> {
   const doctor = await prisma.doctor.findUnique({
     where: { userId },
     select: { id: true },
@@ -459,9 +399,6 @@ async function validateDoctorOwnership(
   }
 }
 
-/**
- * Valida que el usuario tiene acceso a una receta
- */
 async function validatePrescriptionOwnership(
   userId: string,
   userRole: string,
@@ -469,14 +406,7 @@ async function validatePrescriptionOwnership(
 ): Promise<void> {
   const prescription = await prisma.prescription.findUnique({
     where: { id: prescriptionId },
-    include: {
-      consultation: {
-        include: {
-          doctor: { select: { userId: true, id: true } },
-          patient: { select: { userId: true, id: true } },
-        },
-      },
-    },
+    select: { consultationId: true },
   });
 
   if (!prescription) {
@@ -486,18 +416,10 @@ async function validatePrescriptionOwnership(
   await validateConsultationOwnership(userId, userRole, prescription.consultationId);
 }
 
-/**
- * Valida que el usuario es propietario de un payout
- */
-async function validatePayoutOwnership(
-  userId: string,
-  batchId: string
-): Promise<void> {
+async function validatePayoutOwnership(userId: string, batchId: string): Promise<void> {
   const payout = await prisma.payoutBatch.findUnique({
     where: { id: batchId },
-    include: {
-      doctor: { select: { userId: true } },
-    },
+    include: { doctor: { select: { userId: true } } },
   });
 
   if (!payout) {
@@ -509,9 +431,6 @@ async function validatePayoutOwnership(
   }
 }
 
-/**
- * Valida que el senderId corresponde al usuario autenticado
- */
 async function validateSenderOwnership(
   userId: string,
   userRole: string,
@@ -539,4 +458,3 @@ async function validateSenderOwnership(
     throw createError('Rol no autorizado para enviar mensajes', 403);
   }
 }
-
