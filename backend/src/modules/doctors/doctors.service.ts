@@ -9,7 +9,7 @@ export class DoctorsService {
     try {
       const { skip, take } = getPaginationParams(page, limit);
 
-      // FIX P2022: select explícito - solo columnas presentes en migraciones (evita P2022)
+      // FIX P2022: select explícito - solo columnas de migraciones init+payout (evita P2022 en prod)
       const [doctors, total] = await Promise.all([
         prisma.doctor.findMany({
           skip,
@@ -24,12 +24,9 @@ export class DoctorsService {
             tarifaConsulta: true,
             tarifaUrgencia: true,
             estadoOnline: true,
-            horariosAutomaticos: true,
             payoutMode: true,
             payoutDay: true,
             bankAccountInfo: true,
-            whatsappBusinessNumber: true,
-            whatsappBusinessId: true,
             createdAt: true,
             updatedAt: true,
             user: {
@@ -50,7 +47,7 @@ export class DoctorsService {
 
   async getById(doctorId: string) {
     try {
-      // FIX P2022: select explícito - solo columnas presentes en migraciones
+      // FIX P2022: select explícito - solo columnas de migraciones init+payout
       const doctor = await prisma.doctor.findUnique({
         where: { id: doctorId },
         select: {
@@ -63,12 +60,9 @@ export class DoctorsService {
           tarifaConsulta: true,
           tarifaUrgencia: true,
           estadoOnline: true,
-          horariosAutomaticos: true,
           payoutMode: true,
           payoutDay: true,
           bankAccountInfo: true,
-          whatsappBusinessNumber: true,
-          whatsappBusinessId: true,
           createdAt: true,
           updatedAt: true,
           user: {
