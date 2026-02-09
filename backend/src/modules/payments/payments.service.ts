@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import prisma from '@/database/prisma';
 import env from '@/config/env';
 import { createError } from '@/middlewares/error.middleware';
@@ -68,53 +69,62 @@ export class PaymentsService {
         throw createError('La consulta ya tiene un pago procesado', 400);
       }
 
-      const amountValue = row.type === 'URGENCIA'
-        ? Number(row.tarifaUrgencia ?? 0)
-        : Number(row.tarifaConsulta ?? 0);
-
-      if (amountValue <= 0) {
+      const rawAmount = row.type === 'URGENCIA' ? row.tarifaUrgencia : row.tarifaConsulta;
+      const amountValue = Math.max(0, Number(rawAmount ?? 0) || 0);
+      if (amountValue <= 0 || !Number.isFinite(amountValue)) {
         throw createError('La tarifa no esta configurada', 400);
       }
 
       const fee = Math.round(amountValue * env.STRIPE_COMMISSION_FEE);
-      const netAmount = amountValue - fee;
+      const netAmount = Math.max(0, amountValue - fee);
 
-      const payerEmail = row.email?.trim() || 'paciente@canalmedico.cl';
+      const payerEmail = (typeof row.email === 'string' ? row.email.trim() : '') || 'paciente@canalmedico.cl';
 
       const title = `Consulta medica - ${row.type === 'URGENCIA' ? 'Urgencia' : 'Normal'}`;
-      const preference = await mercadopagoService.createPreference(
-        row.id,
-        title,
-        amountValue,
-        payerEmail,
-        data.successUrl,
-        data.cancelUrl
-      );
+      let preference: { id?: string; init_point?: string; sandbox_init_point?: string };
+      try {
+        preference = await mercadopagoService.createPreference(
+          row.id,
+          title,
+          amountValue,
+          payerEmail,
+          data.successUrl,
+          data.cancelUrl
+        );
+      } catch (mpErr: unknown) {
+        logger.error('MercadoPago createPreference error:', mpErr);
+        throw createError('No se pudo crear la preferencia de pago. Intente mas tarde.', 502);
+      }
 
-      const initPoint = preference?.init_point ?? preference?.sandbox_init_point;
-      if (!initPoint) {
-        logger.error('MercadoPago no devolvio init_point:', { preference });
+      const initPoint = (preference?.init_point ?? preference?.sandbox_init_point) ?? '';
+      const prefId = preference?.id ?? '';
+      if (!initPoint || typeof initPoint !== 'string' || !prefId) {
+        logger.error('MercadoPago no devolvio init_point o id:', { preference });
         throw createError('Error al crear preferencia de pago', 502);
       }
 
-      const payment = await prisma.payment.create({
-        data: {
-          amount: amountValue,
-          fee,
-          netAmount,
-          status: 'PENDING',
-          mercadopagoPreferenceId: preference.id,
-          consultationId: row.id,
-        },
-      });
+      // PROD-SAFE: raw INSERT solo columnas garantizadas (init+add_mercadopago tienen amount,fee,netAmount,status,consultationId)
+      const paymentId = crypto.randomUUID();
+      try {
+        await prisma.$executeRaw`
+          INSERT INTO payments (id, amount, fee, "netAmount", status, "consultationId", "createdAt", "updatedAt")
+          VALUES (${paymentId}, ${amountValue}, ${fee}, ${netAmount}, 'PENDING', ${row.id}, NOW(), NOW())
+        `;
+      } catch (insertErr: unknown) {
+        const msg = String((insertErr as { message?: string })?.message ?? '');
+        if (msg.includes('consultationId') || msg.includes('unique') || msg.includes('duplicate')) {
+          throw createError('Ya existe un pago pendiente para esta consulta', 400);
+        }
+        logger.error('Error al insertar payment:', insertErr);
+        throw createError('Error al registrar el pago', 500);
+      }
 
-      logger.info(`Preferencia MercadoPago creada: ${preference.id} - Consulta: ${row.id}`);
+      logger.info(`Preferencia MercadoPago creada: ${prefId} - Consulta: ${row.id}`);
 
       return {
-        preferenceId: preference.id,
+        preferenceId: prefId,
         initPoint,
         sandboxInitPoint: preference?.sandbox_init_point ?? initPoint,
-        payment,
       };
     } catch (error) {
       logger.error('Error al crear sesion de pago:', error);
