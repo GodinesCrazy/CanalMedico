@@ -55,10 +55,17 @@ export class MercadoPagoService {
                 sandbox_init_point: result?.sandbox_init_point,
             };
         } catch (error: unknown) {
-            const err = error as { message?: string; response?: { status?: number } };
+            const err = error as {
+                message?: string;
+                response?: { status?: number; data?: unknown };
+                cause?: Array<{ description?: string; code?: string }>;
+                api_response?: { status?: number; body?: unknown };
+            };
+            // Log quirúrgico: sin tokens, útil para Railway
             logger.error('MercadoPago createPreference error', {
                 message: err?.message,
-                statusCode: err?.response?.status,
+                statusCode: err?.response?.status ?? err?.api_response?.status,
+                cause: err?.cause?.slice(0, 2)?.map((c) => ({ code: c?.code, desc: c?.description })),
             });
             throw error;
         }
