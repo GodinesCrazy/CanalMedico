@@ -46,36 +46,31 @@ export class PaymentsService {
         consultationId = pendings[0].id;
       }
 
-      // FIX P2022: select explícito - solo columnas garantizadas en prod
-      const consultation = await prisma.consultation.findUnique({
-        where: { id: consultationId },
-        select: {
-          id: true,
-          type: true,
-          status: true,
-          doctor: {
-            select: { id: true, tarifaConsulta: true, tarifaUrgencia: true },
-          },
-          patient: {
-            select: {
-              id: true,
-              user: { select: { email: true } },
-            },
-          },
-        },
-      });
+      // FIX P2022/prod: raw SQL para evitar Prisma relations (schema mismatch en prod)
+      const rows = await prisma.$queryRaw<
+        { id: string; type: string; status: string; tarifaConsulta: unknown; tarifaUrgencia: unknown; email: string | null }[]
+      >`
+        SELECT c.id, c.type, c.status, d."tarifaConsulta", d."tarifaUrgencia", u.email
+        FROM consultations c
+        JOIN doctors d ON c."doctorId" = d.id
+        JOIN patients p ON c."patientId" = p.id
+        JOIN users u ON p."userId" = u.id
+        WHERE c.id = ${consultationId}
+        LIMIT 1
+      `;
 
-      if (!consultation) {
+      if (!rows?.length) {
         throw createError('Consulta no encontrada', 404);
       }
 
-      if (consultation.status !== 'PENDING') {
+      const row = rows[0];
+      if (row.status !== 'PENDING') {
         throw createError('La consulta ya tiene un pago procesado', 400);
       }
 
-      const amountValue = consultation.type === 'URGENCIA'
-        ? Number(consultation.doctor.tarifaUrgencia)
-        : Number(consultation.doctor.tarifaConsulta);
+      const amountValue = row.type === 'URGENCIA'
+        ? Number(row.tarifaUrgencia ?? 0)
+        : Number(row.tarifaConsulta ?? 0);
 
       if (amountValue <= 0) {
         throw createError('La tarifa no esta configurada', 400);
@@ -84,17 +79,23 @@ export class PaymentsService {
       const fee = Math.round(amountValue * env.STRIPE_COMMISSION_FEE);
       const netAmount = amountValue - fee;
 
-      const payerEmail = consultation.patient?.user?.email || 'paciente@canalmedico.cl';
+      const payerEmail = row.email?.trim() || 'paciente@canalmedico.cl';
 
-      const title = `Consulta medica - ${consultation.type === 'URGENCIA' ? 'Urgencia' : 'Normal'}`;
+      const title = `Consulta medica - ${row.type === 'URGENCIA' ? 'Urgencia' : 'Normal'}`;
       const preference = await mercadopagoService.createPreference(
-        consultation.id,
+        row.id,
         title,
         amountValue,
         payerEmail,
         data.successUrl,
         data.cancelUrl
       );
+
+      const initPoint = preference?.init_point ?? preference?.sandbox_init_point;
+      if (!initPoint) {
+        logger.error('MercadoPago no devolvio init_point:', { preference });
+        throw createError('Error al crear preferencia de pago', 502);
+      }
 
       const payment = await prisma.payment.create({
         data: {
@@ -103,16 +104,16 @@ export class PaymentsService {
           netAmount,
           status: 'PENDING',
           mercadopagoPreferenceId: preference.id,
-          consultationId: consultation.id,
+          consultationId: row.id,
         },
       });
 
-      logger.info(`Preferencia MercadoPago creada: ${preference.id} - Consulta: ${consultation.id}`);
+      logger.info(`Preferencia MercadoPago creada: ${preference.id} - Consulta: ${row.id}`);
 
       return {
         preferenceId: preference.id,
-        initPoint: preference.init_point,
-        sandboxInitPoint: preference.sandbox_init_point,
+        initPoint,
+        sandboxInitPoint: preference?.sandbox_init_point ?? initPoint,
         payment,
       };
     } catch (error) {
