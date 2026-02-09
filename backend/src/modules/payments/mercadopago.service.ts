@@ -18,9 +18,12 @@ export class MercadoPagoService {
      * Crea una preferencia de pago para una consulta
      */
     async createPreference(consultationId: string, title: string, price: number, payerEmail: string, successUrl?: string, cancelUrl?: string) {
+        // PROD-SAFE: payer.email nunca null/undefined
+        const safeEmail = typeof payerEmail === 'string' && payerEmail.trim() ? payerEmail.trim() : 'paciente@canalmedico.cl';
+        // Precio seguro: nunca NaN ni <= 0
+        const safePrice = Number.isFinite(price) && price > 0 ? price : 0;
+
         try {
-            // URLs de retorno: usar las proporcionadas o defaults
-            // Para app móvil, se pasan deep links; para web, URLs HTTP
             const backUrls = {
                 success: successUrl || `${env.FRONTEND_WEB_URL || env.API_URL}/consultations/${consultationId}?status=success`,
                 failure: cancelUrl || `${env.FRONTEND_WEB_URL || env.API_URL}/consultations/${consultationId}?status=failure`,
@@ -29,18 +32,8 @@ export class MercadoPagoService {
 
             const result = await this.preference.create({
                 body: {
-                    items: [
-                        {
-                            id: consultationId,
-                            title: title,
-                            quantity: 1,
-                            unit_price: price,
-                            currency_id: 'CLP',
-                        },
-                    ],
-                    payer: {
-                        email: payerEmail,
-                    },
+                    items: [{ id: consultationId, title, quantity: 1, unit_price: safePrice, currency_id: 'CLP' }],
+                    payer: { email: safeEmail },
                     back_urls: backUrls,
                     auto_return: 'approved',
                     notification_url: `${env.API_URL}/api/payments/webhook`,
@@ -48,13 +41,25 @@ export class MercadoPagoService {
                 },
             });
 
+            // Log quirúrgico: response sin tokens
+            logger.info('MercadoPago createPreference response', {
+                hasResult: !!result,
+                id: result?.id,
+                hasInitPoint: !!result?.init_point,
+                hasSandboxInitPoint: !!result?.sandbox_init_point,
+            });
+
             return {
-                id: result.id,
-                init_point: result.init_point,
-                sandbox_init_point: result.sandbox_init_point,
+                id: result?.id,
+                init_point: result?.init_point,
+                sandbox_init_point: result?.sandbox_init_point,
             };
-        } catch (error) {
-            logger.error('Error creando preferencia de MercadoPago:', error);
+        } catch (error: unknown) {
+            const err = error as { message?: string; response?: { status?: number } };
+            logger.error('MercadoPago createPreference error', {
+                message: err?.message,
+                statusCode: err?.response?.status,
+            });
             throw error;
         }
     }

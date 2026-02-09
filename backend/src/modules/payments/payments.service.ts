@@ -92,15 +92,25 @@ export class PaymentsService {
           data.cancelUrl
         );
       } catch (mpErr: unknown) {
-        logger.error('MercadoPago createPreference error:', mpErr);
-        throw createError('No se pudo crear la preferencia de pago. Intente mas tarde.', 502);
+        const err = mpErr as { message?: string; response?: { status?: number } };
+        logger.error('MercadoPago createPreference error', {
+          message: err?.message,
+          statusCode: err?.response?.status,
+        });
+        throw createError('No se pudo crear la preferencia de pago. Intente mas tarde.', 400);
       }
 
+      // initPoint: init_point ?? sandbox_init_point (MP puede devolver solo uno)
       const initPoint = (preference?.init_point ?? preference?.sandbox_init_point) ?? '';
       const prefId = preference?.id ?? '';
       if (!initPoint || typeof initPoint !== 'string' || !prefId) {
-        logger.error('MercadoPago no devolvio init_point o id:', { preference });
-        throw createError('Error al crear preferencia de pago', 502);
+        logger.error('MercadoPago respuesta incompleta', {
+          hasPreference: !!preference,
+          hasId: !!prefId,
+          hasInitPoint: !!preference?.init_point,
+          hasSandboxInitPoint: !!preference?.sandbox_init_point,
+        });
+        throw createError('MercadoPago no devolvio URL de pago. Intente mas tarde.', 400);
       }
 
       // PROD-SAFE: raw INSERT solo columnas garantizadas (init+add_mercadopago tienen amount,fee,netAmount,status,consultationId)
@@ -116,7 +126,7 @@ export class PaymentsService {
           throw createError('Ya existe un pago pendiente para esta consulta', 400);
         }
         logger.error('Error al insertar payment:', insertErr);
-        throw createError('Error al registrar el pago', 500);
+        throw createError('Error al registrar el pago. Intente mas tarde.', 400);
       }
 
       logger.info(`Preferencia MercadoPago creada: ${prefId} - Consulta: ${row.id}`);
